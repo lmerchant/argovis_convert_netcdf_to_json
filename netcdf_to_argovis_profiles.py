@@ -157,9 +157,6 @@ def create_profile_dict(nc, profile_number, df_all_mapping, filename, meta_names
 
     #---------
 
-    # TODO is the station_parameters_in_nc the list of names
-    # in the measurements dict or the original goship names?
-
     profile_dict = meta_dict
     profile_dict['measurements'] = params_dict_array   
     profile_dict['units'] = units_dict
@@ -175,12 +172,12 @@ def convert_sea_water_temp(nc, df):
     # have go_ship_ref_scale be ITS-90
 
     # Should really be for all temperatures. Or is it?
-    # So look for ref_scale = ITS-68 or ITS-90   
-    # What about when no var? Is another temperature needed to be on ITS-90 scale?
+    # So look for ref_scale = IPTS-68 or ITS-90   
+    # What about when no TEMP var? Is another temperature needed to be on ITS-90 scale?
     # Example is file 10049_ctd.nc with no var TEMP
 
     # loop through variables and look at reference scale,
-    # if it is ITS-68 then convert
+    # if it is IPTS-68 then convert
 
     for var in nc:
 
@@ -383,7 +380,7 @@ def get_argo_mapping_df(argo_mapping_file):
     return df
 
 
-def get_goship_mapping(nc):
+def get_goship_mapping_df(nc):
 
     coord_names = list(nc.coords)
     var_names = list(nc.keys())
@@ -420,7 +417,7 @@ def get_goship_mapping(nc):
 
 def create_json(nc, json_dir, filename, argo_mapping_file, argo_units_mapping_file):
 
-    df_goship_mapping = get_goship_mapping(nc)
+    df_goship_mapping = get_goship_mapping_df(nc)
     df_argo_mapping = get_argo_mapping_df(argo_mapping_file)
     df_all_mapping = df_goship_mapping.merge(df_argo_mapping,how='left', left_on='goship_name', right_on='goship_name')
 
@@ -432,6 +429,7 @@ def create_json(nc, json_dir, filename, argo_mapping_file, argo_units_mapping_fi
 
     # Do conversions
     nc, df_all_mapping = convert_to_argo_units(nc, df_all_mapping)
+
 
     meta_names, param_names = get_meta_param_names(nc)
     num_profiles = nc.dims['N_PROF']
