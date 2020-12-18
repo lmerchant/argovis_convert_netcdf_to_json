@@ -1,0 +1,90 @@
+﻿parameter name,"Parameter name short version
+Backup",long_name,cf_standard_name,unit
+CNDC,CNDC,Electrical conductivity,sea_water_electrical_conductivity,mhos/m
+PRES,PRES,"Sea water pressure, equals 0 at sea-level",sea_water_pressure,decibar
+PSAL,PSAL,Practical salinity,sea_water_salinity,psu
+TEMP,TEMP,Sea temperature in-situ ITS-90 scale,sea_water_temperature,degree_Celsius
+DOXY,DOXY,Dissolved oxygen,moles_of_oxygen_per_unit_mass_in_sea_water,micromole/kg
+TEMP_DOXY,TEMP_DOXY,Sea temperature from oxygen sensor ITS-90 scale,temperature_of_sensor_for_oxygen_in_sea_water,degree_Celsius
+TEMP_VOLTAGE_DOXY,,Thermistor voltage reported by oxygen sensor,-,volt
+VOLTAGE_DOXY,VOLTAGE_DOXY,Voltage reported by oxygen sensor,-,volt
+FREQUENCY_DOXY,FREQUENCY_DOXY,Frequency reported by oxygen sensor,-,hertz
+COUNT_DOXY,COUNT_DOXY,Count reported by oxygen sensor,-,count
+BPHASE_DOXY,BPHASE_DOXY,Uncalibrated phase shift reported by oxygen sensor,-,degree
+DPHASE_DOXY,DPHASE_DOXY,Calibrated phase shift reported by oxygen sensor,-,degree
+TPHASE_DOXY,TPHASE_DOXY,Uncalibrated phase shift reported by oxygen sensor,-,degree
+C1PHASE_DOXY,C1PHASE_DOXY,Uncalibrated phase shift reported by oxygen sensor,-,degree
+C2PHASE_DOXY,C2PHASE_DOXY,Uncalibrated phase shift reported by oxygen sensor,-,degree
+MOLAR_DOXY,MOLAR_DOXY,"Uncompensated (pressure and salinity) oxygen concentration reported
+by the oxygen sensor",mole_concentration_of_dissolved_molecular_oxygen_in_sea_water,micromole/l
+PHASE_DELAY_DOXY,PHASE_DELAY_DOXY,Phase delay reported by oxygen sensor,-,microsecond
+MLPL_DOXY,MLPL_DOXY,Oxygen concentration reported by the oxygen sensor,-,ml/l
+NB_SAMPLE,NB_SAMPLE,Number of samples in bin,-,dimensionless
+RPHASE_DOXY,RPHASE_DOXY,Uncalibrated red phase shift reported by oxygen sensor,-,degree
+TEMP_COUNT_DOXY,,Count which is expressive of uncalibrated temperature value reported by oxygen sensor,-,count
+LED_FLASHING_COUNT_DOXY,,Number of times oxygen sensor flashing to measure oxygen,-,count
+PPOX_DOXY,,Partial pressure of oxygen,-,millibar
+BETA_BACKSCATTERING,OPBS_BBP,Total angle specific volume from backscattering sensor at x nanometers,-,count
+BETA_BACKSCATTERING470,,Total angle specific volume from backscattering sensor at 470 nanometers,-,count
+BETA_BACKSCATTERING532,,Total angle specific volume from backscattering sensor at 532 nanometers,-,count
+BETA_BACKSCATTERING700,,Total angle specific volume from backscattering sensor at 700 nanometers,-,count
+FLUORESCENCE_CHLA,FVLT_CHLA,Chlorophyll-A signal from fluorescence sensor,-,count
+TEMP_CPU_CHLA,TEMP_CPU_CHLA,Thermistor signal from backscattering sensor,-,count
+FLUORESCENCE_CDOM,FVLT_CDOM,Raw fluorescence from coloured dissolved organic matter sensor,-,count
+SIDE_SCATTERING_TURBIDITY,OPSS_TURB,Turbidity signal from side scattering sensor,-,count
+TRANSMITTANCE_PARTICLE_BEAM_ATTENUATION,ATTN_CP,Beam attenuation from transmissometer sensor at x nanometers,-,count
+TRANSMITTANCE_PARTICLE_BEAM_ATTENUATION660,,Beam attenuation from transmissometer sensor at 660 nanometers,-,dimensionless
+BBP,,Particle backscattering at x nanometers,-,m-1
+BBP470,Particle backscattering at 532 nanometers,Particle backscattering at 470 nanometers,-,m-1
+BBP532,BBP532,Particle backscattering at 532 nanometers,-,m-1
+BBP700,BBP700,Particle backscattering at 700 nanometers,-,m-1
+TURBIDITY,TURB,Sea water turbidity,sea_water_turbidity,ntu
+CP,CP,Particle beam attenuation at x nanometers,-,m-1
+CP660,,Particle beam attenuation at 660 nanometers,-,m-1
+CHLA,CHLA,Chlorophyll-A,mass_concentration_of_chlorophyll_a_in_sea_water,mg/m3
+CDOM,CDOM,Concentration of coloured dissolved organic matter in sea water,-,ppb
+UV_INTENSITY_NITRATE,UV_INT_NTRA,Intensity of ultra violet flux from nitrate sensor,-,count
+UV_INTENSITY_DARK_NITRATE,UV_INT_D_NTRA,Intensity of ultra violet flux dark measurement from nitrate sensor,-,count
+UV_INTENSITY_DARK_SEAWATER_NITRATE,UV_INT_DSW_NTRA,Intensity of ultra-violet flux dark sea water from nitrate sensor,-,count
+NITRATE,NTRA,Nitrate,moles_of_nitrate_per_unit_mass_in_sea_water,micromole/kg
+BISULFIDE,SPWC_NTRA,Bisulfide,-,micromole/kg
+MOLAR_NITRATE,MOLAR_NTRA,Nitrate,-,micromole/l
+FIT_ERROR_NITRATE,FIT_ERROR_NTRA,Nitrate fit error,-,dimensionless
+TEMP_NITRATE,TEMP_NITRATE,Internal temperature of the SUNA sensor,-,degree_Celsius
+TEMP_SPECTROPHOTOMETER_NITRATE,TEMP_SPECTROPHOTOMETER_NITRATE,Temperature of the spectrometer,-,degree_Celsius
+HUMIDITY_NITRATE,HUMIDITY_NITRATE,Relative humidity inside the SUNA sensor (If > 50% There is a leak),-,percent
+VRS_PH,VRS_PH,Voltage difference between reference and source from pH sensor,-,volt
+TEMP_PH,,Sea temperature from pH sensor,-,degree_Celsius
+IB_PH,,Base current of pH sensor,-,nanoampere
+VK_PH,,Counter electrode voltage of pH sensor,-,volt
+IK_PH,,Counter electrode current of pH sensor,-,nanoampere
+PH_IN_SITU_TOTAL,PH_TOTAL,pH,sea_water_ph_reported_on_total_scale,dimensionless
+PH_IN_SITU_FREE,PH_FREE,pH,-,dimensionless
+PH_IN_SITU_SEAWATER,PH_SEAWATER,pH,-,dimensionless
+RAW_DOWNWELLING_IRRADIANCE,RAW_DOWN_IRR,Raw downwelling irradiance at x nanometers,-,count
+RAW_DOWNWELLING_IRRADIANCE380,,Raw downwelling irradiance at 380 nanometers,-,count
+RAW_DOWNWELLING_IRRADIANCE412,,Raw downwelling irradiance at 412 nanometers,-,count
+RAW_DOWNWELLING_IRRADIANCE443,Raw downwelling irradiance at 490 nanometers,Raw downwelling irradiance at 443 nanometers,-,count
+RAW_DOWNWELLING_IRRADIANCE490,,Raw downwelling irradiance at 490 nanometers,-,count
+RAW_DOWNWELLING_IRRADIANCE555,,Raw downwelling irradiance at 555 nanometers,-,count
+DOWN_IRRADIANCE,DOWN_IRR,Downwelling irradiance at x nanometers,-,W/m^2/nm
+DOWN_IRRADIANCE380,,Downwelling irradiance at 380 nanometers,-,W/m^2/nm
+DOWN_IRRADIANCE412,,Downwelling irradiance at 412 nanometers,-,W/m^2/nm
+DOWN_IRRADIANCE443,,Downwelling irradiance at 443 nanometers,-,W/m^2/nm
+DOWN_IRRADIANCE490,,Downwelling irradiance at 490 nanometers,-,W/m^2/nm
+DOWN_IRRADIANCE555,,Downwelling irradiance at 555 nanometers,-,W/m^2/nm
+RAW_UPWELLING_RADIANCE,RAW_UP_RAD,Raw upwelling radiance at x nanometers,-,count
+RAW_UPWELLING_RADIANCE412,,Raw upwelling radiance at 412 nanometers,-,count
+RAW_UPWELLING_RADIANCE443,,Raw upwelling radiance at 443 nanometers,-,count
+RAW_UPWELLING_RADIANCE490,,Raw upwelling radiance at 490 nanometers,-,count
+RAW_UPWELLING_RADIANCE555,,Raw upwelling radiance at 555 nanometers,-,count
+UP_RADIANCE,UP_RAD,Upwelling radiance at x nanometers,upwelling_radiance_in_sea_water,W/m^2/nm/sr
+UP_RADIANCE412,,Upwelling radiance at 412 nanometers,upwelling_radiance_in_sea_water,W/m^2/nm/sr
+UP_RADIANCE443,Upwelling radiance at x nanometers,Upwelling radiance at 443 nanometers,upwelling_radiance_in_sea_water,W/m^2/nm/sr
+UP_RADIANCE490,,Upwelling radiance at 490 nanometers,upwelling_radiance_in_sea_water,W/m^2/nm/sr
+UP_RADIANCE555,,Upwelling radiance at 555 nanometers,upwelling_radiance_in_sea_water,W/m^2/nm/sr
+RAW_DOWNWELLING_PAR,RAW_DOWN_PAR,Raw downwelling photosynthetic available radiation,-,count
+DOWNWELLING_PAR,DOWN_PAR,Downwelling photosynthetic available radiation,downwelling_photosynthetic_photon_flux_in_sea_water,microMoleQuanta/m^2/sec
+TILT,,Inclination of the float axis in respect to the local vertical,-,degree
+MTIME,,Fractional day of the individual measurement relative to JULD of the station,-,days
+TEMP_CNDC,,Internal temperature of the conductivity sensor,degree_Celsius,
