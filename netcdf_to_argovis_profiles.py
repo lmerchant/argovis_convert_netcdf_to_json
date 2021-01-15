@@ -422,10 +422,15 @@ def get_goship_mapping_df(nc):
 def create_json(nc, json_dir, filename, argo_mapping_file, argo_units_mapping_file):
 
     df_goship_mapping = get_goship_mapping_df(nc)
+
+    # Need to modify if no ctd_temperature, use ctd_temperature_68 if it exists
+    # In the mapping of go-ship names and argo names
     df_argo_mapping = get_argo_mapping_df(argo_mapping_file)
+
     df_all_mapping = df_goship_mapping.merge(df_argo_mapping,how='left', left_on='goship_name', right_on='goship_name')
 
     df_all_mapping = add_argo_qc_names(df_all_mapping)
+
     nc, df_all_mapping = rename_to_argo_names(nc, df_all_mapping)
 
     nc, df_all_mapping = rename_units_to_argo_units(nc, argo_units_mapping_file, df_all_mapping)
