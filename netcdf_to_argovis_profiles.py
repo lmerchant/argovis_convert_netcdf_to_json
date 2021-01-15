@@ -124,9 +124,7 @@ def create_profile_dict(nc, profile_number, df_all_mapping, filename, meta_names
     profile = nc.isel(N_PROF=[profile_number])
     df_profile = profile.to_dataframe()
 
-    # # Get metadata and parameter subsets of df_profile
-    # meta_names, param_names = get_meta_param_names(nc)
-
+    # Get metadata and parameter subsets of df_profile
     df_meta = df_profile[meta_names]
     df_params = df_profile[param_names]
 
@@ -166,40 +164,49 @@ def create_profile_dict(nc, profile_number, df_all_mapping, filename, meta_names
     return profile_dict
 
 
-def convert_sea_water_temp(nc, df):
+def convert_sea_water_temp(nc, df, filename):
 
     # Check sea_water_temperature to be degree_Celsius and
     # have go_ship_ref_scale be ITS-90
 
-    # Should really be for all temperatures. Or is it?
     # So look for ref_scale = IPTS-68 or ITS-90   
-    # What about when no TEMP var? Is another temperature needed to be on ITS-90 scale?
-    # Example is file 10049_ctd.nc with no var TEMP
 
     # loop through variables and look at reference scale,
     # if it is IPTS-68 then convert
+
+    try:
+        nc['TEMP']
+        is_temp = True
+    except KeyError:
+        is_temp = False
+
+    if not is_temp:
+        logging.info('===========')
+        logging.info(filename)
+        logging.info('===========')
+
 
     for var in nc:
 
         try: 
             unit = nc[var].attrs['units']
             ref_scale = nc[var].attrs['reference_scale']
-
-            logging.info('---------')
-
             expocode = nc.coords['expocode'].values[0]
-            logging.info(expocode)            
-            logging.info(var)
-            logging.info(ref_scale)
-            logging.info(unit)
 
+            if not is_temp:
 
+                logging.info(expocode)            
+                logging.info(var)
+                logging.info(ref_scale)
+                logging.info(unit)
+
+                logging.info('---------')
 
         except KeyError:
             pass  
 
 
-
+    # Change this to work for all temperature names
     var = 'TEMP'
 
     try:
@@ -221,7 +228,7 @@ def convert_sea_water_temp(nc, df):
             nc[var].data = temperature90
 
         elif ref_scale == 'IPTS-68' and argo_unit != unit:
-            loggin.info('temperature unit is not equal to Argo unit on ITS-68 scale')
+            logging.info('temperature unit is not equal to Argo unit on ITS-68 scale')
 
         elif argo_unit != unit:
             logging.info('temperature unit is not equal to Argo unit')
@@ -229,6 +236,7 @@ def convert_sea_water_temp(nc, df):
         return nc, df
 
     except KeyError:
+
         return nc, df
 
 
@@ -248,15 +256,11 @@ def get_meta_param_names(nc):
     return (meta_names, param_names)   
 
 
-def convert_to_argo_units(nc, df_all_mapping):
-
-
-    # Do same with bottle_salinity
-    # For salinity, goship_unit is 1 and argo_unit is psu
+def convert_to_argo_units(nc, df_all_mapping, filename):
 
     # ------ Sea Water Temperature -------
 
-    nc, df_all_mapping = convert_sea_water_temp(nc, df_all_mapping)
+    nc, df_all_mapping = convert_sea_water_temp(nc, df_all_mapping, filename)
 
 
 
@@ -293,7 +297,7 @@ def rename_units_to_argo_units(nc, argo_goship_units_mapping_file, df_all_mappin
             is_salinity = row['reference_scale'].values[0] == 'PSS-78'
 
             if var_unit == '1' and not is_salinity:
-                logging.info(f"goship unit =1 and not salinity {var}") 
+                logging.info(f"goship unit = 1 and not salinity {var}") 
                 logging.info(nc) 
                 exit(1)
             else:
@@ -424,12 +428,9 @@ def create_json(nc, json_dir, filename, argo_mapping_file, argo_units_mapping_fi
     df_all_mapping = add_argo_qc_names(df_all_mapping)
     nc, df_all_mapping = rename_to_argo_names(nc, df_all_mapping)
 
-    # Rename units to argo units
     nc, df_all_mapping = rename_units_to_argo_units(nc, argo_units_mapping_file, df_all_mapping)
 
-    # Do conversions
-    nc, df_all_mapping = convert_to_argo_units(nc, df_all_mapping)
-
+    nc, df_all_mapping = convert_to_argo_units(nc, df_all_mapping, filename)
 
     meta_names, param_names = get_meta_param_names(nc)
     num_profiles = nc.dims['N_PROF']
@@ -468,12 +469,14 @@ def main():
 
         for filename in files:
 
+            # With TEMP var and other temperature vars
+            #filename = 'pr15_jj_hy1.csv.nc'
+
+            # Without TEMP var and other temperature vars
+            #filename = '11231_ctd.nc'
+
             if not filename.endswith('.nc'):
                 continue
-
-            logging.info(filename)
-
-            #filename = '10049_ctd.nc'
 
             fin = os.path.join(root, filename)
 
