@@ -42,19 +42,6 @@ def get_geo_information(latitude, longitude):
     return geo_dict
 
 
-def update_meta_mapping(df):
-
-    # Add row for date in df and remove time row
-    data = {'name': ['date'], 'unit': ['']}
-    df_new = pd.DataFrame(data, columns=['name', 'unit'])
-
-    df = pd.concat([df_new, df], ignore_index=True)
-
-    df.drop(df[df['name'] == 'time'].index, inplace = True)
-
-    return df
-
-
 def add_extra_meta_data(df_meta, profile_number, filename):
 
     # Since all rows the same for meta, just
@@ -95,14 +82,12 @@ def add_extra_meta_data(df_meta, profile_number, filename):
     meta_dict['DATA_CENTRE'] = 'CCHDO'
     meta_dict['cruise_url'] = cruise_url
     meta_dict['data_filename'] = filename
-    #meta_dict['profile_type'] = profile_type
+    meta_dict['profile_type'] = profile_type
     meta_dict['netcdf_url'] = ''
+    meta_dict['date_formatted'] = meta_dict['date'].strftime("%Y-%m-%d")
 
-    meta_dict['date_formatted'] = meta_dict['time'].strftime("%Y-%m-%d")
-
-    # Remove time, convert to iso and call date
-    meta_dict['date'] = meta_dict['time'].isoformat()
-    meta_dict.pop('time', None)
+    # Convert date to iso
+    meta_dict['date'] = meta_dict['date'].isoformat()
 
     latitude = meta_dict['lat']
     longitude = meta_dict['lon']
@@ -123,10 +108,13 @@ def write_profile_json(json_dir, profile_number, profile_dict):
     profile_json = json.dumps(profile_dict, default=convert)
 
     profile_id = profile_dict['id']
-    profile_pieces = profile_id.split('_NPROF')
-
     filename = profile_id + '.json'
+
+    profile_pieces = profile_id.split('_NPROF')
     folder_name = profile_pieces[0]
+
+    # Now remove BOT_ or CTD_ from folder name
+    folder_name = folder_name[4:]
 
     path = os.path.join(json_dir, folder_name)
 
@@ -213,20 +201,25 @@ def create_profile_dict(nc, profile_number, df_all_mapping, filename, meta_names
     units_argo_dict = dict(zip(df_all_mapping['name'], df_all_mapping['unit']))
     units_nc_dict = dict(zip(df_all_mapping['goship_name'], df_all_mapping['goship_unit']))
 
-    refscales_argo_dict = dict(zip(df_all_mapping['name'], df_all_mapping['reference_scale']))
-    refscales_nc_dict = dict(zip(df_all_mapping['goship_name'], df_all_mapping['reference_scale']))
+    refscales_argovis_dict = dict(zip(df_all_mapping['name'], df_all_mapping['reference_scale']))
+
+    refscales_nc_dict = dict(zip(df_all_mapping['goship_name'], df_all_mapping['goship_reference_scale']))
+
+    c_format_nc_dict = dict(zip(df_all_mapping['goship_name'], df_all_mapping['goship_c_format']))
 
     profile_dict = meta_dict
     profile_dict['measurements'] = params_dict_array
-    profile_dict['parameters_units_in_nc'] = units_nc_dict
-    profile_dict['parameters_units_in_argovis'] = units_argo_dict
+    profile_dict['parameter_units_in_nc'] = units_nc_dict
+    profile_dict['parameter_units_in_argovis'] = units_argo_dict
 
-    profile_dict['parameters_ref_scales_in_nc'] = refscales_nc_dict
-    profile_dict['parameters_ref_scales_in_argovis'] = refscales_argo_dict
+    profile_dict['parameter_ref_scales_in_nc'] = refscales_nc_dict
+    profile_dict['parameter_ref_scales_in_argovis'] = refscales_argovis_dict
 
     #profile_dict['station_parameters_in_nc'] = names_in_orig
     #profile_dict['parameters_in_nc_mapping_to_argovis'] = param_mapping_dict
-    profile_dict['parameters_in_nc_mapping_to_argovis'] = all_mapping_dict
+    profile_dict['parameter_in_nc_mapping_to_argovis'] = all_mapping_dict
+
+    profile_dict['parameter_c_formats_in_nc'] = c_format_nc_dict
 
     return profile_dict
 
@@ -255,10 +248,12 @@ def check_if_all_ctd_vars(nc, filename):
     var_names = list(nc.keys())  
     names = [*coord_names, *var_names]
 
+    # TODO does it work to just loop through names?
+
     is_pres = False
-    is_ctd_temp_refscale = False
-    is_ctd_temp_no_refscale = False
-    is_not_ctd_temp = False
+    is_ctd_temp_w_refscale = False
+    is_ctd_temp_w_no_refscale = False
+    is_temp_w_no_ctd = False
 
     name_to_units = {}
     name_to_ref_scale = {}
@@ -268,9 +263,6 @@ def check_if_all_ctd_vars(nc, filename):
 
     # Check for pressure
     for name in coord_names:
-
-        if name == 'PRES':
-            is_pres = True   
 
         try:
             name_to_units[name] = nc.coords[name].attrs['units']
@@ -284,11 +276,18 @@ def check_if_all_ctd_vars(nc, filename):
 
     for name in var_names:
 
-        if name == 'TEMP':
-            is_ctd_temp_refscale = True
+        # From name mapping earlier, goship pressure name mapped to Argo equivalent
+        if name == 'PRES':
+            is_pres = True   
 
+        # From name mapping earlier, goship temperature name mapped to Argo equivalent
+        if name == 'TEMP':
+            is_ctd_temp_w_refscale = True
+
+        # From name mapping earlier, if didn't find reference scale for temperature
+        # but was a ctd temperature, renamed to TEMP_no_refscale
         if name == 'TEMP_no_refscale':
-            is_ctd_temp_no_refscale = True
+            is_ctd_temp_w_no_refscale = True
 
         try:
             name_to_units[name] = nc[name].attrs['units']
@@ -305,36 +304,41 @@ def check_if_all_ctd_vars(nc, filename):
         unit = name_to_units[name]
 
         if name !='TEMP' and name != 'TEMP_no_refscale' and unit=='Celsius':
-            is_not_ctd_temp = True
+            is_temp_w_no_ctd = True
 
 
     expocode = nc.coords['expocode'].values[0]
 
     log_output = False
 
-    if not is_pres or not is_ctd_temp_refscale:   
+    if not is_pres or not is_ctd_temp_w_refscale:   
 
         logging.info('===========')
+        logging.info('EXCEPTIONS FOUND')
         logging.info(expocode)
         logging.info(filename)   
-        logging.info('===========')  
 
-        if not is_pres:
-            logging.info('missing PRES') 
 
-        # if not is_ctd_temp_refscale:
-        #     logging.info('missing CTD TEMP w ref scale')
-        #     logging.info('---------')  
+    if not is_pres:
+        logging.info('missing PRES')   
+        with open('files_no_pressure.txt', 'a') as f:
+            f.write('===========\n')
+            f.write(expocode + '\n')
+            f.write(filename + '\n') 
 
-    if not is_ctd_temp_refscale and is_ctd_temp_no_refscale:  
 
+    if is_ctd_temp_w_no_refscale and is_ctd_temp_w_refscale:  
+        logging.info("has both CTD with and without ref scale") 
+
+    if not is_ctd_temp_w_refscale and is_ctd_temp_w_no_refscale:  
+        logging.info('CTD Temp with no ref scale')
         # Write to file listing files without ctd variables
         with open('files_ctd_temps_no_refscale.txt', 'a') as f:
             f.write('===========\n')
             f.write(expocode + '\n')
             f.write(filename + '\n')  
 
-    if not is_ctd_temp_refscale and not is_ctd_temp_no_refscale: 
+    if not is_ctd_temp_w_refscale and not is_ctd_temp_w_no_refscale: 
         logging.info('NO CTD Temp')
 
         # Write to file listing files without ctd variables
@@ -343,43 +347,55 @@ def check_if_all_ctd_vars(nc, filename):
             f.write(expocode + '\n')
             f.write(filename + '\n')  
 
-    if not is_ctd_temp_refscale and not is_ctd_temp_no_refscale and not is_not_ctd_temp:
+
+    if not is_ctd_temp_w_refscale and not is_ctd_temp_w_no_refscale and not is_temp_w_no_ctd:
         logging.info('NO TEMPS')
 
 
-    for name in names:
+    if not is_pres or (not is_ctd_temp_w_refscale and not is_ctd_temp_w_no_refscale): 
 
-        unit = name_to_units[name]
-        ref_scale = name_to_ref_scale[name]
+        logging.info('===========')
+        logging.info('OTHER PRES/TEMP VARS')
+        logging.info(expocode)
+        logging.info(filename)    
 
-        if name != 'PRES' and unit=='decibar': 
-            logging.info('No pressure but decibar unit')        
-            logging.info(name)
+        for name in names:
 
-        if name == 'TEMP_no_refscale':
-            logging.info('Exists CTD TEMP with no ref scale')  
-            logging.info('---------')        
+            unit = name_to_units[name]
+            ref_scale = name_to_ref_scale[name]
 
-        if name != 'TEMP' and name != 'TEMP_no_refscale' \
-                    and unit=='Celsius' and not is_ctd_temp_refscale: 
+            if name != 'PRES' and unit=='decibar': 
+                logging.info('Not CTDPRS and has decibar unit')  
+                logging.info(f"{name} with Ref scale {ref_scale}")      
 
-            logging.info(name)
-
-            if not ref_scale:
-                logging.info('No ref scale')
-            else:
-                logging.info('Has ref scale')
-
-            logging.info('---------') 
+            if name != 'TEMP' and name != 'TEMP_no_refscale' and unit == 'Celsius':
+                logging.info('Not CTDTMP and has Celsius unit')  
+                logging.info(f"{name} with Ref scale {ref_scale}")  
 
 
-    return is_ctd_temp_refscale, is_ctd_temp_no_refscale
+    # Look for vars with a unit of one (PSAL already converted to psu unit)
+    if '1' in name_to_units.values():
+
+        logging.info('===========')
+        logging.info('VARS with Unit = 1')
+        logging.info(expocode)
+        logging.info(filename)   
+
+        for name in names:
+
+            unit = name_to_units[name]
+            ref_scale = name_to_ref_scale[name]
+
+            if unit == '1':  
+                logging.info(f"{name} with Ref scale {ref_scale}")                     
+
+    return is_ctd_temp_w_refscale, is_ctd_temp_w_no_refscale
 
 
-def convert_sea_water_temp(nc, df, filename):
+def convert_sea_water_temp(var, nc):
 
     # Check sea_water_temperature to be degree_Celsius and
-    # have go_ship_ref_scale be ITS-90
+    # have goship_ref_scale be ITS-90
 
     # So look for ref_scale = IPTS-68 or ITS-90   
 
@@ -387,11 +403,12 @@ def convert_sea_water_temp(nc, df, filename):
     # if it is IPTS-68 then convert
 
     # Change this to work for all temperature names
+
+    reference_scale = 'unknown'
+
     try:
-        var = 'TEMP'
 
         temperature = nc[var].data
-
         nc_ref_scale = nc[var].attrs['reference_scale']
 
         if nc_ref_scale == 'IPTS-68':
@@ -404,154 +421,154 @@ def convert_sea_water_temp(nc, df, filename):
 
             nc[var].attrs['reference_scale'] = 'IPT-90'
 
-            df['reference_scale'] = 'IPT-90'
+            #df.loc[df['name'] == var, 'reference_scale'] = 'IPT-90'
+            reference_scale = 'IPT-90'
 
-        return nc, df
+        else:
+            print('temperature not IPTS-68')
+            reference_scale = 'unknown'
+
+        return nc, reference_scale
 
     except KeyError:
 
-        return nc, df
+        return nc, reference_scale
 
 
-def convert_units(nc, df_all_mapping, filename):
+def convert_units_add_ref_scale(nc, df_all_mapping, filename):
 
-    # ------ Sea Water Temperature -------
+    # If argo ref scale different from goship, convert
+    # df_goship_ref_scale = df_all_mapping[['name', 'goship_reference_scale']].copy()
+    # df_argo_ref_scale = df_all_mapping[['name', 'argo_reference_scale']].copy()
 
-    nc, df_all_mapping = convert_sea_water_temp(nc, df_all_mapping, filename)
+    # goship_ref_scale = dict(df_goship_ref_scale.values.tolist())
+    # argo_ref_scale = dict(df_argo_ref_scale.values.tolist())
+
+    df_all_mapping['reference_scale'] = 'unknown'
+
+    coord_names = list(nc.coords)
+    var_names = list(nc.keys())  
+
+    for var in var_names:
+
+        new_ref_scale = 'unknown'
+
+        # If argo ref scale not equal to goship ref scale, convert  
+        row = df_all_mapping.loc[df_all_mapping['name'] == var]        
+        
+        goship_ref_scale = row['goship_reference_scale'].values[0]
+        argo_ref_scale = row['argo_reference_scale'].values[0]
+
+        argo_is_nan = pd.isnull(argo_ref_scale)
+
+        if goship_ref_scale == 'unknown':
+            new_ref_scale = 'unknown'
+            
+        if goship_ref_scale == argo_ref_scale:
+            new_ref_scale = goship_ref_scale
+
+        if (goship_ref_scale != argo_ref_scale) and not argo_is_nan:
+            # Convert to argo ref scale
+            # then save this to add to new reference_scale column
+            if argo_ref_scale == 'IPT-90' and goship_ref_scale == 'IPTS-68':
+                # convert seawater temperature
+                nc, new_ref_scale = convert_sea_water_temp(var, nc)
+            else:
+                print(var)
+                print(f"argo ref scale: {argo_ref_scale}")
+                print(f"goship ref scale: {goship_ref_scale}")
+                new_ref_scale = 'UNKNOWN conversion'
+        
+        df_all_mapping.loc[df_all_mapping['name'] == var, 'reference_scale'] = new_ref_scale
 
     return nc, df_all_mapping
 
 
-def include_reference_scale(df_all_mapping):
+def get_new_unit_name(var, df_all_mapping, mapping_ref_scale_dict, mapping_unit_dict):
 
-    # Create new column containing reference scale of the new names
+    # New unit name is argo, but if no argo name, use goship name
 
-    df_goship_ref_scale = df_all_mapping[['name', 'goship_reference_scale']].copy()
-    df_argo_ref_scale = df_all_mapping[['name', 'argo_reference_scale']].copy()
+    row = df_all_mapping.loc[df_all_mapping['name'] == var]
 
-    goship_ref_scale = dict(df_goship_ref_scale.values.tolist())
-    argo_ref_scale = dict(df_argo_ref_scale.values.tolist())
+    goship_unit = row['goship_unit'].values[0]
+    argo_unit = row['argo_unit'].values[0]
 
-    new_ref_scale = {**goship_ref_scale, **argo_ref_scale}
+    goship_ref_scale = row['goship_reference_scale'].values[0] 
 
-    df_new_ref_scale = pd.DataFrame(new_ref_scale.items())
-    df_new_ref_scale.columns = ['name', 'reference_scale']
+    mapped_argo_ref_scale = mapping_ref_scale_dict.get(argo_unit, None)
+    ref_scale_same = mapped_argo_ref_scale == goship_ref_scale
 
-    # If no new units, get NaN
-    df_all_mapping = df_all_mapping.merge(df_new_ref_scale,how='left', left_on='name', right_on='name')
+    mapped_unit = mapping_unit_dict.get(goship_unit, None)
 
-    return df_all_mapping
+    # If have a goship unit, map it to an argo unit if one exists
+    if not pd.isnull(goship_unit):
+
+        if ref_scale_same and goship_unit == '1':
+            # covers case of salinity with PSS-78 ref scale
+            # and goship unit = 1 which argo is psu
+            new_unit = mapped_unit
+
+        elif goship_unit == '1':
+            new_unit = goship_unit
+
+        elif mapping_unit_dict.get(goship_unit, None):
+            new_unit = mapped_unit
+        else:
+            new_unit = goship_unit
+    else:
+        new_unit = goship_unit
+
+    return new_unit
 
 
-def rename_units_to_argo_units(nc, argo_goship_units_mapping_file, df_all_mapping):
-
-    # At the moment, all units are goship units
-
-    # Rename units so can compare same names
-    # For salinity, goship unit is 1, so check reference scale to determine what it is
-
-    coord_names = list(nc.coords)
-    var_names = list(nc.keys())
-    names = [*coord_names, *var_names]
+def rename_units(nc, argo_goship_units_mapping_file, df_all_mapping):
 
     df = pd.read_csv(argo_goship_units_mapping_file)
-
-    df_units_goship = df_all_mapping[['name', 'goship_unit']].copy()
-    goship_units = dict(df_units_goship.values.tolist())
-
-    df_units_argo = df_all_mapping[['name', 'argo_unit']].copy()
-    argo_units = dict(df_units_argo.values.tolist())
-
-
-    # df_units_goship = df_all_mapping[['name', 'goship_unit']].copy()
-    # goship_units = dict(df_units_goship.values.tolist())
-
-    # df_units_argo = df_all_mapping[['name', 'argo_unit']].copy()
-    # argo_units = dict(df_units_argo.values.tolist())
+    mapping_unit_dict = dict(zip(df['goship_unit'], df['argo_unit'])) 
+    mapping_ref_scale_dict = dict(zip(df['argo_unit'], df['reference_scale']))
 
     new_param_units = {}
 
-    # Change attr variable units
     for var in nc:
 
-        try:
-            var_unit = nc[var].attrs['units']
+        new_unit = get_new_unit_name(var, df_all_mapping, mapping_ref_scale_dict, mapping_unit_dict)
 
-            row = df.loc[df['goship_unit'] == var_unit]
-            argo_unit = row['argo_unit'].values[0]  
-            goship_unit = row['goship_unit'].values[0]
-
-            new_unit_value = argo_unit
-
-            if not new_unit_value:
-                # Use goship unit
-                new_unit_value = goship_unit
-
-        except (KeyError, IndexError):
-            var_unit = ''
-            argo_unit = ''
-
-        try:
-            var_ref_scale = nc[var].attrs['reference_scale'] 
-            # ref scale is either a value or 'unknown'
-            is_salinity = var_ref_scale == 'PSS-78'
-
-            if var_unit == '1' and not is_salinity:
-                logging.info(f"goship unit = 1 and not salinity {var}") 
-                logging.info(nc) 
-            
-            elif var_unit and new_unit_value:
-                nc[var].attrs['units'] = new_unit_value
-                new_param_units[var] = new_unit_value                            
-
-        except KeyError:
-            new_param_units[var] = ''
+        nc[var].attrs['units'] = new_unit
+        new_param_units[var] = new_unit 
 
 
     new_meta_units = {}
 
-    # TODO does new units column have rows for all and if no value = ''?
+    for var in nc.coords:
 
-    # Change coord field units
-    for coord in nc.coords:
-        try:
-            coord_unit = nc.coords[coord].attrs['units']
-            argo_unit = df.loc[df['goship_unit'] == coord_unit, 'argo_unit']
-            goship_unit = df.loc[df['goship_unit'] == coord_unit, 'goship_unit']
+        new_unit = get_new_unit_name(var, df_all_mapping, mapping_ref_scale_dict, mapping_unit_dict)
 
-            new_unit_value = argo_unit.values[0]
-
-            if not new_unit_value:
-                # Use goship unit
-                new_unit_value = goship_unit.values[0]
-
-            nc.coords[coord].attrs['units'] = new_unit_value
-            new_meta_units[coord] = new_unit_value
-
-        except (KeyError, IndexError):
-            new_meta_units[coord] = ''
+        nc.coords[var].attrs['units'] = new_unit
+        new_meta_units[var] = new_unit 
              
-    new_units = {**new_meta_units, **new_param_units}
 
+    new_units = {**new_meta_units, **new_param_units}
     df_new_units = pd.DataFrame(new_units.items())
     df_new_units.columns = ['name', 'unit']
 
-    # If no new units, get NaN
     df_all_mapping = df_all_mapping.merge(df_new_units,how='left', left_on='name', right_on='name')
+
 
     return nc, df_all_mapping
 
 
 def rename_to_argo_names(nc, df, filename):
 
-    # From argo name mapping file, pressure is already PRES
+    # Now rename all coords and vars in nc
 
-    # Here, just renaming var names
+    # Look at var names to rename temperature and salinity
+    # depending on goship name because there are multiple types
     var_names = list(nc.keys())
 
     is_ctd_temp = False
     is_ctd_temp_68 = False
     is_ctd_temp_unknown = False
+
     is_ctd_sal = False
     is_bottle_sal = False
 
@@ -570,15 +587,11 @@ def rename_to_argo_names(nc, df, filename):
         if name == 'bottle_salinity':
             is_bottle_sal = True
 
-    # Create new column with new names
+    # Create new column with new names. Start as argo names if exist
     df['name'] = df['argo_name']    
 
     # if argo name is nan, use goship name
     df['name'] = np.where(df['argo_name'].isna(), df['goship_name'], df['name'])
-
-    # Change latitude and longitude names
-    df.loc[df['goship_name'] == 'latitude', 'name'] = 'lat'
-    df.loc[df['goship_name'] == 'longitude', 'name'] = 'lon'
 
     # if both temp on ITS-90 scale and temp on IPTS-68 scale, 
     # just use ctd_temperature. Don't change name of ctd_temperature_68
@@ -587,6 +600,7 @@ def rename_to_argo_names(nc, df, filename):
         df.loc[df['goship_name'] == 'ctd_temperature_68', 'name'] = \
             'TEMP'
         df_qc = df.isin({'goship_name': ['ctd_temperature_68_qc']}).any()
+
         if df_qc.any(axis=None):
             df.loc[df['goship_name'] == 'ctd_temperature_68_qc', 'name'] = \
             'TEMP_qc'
@@ -599,8 +613,6 @@ def rename_to_argo_names(nc, df, filename):
         if df_qc.any(axis=None):
             df.loc[df['goship_name'] == 'ctd_temperature_unk_qc', 'name'] = \
             'TEMP_no_refscale_qc'    
-
-        # Write to file temp with no ref scale
 
 
     # if both salinities, use ctd_salinity and use name bottle_salinity
@@ -615,7 +627,9 @@ def rename_to_argo_names(nc, df, filename):
             df.loc[df['goship_name'] == 'bottle_salinity_qc', 'name'] = \
             'bottle_salinity_qc'                
 
+
     # Create mapping dicts to go from goship name to new name
+    # Will map both coordinate and variable names
     mapping_dict = dict(zip(df['goship_name'], df['name'])) 
     nc = nc.rename_vars(name_dict=mapping_dict)
 
@@ -655,13 +669,29 @@ def get_goship_mapping_df(nc):
 
     coord_names = list(nc.coords)
     var_names = list(nc.keys())
-    names = [*coord_names, *var_names]   
-
+ 
     name_to_units = {}
     name_to_ref_scale = {}
+    name_to_c_format = {}
 
-    for name in names:
+    for name in coord_names:
+        # map name to units if units exist
+        try:
+            name_to_units[name] = nc.coords[name].attrs['units']
+        except KeyError:
+            name_to_units[name] = ''
 
+        try:
+            name_to_ref_scale[name] = nc.coords[name].attrs['reference_scale']
+        except KeyError:
+            name_to_ref_scale[name] = 'unknown'
+
+        try:
+            name_to_c_format[name] = nc.coords[name].attrs['C_format']
+        except KeyError:
+            name_to_c_format[name] = ''
+
+    for name in var_names:
         # map name to units if units exist
         try:
             name_to_units[name] = nc[name].attrs['units']
@@ -673,9 +703,16 @@ def get_goship_mapping_df(nc):
         except KeyError:
             name_to_ref_scale[name] = 'unknown'
 
+        try:
+            name_to_c_format[name] = nc[name].attrs['C_format']
+        except KeyError:
+            name_to_c_format[name] = ''
+
+
     df_dict = {}
     df_dict['goship_unit'] = name_to_units
     df_dict['goship_reference_scale'] = name_to_ref_scale
+    df_dict['goship_c_format'] = name_to_c_format
 
     df = pd.DataFrame.from_dict(df_dict)
     df.index.name = 'goship_name'
@@ -689,6 +726,7 @@ def create_json(nc, json_dir, filename, argo_name_mapping_file, argo_units_mappi
     df_goship_mapping = get_goship_mapping_df(nc)
     df_argo_mapping = get_argo_mapping_df(argo_name_mapping_file)
 
+    # Any empty cells filled with nan
     df_all_mapping = df_goship_mapping.merge(df_argo_mapping,how='left', left_on='goship_name', right_on='goship_name')
 
     # Rename index created when merging on goship_name
@@ -699,27 +737,32 @@ def create_json(nc, json_dir, filename, argo_name_mapping_file, argo_units_mappi
 
     nc, df_all_mapping = rename_to_argo_names(nc, df_all_mapping, filename)
 
-    nc, df_all_mapping = rename_units_to_argo_units(nc, argo_units_mapping_file, df_all_mapping)
-
-    df_all_mapping = include_reference_scale(df_all_mapping)
+    nc, df_all_mapping = rename_units(nc, argo_units_mapping_file, df_all_mapping)
 
     # If different reference scale, convert to Argo scale
-    nc, df_all_mapping = convert_units(nc, df_all_mapping, filename)
+    nc, df_all_mapping = convert_units_add_ref_scale(nc, df_all_mapping, filename)
 
     # Check if all ctd vars available pressure, temperature
     # PRES, TEMP
-    is_ctd_temp_refscale, is_ctd_temp_no_refscale = check_if_all_ctd_vars(nc, filename)
+    is_ctd_temp_w_refscale, is_ctd_temp_w_no_refscale = check_if_all_ctd_vars(nc, filename)
+
+
+
+    # Skip making json if no expocode, if not ctd with ref scale,
+    # and no ctd
+
+    if not is_ctd_temp_w_refscale and is_ctd_temp_w_no_refscale: 
+        # files with ctd temps but no ref scale
+        return
+
+    elif not is_ctd_temp_w_refscale and not is_ctd_temp_w_no_refscale:
+        # files with no ctd temp 
+        return
 
     expocode = nc.coords['expocode']
-
     if expocode.values[0] == 'None':
         return
 
-    if not is_ctd_temp_refscale and not is_ctd_temp_no_refscale:
-        return
-
-    if not is_ctd_temp_refscale and is_ctd_temp_no_refscale:
-        return
 
     meta_names, param_names = get_meta_param_names(nc)
     num_profiles = nc.dims['N_PROF']
@@ -761,8 +804,16 @@ def main():
             #filename = '33KA004_1_hy1.csv.nc'
 
             #only bottle salinity
+            # no ctd temperature
             # Is this renamed PSAL or kept as PSAL_bottle?
-            #filename = 's05_hy1.csv.nc
+            #filename = 's05_hy1.csv.nc'
+
+            # expocode with both bot and ctd = 32NH047_1
+            # Bottle file name = 32NM047_1_hy1.csv.nc
+            # CTD file name = 7790_ctd.nc
+
+            if not filename == '32NM047_1_hy1.csv.nc' and not filename == '7790_ctd.nc':
+                continue
 
             if not filename.endswith('.nc'):
                 continue
@@ -778,7 +829,7 @@ def main():
 
             create_json(nc, json_data_directory, filename, argo_name_mapping_file, argo_units_mapping_file)
 
-            exit(1)
+            #exit(1)
 
     logging.info(datetime.now() - start_time)
 
