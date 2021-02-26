@@ -264,6 +264,10 @@ def check_if_all_ctd_vars(nc, filename):
     # Check for pressure
     for name in coord_names:
 
+        # From name mapping earlier, goship pressure name mapped to Argo equivalent
+        if name == 'PRES':
+            is_pres = True 
+
         try:
             name_to_units[name] = nc.coords[name].attrs['units']
         except KeyError:
@@ -275,10 +279,6 @@ def check_if_all_ctd_vars(nc, filename):
             name_to_ref_scale[name] = ''
 
     for name in var_names:
-
-        # From name mapping earlier, goship pressure name mapped to Argo equivalent
-        if name == 'PRES':
-            is_pres = True   
 
         # From name mapping earlier, goship temperature name mapped to Argo equivalent
         if name == 'TEMP':
@@ -321,11 +321,8 @@ def check_if_all_ctd_vars(nc, filename):
 
     if not is_pres:
         logging.info('missing PRES')   
-        with open('files_no_pressure.txt', 'a') as f:
-            f.write('===========\n')
-            f.write(expocode + '\n')
-            f.write(filename + '\n') 
-
+        with open('files_no_pressure.csv', 'a') as f:
+            f.write(f"{expocode}, {filename} \n")
 
     if is_ctd_temp_w_no_refscale and is_ctd_temp_w_refscale:  
         logging.info("has both CTD with and without ref scale") 
@@ -333,19 +330,15 @@ def check_if_all_ctd_vars(nc, filename):
     if not is_ctd_temp_w_refscale and is_ctd_temp_w_no_refscale:  
         logging.info('CTD Temp with no ref scale')
         # Write to file listing files without ctd variables
-        with open('files_ctd_temps_no_refscale.txt', 'a') as f:
-            f.write('===========\n')
-            f.write(expocode + '\n')
-            f.write(filename + '\n')  
+        with open('files_ctd_temps_no_refscale.csv', 'a') as f:
+            f.write(f"{expocode}, {filename} \n") 
 
     if not is_ctd_temp_w_refscale and not is_ctd_temp_w_no_refscale: 
         logging.info('NO CTD Temp')
 
         # Write to file listing files without ctd variables
-        with open('files_no_ctd_temps.txt', 'a') as f:
-            f.write('===========\n')
-            f.write(expocode + '\n')
-            f.write(filename + '\n')  
+        with open('files_no_ctd_temps.csv', 'a') as f:
+            f.write(f"{expocode}, {filename} \n") 
 
 
     if not is_ctd_temp_w_refscale and not is_ctd_temp_w_no_refscale and not is_temp_w_no_ctd:
@@ -812,8 +805,8 @@ def main():
             # Bottle file name = 32NM047_1_hy1.csv.nc
             # CTD file name = 7790_ctd.nc
 
-            if not filename == '32NM047_1_hy1.csv.nc' and not filename == '7790_ctd.nc':
-                continue
+            # if not filename == '32NM047_1_hy1.csv.nc' and not filename == '7790_ctd.nc':
+            #     continue
 
             if not filename.endswith('.nc'):
                 continue
