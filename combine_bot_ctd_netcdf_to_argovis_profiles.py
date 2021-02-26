@@ -116,7 +116,7 @@ def write_profile_json(json_dir, profile_number, profile_dict):
     folder_name = profile_pieces[0]
 
     # Now remove BOT_ or CTD_ from folder name
-    folder_name = folder_name[4:]
+    #folder_name = folder_name[4:]
 
     path = os.path.join(json_dir, folder_name)
 
@@ -493,7 +493,7 @@ def check_if_all_ctd_vars(nc, filename):
     return is_ctd_temp_w_refscale, is_ctd_temp_w_no_refscale
 
 
-def convert_sea_water_temp(var, nc):
+def convert_sea_water_temp(nc, var, nc_ref_scale):
 
     # Check sea_water_temperature to be degree_Celsius and
     # have goship_ref_scale be ITS-90
@@ -508,9 +508,9 @@ def convert_sea_water_temp(var, nc):
     reference_scale = 'unknown'
 
     try:
-
+        # TODO. Why not nc[var].values?
         temperature = nc[var].data
-        nc_ref_scale = nc[var].attrs['reference_scale']
+        #nc_ref_scale = nc[var].attrs['reference_scale']
 
         if nc_ref_scale == 'IPTS-68':
 
@@ -520,9 +520,8 @@ def convert_sea_water_temp(var, nc):
             # Set nc var of TEMP to this value
             nc[var].data = temperature90
 
-            nc[var].attrs['reference_scale'] = 'IPT-90'
+            #nc[var].attrs['reference_scale'] = 'IPT-90'
 
-            #df.loc[df['name'] == var, 'reference_scale'] = 'IPT-90'
             reference_scale = 'IPT-90'
 
         else:
@@ -580,23 +579,34 @@ def convert_units_add_ref_scale(nc, df_all_mapping, filename):
         if (goship_ref_scale_bot != argo_ref_scale) and not argo_is_nan:
             # Convert to argo ref scale
             # then save this to add to new reference_scale column
+
             if argo_ref_scale == 'IPT-90' and goship_ref_scale_bot == 'IPTS-68':
                 # convert seawater temperature
-                #nc, new_ref_scale = convert_sea_water_temp(var, nc)
-                pass   
+                nc, new_ref_scale_bot = convert_sea_water_temp(nc, var, goship_ref_scale_bot)
             else:
-                new_ref_scale_bot = 'unknown'
+                new_ref_scale_bot = 'unknown'               
 
         if (goship_ref_scale_ctd != argo_ref_scale) and not argo_is_nan:
             # Convert to argo ref scale
             # then save this to add to new reference_scale column
+
             if argo_ref_scale == 'IPT-90' and goship_ref_scale_ctd == 'IPTS-68':
                 # convert seawater temperature
-                #nc, new_ref_scale = convert_sea_water_temp(var, nc)
-                pass
+                nc, new_ref_scale_ctd = convert_sea_water_temp(nc, var, goship_ref_scale_ctd)
+   
             else:
-                # Can occure if argo scale exists and ctd scale is unknown
                 new_ref_scale_ctd = 'unknown'
+
+        # if (goship_ref_scale_ctd != argo_ref_scale) and not argo_is_nan:
+        #     # Convert to argo ref scale
+        #     # then save this to add to new reference_scale column
+        #     if argo_ref_scale == 'IPT-90' and goship_ref_scale_ctd == 'IPTS-68':
+        #         # convert seawater temperature
+        #         nc, new_ref_scale = convert_sea_water_temp(var,nc)
+        #         pass
+        #     else:
+        #         # Can occure if argo scale exists and ctd scale is unknown
+        #         new_ref_scale_ctd = 'unknown'
 
         df_all_mapping.loc[df_all_mapping['name'] == var, 'reference_scale_bot'] = new_ref_scale_bot
 
@@ -1063,6 +1073,7 @@ def add_unique_btm_depth_per_profile(xr_combined):
         # same per profile
         # Move from var to coords
         btm_depth_values = xr_combined['btm_depth'].values
+        #TODO. How is .values different from .data?
         # Need to supply index of btm_depth
         xr_combined = xr_combined.assign_coords(btm_depth=('index', btm_depth_values))
 
@@ -1165,7 +1176,7 @@ def save_processed_output(df_combined, nc_dict, nc_folder, csv_data_directory, o
 
     # save as csv without index column    
     # create folder_name in csv_data_directory if not exist
-    csv_filename = f"{expocode}_bot_ctd_combined.csv"        
+    csv_filename = f"bot_ctd_{expocode}_combined.csv"        
     csv_output_folder = csv_filepath = os.path.join(csv_data_directory, folder_name)
     os.makedirs(csv_output_folder, exist_ok=True)
     csv_filepath = os.path.join(csv_output_folder, csv_filename)
@@ -1173,14 +1184,14 @@ def save_processed_output(df_combined, nc_dict, nc_folder, csv_data_directory, o
     df_combined.to_csv(csv_filepath, index=False)    
 
     # save as netcdf
-    nc_filename = f"{expocode}_bot_ctd_combined.nc"
+    nc_filename = f"bot_ctd_{expocode}_combined.nc"
     nc_output_folder = os.path.join(output_netcdf_data_directory, folder_name)
     os.makedirs(nc_output_folder, exist_ok=True)
     nc_filepath = os.path.join(nc_output_folder, nc_filename)
 
     xr_combined = create_coords_for_combined_netcdf(xr_combined, nc_dict)
 
-    xr_combined.to_netcdf(nc_filepath)    
+    #xr_combined.to_netcdf(nc_filepath)    
 
     return xr_combined, nc_filename
 
@@ -1295,8 +1306,6 @@ def main():
 
     for nc_folder in nc_data_entry:
 
-    #     nc, nc_filename = process_folder(nc_folder, 
-    # output_netcdf_data_directory, csv_data_directory)
         if nc_folder.is_dir(): 
             output = process_folder(nc_folder, 
     output_netcdf_data_directory, csv_data_directory)
