@@ -1189,6 +1189,14 @@ def main():
                 ctd_profile_dicts, ctd_json_entries = create_json(
                     nc_dict['ctd'], ctd_names, df_ctd_mapping, argo_name_mapping_file, json_data_directory, filenames['ctd'])
 
+            # TODO
+            # add following flags
+            # isGOSHIPctd = true
+            # isGOSHIPbottle = true
+            # core_info = 1  # is ctd
+            # core_info = 2  # is bottle (no ctd)
+            # core_info = 12  # is ctd and there is bottle too (edited)
+
             if nc_dict['bot'] and not nc_dict['ctd']:
                 for profile_number, profile_dict in enumerate(bot_profile_dicts):
                     profile_type = 'BOT'
@@ -1228,9 +1236,9 @@ def main():
                     ctd_json_entry = ctd_json_entries[profile_number]
 
                     # dicts included in json_entry
-                    # meta, bgcMeas, goship_name_mapping,
-                    # goship_name_unit_mapping, new_ref_scale_mapping,
-                    # goship_ref_scale_mapping
+                    # meta, bgcMeas, measurements,
+                    # goship_name_mapping, goship_name_unit_mapping,
+                    # new_ref_scale_mapping, goship_ref_scale_mapping
 
                     bot_meta_json = bot_json_entry['meta']
                     ctd_meta_json = ctd_json_entry['meta']
@@ -1262,6 +1270,27 @@ def main():
                                                        key=lambda k: k['PRES'])
 
                     combined_dict['measurements'] = sorted_measurements_array
+
+                    # goship_name_mapping
+                    combined_dict['bot_goship_name_mapping'] = bot_profile_dict['goship_name_mapping']
+
+                    combined_dict['ctd_goship_name_mapping'] = ctd_profile_dict['goship_name_mapping']
+
+                    # goship_name_unit_mapping
+                    # TODO: Fix this
+                    # combined_dict['bot_goship_name_unit_mapping'] = bot_profile_dict['goship_name_unit_mapping']
+
+                    # combined_dict['ctd_goship_name_unit_mapping'] = ctd_profile_dict['goship_name_unit_mapping']
+
+                    # goship_ref_scale_mapping
+                    combined_dict['bot_goship_ref_scale_mapping'] = bot_profile_dict['goship_ref_scale_mapping']
+
+                    combined_dict['ctd_goship_ref_scale_mapping'] = ctd_profile_dict['goship_ref_scale_mapping']
+
+                    # new_ref_scale_mapping
+                    combined_dict['bot_new_ref_scale_mapping'] = bot_profile_dict['new_ref_scale_mapping']
+
+                    combined_dict['ctd_new_ref_scale_mapping'] = ctd_profile_dict['new_ref_scale_mapping']
 
                     # Change to store profile json in an array and return that
                     # Then when have both ctd and bot json, combine them and then
