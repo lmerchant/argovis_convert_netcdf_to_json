@@ -1531,7 +1531,7 @@ def get_cruise_information(s):
 
     all_cruises_info = []
 
-    cruise_count = 0
+    # cruise_count = 0
 
     for cruise in all_cruises:
 
@@ -1579,11 +1579,11 @@ def get_cruise_information(s):
 
             all_cruises_info.append(cruise_info)
 
-            # DEVELOPEMENT
-            cruise_count = cruise_count + 1
+        #     # DEVELOPEMENT
+        #     cruise_count = cruise_count + 1
 
-        if cruise_count == 1:
-            return all_cruises_info, bot_found, ctd_found
+        # if cruise_count == 1:
+        #     return all_cruises_info, bot_found, ctd_found
 
     return all_cruises_info, bot_found, ctd_found
 
