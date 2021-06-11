@@ -9,6 +9,7 @@ from decimal import Decimal
 import requests
 from requests.adapters import HTTPAdapter
 import fsspec
+import re
 
 from config import Config
 
@@ -58,28 +59,24 @@ def defaultencode(o):
     raise TypeError(repr(o) + " is not JSON serializable")
 
 
-def write_profile_json(type, json_dir, profile_dict):
+def write_profile_json(json_dir, profile_dict):
 
     # Write profile_dict to as json to a profile file
 
     # use convert function to change numpy int values into python int
     # Otherwise, not serializable
 
-    if type == 'bot_ctd' or type == 'ctd':
+    id = profile_dict['id']
 
-        id = profile_dict['id']
+    filename = f"{id}.json"
 
-        filename = f"{id}.json"
+    expocode = profile_dict['expocode']
 
-        expocode = profile_dict['expocode']
+    json_str = json.dumps(profile_dict)
 
-    elif type == 'bot':
-
-        id = profile_dict['id_btl']
-
-        filename = f"{id}.json"
-
-        expocode = profile_dict['expocode_btl']
+    # _qc":2.0
+    # If there is '.0' in qc value, remove it to get an int
+    json_str = re.sub(r'(_qc":\s?\d)\.0', r"\1", json_str)
 
     folder_name = expocode
 
@@ -95,84 +92,78 @@ def write_profile_json(type, json_dir, profile_dict):
         json.dump(profile_dict, f, indent=4, sort_keys=True, default=convert)
 
 
-def filter_out_none_vals_meas(obj):
+# def filter_out_none_vals_meas(obj):
 
-    new_obj = {}
-    # Remove any obj val that is None
-    # Remove any key ending in _qc
-    for key, val in obj.items():
-        if '_qc' in key:
-            continue
-        if val is None:
-            continue
-        new_obj[key] = val
+#     new_obj = {}
+#     # Remove any obj val that is None
+#     # Remove any key ending in _qc
+#     for key, val in obj.items():
+#         if '_qc' in key:
+#             continue
+#         if val is None:
+#             continue
+#         new_obj[key] = val
 
-    return new_obj
-
-
-def mark_not_qc2(obj):
-
-    new_obj = {}
-    for key, val in obj.items():
-
-        new_obj[key] = val
-        # qc comes after value, so change prev key
-        # Is there a better way? do I check if qc var exists
-        if '_qc' in key:
-
-            if val != 2:
-                meas_key = key.replace('_qc', '')
-                new_obj[meas_key] = None
-
-    return new_obj
+#     return new_obj
 
 
-def filter_measurements_list(measurements_list):
+# def mark_not_qc2(obj):
 
-    # Keep qc = 2
+#     new_obj = {}
+#     for key, val in obj.items():
 
-    # format start
-    # {
-    #     "pres": 48.0,
-    #     "psal": 34.7729,
-    #     "psal_qc": 2,
-    #     "temp": 24.9761,
-    #     "temp_qc": 2,
-    # }
+#         new_obj[key] = val
+#         # qc comes after value, so change prev key
+#         # Is there a better way? do I check if qc var exists
+#         if '_qc' in key:
 
-    # format end
-    # {
-    #     "pres": 48.0,
-    #     "psal": 34.7729,
-    #     "temp": 24.9761
-    # }
+#             if np.isnan(val) or int(val) != 2:
+#                 meas_key = key.replace('_qc', '')
+#                 new_obj[meas_key] = None
 
-    marked_list = list(map(mark_not_qc2, measurements_list))
-
-    no_qc_list = list(map(filter_out_none_vals_meas, marked_list))
-
-    return no_qc_list
+#     return new_obj
 
 
-def create_measurements_array(profile_dict):
+# def filter_measurements_list(measurements_list):
 
-    # Combine measurements lists
-    measurements_array = profile_dict['measurements']
+#     # Keep qc = 2
 
-    # Only want qc=2, no qc flags and all same name
-    measurements_array = filter_measurements_list(measurements_array)
+#     # format start
+#     # {
+#     #     "pres": 48.0,
+#     #     "psal": 34.7729,
+#     #     "psal_qc": 2,
+#     #     "temp": 24.9761,
+#     #     "temp_qc": 2,
+#     # }
 
-    # sort measurements on pres value
-    # sorted_measurements_array = sorted(measurements_array,
-    #                                    key=lambda k: k['pres'])
+#     # format end
+#     # {
+#     #     "pres": 48.0,
+#     #     "psal": 34.7729,
+#     #     "temp": 24.9761
+#     # }
 
-    # combined_dict['measurements'] = sorted_measurements_array
+#     marked_list = list(map(mark_not_qc2, measurements_list))
 
-    return measurements_array
+#     no_qc_list = list(map(filter_out_none_vals_meas, marked_list))
+
+#     return no_qc_list
 
 
-def save_bot_ctd():
-    pass
+# def create_measurements_array(profile_dict):
+
+#     # Combine measurements lists
+#     measurements_array = profile_dict['measurements']
+
+#     # Only want qc=2, no qc flags and all same name
+#     measurements_array = filter_measurements_list(measurements_array)
+
+#     # sort measurements on pres value
+#     # sorted_measurements_array = sorted(measurements_array,
+#     #                                   key=lambda k: k['pres'])
+
+#     return measurements_array
 
 
 def rename_meta_bot(meta_bot):
@@ -198,18 +189,19 @@ def rename_bot(name):
 
     if 'bottle_salinity_qc' in name:
         return 'psal_btl_qc'
-
-    if 'bottle_salinity' in name:
+    elif 'bottle_salinity' in name:
         return 'psal_btl'
-
-    if '_qc' in name:
+    elif '_qc' in name:
         return name.replace('_qc', '_btl_qc')
 
     return f"{name}_btl"
 
 
-def rename_core_bot(name):
+def rename_meta_bot(name):
+    return f"{name}_btl"
 
+
+def rename_core_bot(name):
     # Add suffix _ctd, and for _ctd_qc for all core
     # except temp for botttle
     if '_qc' in name and name == 'temp':
@@ -223,16 +215,14 @@ def rename_core_bot(name):
 
 
 def rename_core_ctd(name):
-
     # Add suffix _ctd, and for _ctd_qc for all core
-    # except temp for botttle
     if '_qc' in name:
         return name.replace('_qc', '_ctd_qc')
     else:
         return f"{name}_ctd"
 
 
-def create_bgc_bot(bgc_array, core_vars):
+def create_bgc_bot(bgc_array, core_values):
     # Common names are pres, temp, psal, and doxy will have suffix _ctd and _ctd_qc
     # All ctd vars will have suffix _ctd and _ctd_qc
     # All bot vars will have suffx _btl and _btl_qc
@@ -245,7 +235,7 @@ def create_bgc_bot(bgc_array, core_vars):
         new_obj = {}
 
         for key, val in obj.items():
-            if key in core_vars:
+            if key in core_values:
                 new_key = rename_core_bot(key)
                 new_obj[new_key] = val
             else:
@@ -257,7 +247,7 @@ def create_bgc_bot(bgc_array, core_vars):
     return new_bgc_array
 
 
-def create_bgc_ctd(bgc_array, core_vars):
+def create_bgc_ctd(bgc_array, core_values):
     # Common names are pres, temp, psal, and doxy will have suffix _ctd and _ctd_qc
     # All ctd vars will have suffix _ctd and _ctd_qc
     # All ctd vars will have suffx _btl and _btl_qc
@@ -270,7 +260,7 @@ def create_bgc_ctd(bgc_array, core_vars):
         new_obj = {}
 
         for key, val in obj.items():
-            if key in core_vars:
+            if key in core_values:
                 new_key = rename_core_ctd(key)
                 new_obj[new_key] = val
             else:
@@ -298,27 +288,72 @@ def create_bgc_arrray(bot_profile_dict, ctd_profile_dict):
     return bgc_meas_array
 
 
-def rename_mapping_bot(mapping, core_vars):
+def rename_mapping_bot_key(mapping, core_values):
+    new_mapping = {}
+    for key, val in mapping.items():
+        if key == 'bottle_salinity':
+            new_key = 'psal_btl'
+        elif key == 'bottle_salinity_qc':
+            new_key = 'psal_btl_qc'
+        elif key in core_values and '_qc' in key:
+            new_key = f"{key}_ctd_qc"
+        elif key in core_values:
+            new_key = f"{key}_ctd"
+        elif '_qc' in key:
+            new_key = key.replace('_qc', '_btl_qc')
+        else:
+            new_key = f"{key}_btl"
+
+        new_mapping[new_key] = val
+
+    return new_mapping
+
+
+def rename_mapping_bot_value(mapping, core_values_mapping):
     new_mapping = {}
     for key in mapping:
-        if '_qc' in key:
-            new_val = key.replace('_qc', '_bot_qc')
-        elif key in core_vars:
-            new_val = f"{key}_ctd"
-        elif key == 'bottle_salinity':
+
+        if key == 'bottle_salinity':
             new_val = 'psal_btl'
+        elif key == 'bottle_salinity_qc':
+            new_val = 'psal_btl_qc'
+        elif '_qc' in key:
+            new_val = key.replace('_qc', '_btl_qc')
         else:
             new_val = f"{key}_btl"
+
+        # "ctd_oxygen_qc": "ctd_doxy_qc"
+        if '_qc' in key:
+            key_wo_qc = key.replace('_qc', '')
+            if key_wo_qc in core_values_mapping.keys():
+                new_val = f"{core_values_mapping[key_wo_qc]}_qc"
+        elif key in core_values_mapping.keys():
+            new_val = core_values_mapping[key]
 
         new_mapping[key] = new_val
 
     return new_mapping
 
 
-def rename_mapping_ctd(mapping):
+def rename_mapping_ctd_key(mapping):
+    print('mapping')
+    print(mapping)
+
+    new_mapping = {}
+    for key, val in mapping.items():
+        if '_qc' in key:
+            new_key = key.replace('_qc', '_ctd_qc')
+        else:
+            new_key = f"{key}_ctd"
+
+        new_mapping[new_key] = val
+
+    return new_mapping
+
+
+def rename_mapping_ctd_value(mapping):
     new_mapping = {}
     for key in mapping:
-
         if '_qc' in key:
             new_val = key.replace('_qc', '_ctd_qc')
         else:
@@ -329,81 +364,51 @@ def rename_mapping_ctd(mapping):
     return new_mapping
 
 
-def process_output_per_profile_bot(core_vars, bot_profile_dict, json_data_directory):
+def process_output_per_profile(core_values, core_values_mapping, profile_dict, type):
 
-    meta_bot = bot_profile_dict['meta']
+    meta = profile_dict['meta']
 
-    # In a bottle only file, is there a suffix of btl?
-    meta_bot_renamed = rename_meta_bot(meta_bot)
-    measurements_list = create_measurements_array(bot_profile_dict)
-    bgc = bot_profile_dict['bgc_meas']
-    bgc_list = create_bgc_bot(bgc, core_vars)
+    measurements_list = profile_dict['measurements']
+    bgc = profile_dict['bgc_meas']
+    bgc_list = create_bgc_bot(bgc, core_values)
 
-    names = bot_profile_dict['goship_argovis_name_mappping']
-    name_mapping = rename_mapping_bot(names, core_vars)
+    names = profile_dict['goship_argovis_name_mappping']
+    if type == 'bot':
+        name_mapping = rename_mapping_bot_value(names, core_values_mapping)
+    elif type == 'ctd':
+        name_mapping = rename_mapping_ctd_value(names)
 
-    goship_reference_scale = bot_profile_dict['goship_reference_scale_mapping']
-    goship_reference_scale_mappping = rename_mapping_bot(
-        goship_reference_scale, core_vars)
+    goship_reference_scale_mappping = profile_dict['goship_reference_scale_mapping']
 
-    argovis_reference_scale_mapping = bot_profile_dict[
-        'argovis_reference_scale_mapping']
+    if type == 'bot':
+        argovis_reference_scale_mapping = rename_mapping_bot_key(profile_dict[
+            'argovis_reference_scale_mapping'], core_values)
+    elif type == 'ctd':
+        argovis_reference_scale_mapping = rename_mapping_ctd_key(profile_dict[
+            'argovis_reference_scale_mapping'])
 
-    goship_argovis_unit_mapping = bot_profile_dict['goship_argovis_unit_mappping']
+    goship_argovis_unit_mapping = profile_dict['goship_argovis_unit_mappping']
 
-    bot_data_dict = meta_bot_renamed
-    bot_data_dict['measurements'] = measurements_list
-    bot_data_dict['bgcMeas'] = bgc_list
-    bot_data_dict['goshipArgovisNameMapping'] = name_mapping
-    bot_data_dict['goshipReferenceScale'] = goship_reference_scale_mappping
-    bot_data_dict['argovisReferenceScale'] = argovis_reference_scale_mapping
-    bot_data_dict['goshipArgovisUnitsMapping'] = goship_argovis_unit_mapping
+    data_dict = meta
+    data_dict['measurements'] = measurements_list
+    data_dict['bgcMeas'] = bgc_list
+    data_dict['goshipArgovisNameMapping'] = name_mapping
+    data_dict['goshipReferenceScale'] = goship_reference_scale_mappping
+    data_dict['argovisReferenceScale'] = argovis_reference_scale_mapping
+    data_dict['goshipArgovisUnitsMapping'] = goship_argovis_unit_mapping
 
-    write_profile_json('bot', json_data_directory,
-                       bot_data_dict)
-
-    return bot_data_dict, meta_bot_renamed
-
-
-def process_output_per_profile_ctd(core_vars, ctd_profile_dict, json_data_directory):
-
-    meta_ctd = ctd_profile_dict['meta']
-    measurements_list = create_measurements_array(ctd_profile_dict)
-    bgc = ctd_profile_dict['bgc_meas']
-    bgc_list = create_bgc_ctd(bgc, core_vars)
-
-    names = ctd_profile_dict['goship_argovis_name_mappping']
-    name_mapping = rename_mapping_ctd(names)
-
-    goship_reference_scale = ctd_profile_dict['goship_reference_scale_mapping']
-    goship_reference_scale_mappping = rename_mapping_ctd(
-        goship_reference_scale)
-
-    argovis_reference_scale_mapping = ctd_profile_dict[
-        'argovis_reference_scale_mapping']
-
-    units = ctd_profile_dict['goship_argovis_unit_mappping']
-    goship_argovis_unit_mapping = units
-
-    ctd_data_dict = meta_ctd
-    ctd_data_dict['measurements'] = measurements_list
-    ctd_data_dict['bgcMeas'] = bgc_list
-    ctd_data_dict['goshipArgovisNameMapping'] = name_mapping
-    ctd_data_dict['goshipReferenceScale'] = goship_reference_scale_mappping
-    ctd_data_dict['argovisReferenceScale'] = argovis_reference_scale_mapping
-    ctd_data_dict['goshipArgovisUnitsMapping'] = goship_argovis_unit_mapping
-
-    write_profile_json('ctd', json_data_directory, ctd_data_dict)
-
-    return ctd_data_dict, meta_ctd
+    return data_dict, meta
 
 
-def process_output_per_profile_bot_ctd(bot_combined_dict, ctd_combined_dict, meta_bot, meta_ctd, json_data_directory):
+def process_output_per_profile_bot_ctd(bot_combined_dict, ctd_combined_dict, bot_meta, ctd_meta, json_data_directory):
 
     # Assuming bot was renamed with suffix _btl
-    # meta_bot_renamed = rename_meta_bot(meta_bot)
+    # Rename bot meta
 
-    combined_bot_ctd_dict = {**meta_ctd, **meta_bot}
+    bot_renamed_meta = rename_meta_bot(bot_meta)
+
+    combined_bot_ctd_dict = {**ctd_meta, **bot_renamed_meta}
+
     combined_bot_ctd_dict['measurements'] = [
         *ctd_combined_dict['measurements'], *bot_combined_dict['measurements']]
     combined_bot_ctd_dict['bgcMeas'] = [
@@ -421,7 +426,7 @@ def process_output_per_profile_bot_ctd(bot_combined_dict, ctd_combined_dict, met
     combined_bot_ctd_dict['goshipArgovisUnitsMapping'] = {
         **ctd_combined_dict['goshipArgovisUnitsMapping'], **bot_combined_dict['goshipArgovisUnitsMapping']}
 
-    write_profile_json('bot_ctd', json_data_directory, combined_bot_ctd_dict)
+    write_profile_json(json_data_directory, combined_bot_ctd_dict)
 
 
 def process_output(nc_dict, bot_profile_dicts, ctd_profile_dicts, json_data_directory):
@@ -452,23 +457,37 @@ def process_output(nc_dict, bot_profile_dicts, ctd_profile_dicts, json_data_dire
             print(
                 f"bot profiles {bot_num_profiles} and ctd profiles {ctd_num_profiles} are different")
 
-    core_vars = ['pres', 'temp', 'psal', 'doxy']
+    # For renaming, these are a special case
+    core_values = ['pres', 'temp', 'psal',
+                   'doxy', 'temp_qc', 'psal_qc', 'doxy_qc']
+
+    core_values_mapping = {'pressure': 'pres',
+                           'ctd_temperature': 'temp_ctd',
+                           'ctd_salinity': 'psal_ctd',
+                           'ctd_oxygen': 'doxy_ctd',
+                           'latitude': 'lat',
+                           'longitude': 'lon',
+                           'time': 'date'}
 
     for profile_number in range(num_profiles):
 
         if nc_dict['bot']:
             bot_profile_dict = bot_profile_dicts[profile_number]
-            bot_combined_dict, meta_bot = process_output_per_profile_bot(
-                core_vars, bot_profile_dict, json_data_directory)
+            bot_combined_dict, bot_meta = process_output_per_profile(
+                core_values, core_values_mapping, bot_profile_dict, 'bot')
+
+            write_profile_json(json_data_directory, bot_combined_dict)
 
         if nc_dict['ctd']:
             ctd_profile_dict = ctd_profile_dicts[profile_number]
-            ctd_combined_dict, meta_ctd = process_output_per_profile_ctd(
-                core_vars, ctd_profile_dict, json_data_directory)
+            ctd_combined_dict, ctd_meta = process_output_per_profile(
+                core_values, core_values_mapping, ctd_profile_dict, 'ctd')
+
+            write_profile_json(json_data_directory, ctd_combined_dict)
 
         if nc_dict['bot'] and nc_dict['ctd']:
             process_output_per_profile_bot_ctd(
-                bot_combined_dict, ctd_combined_dict, meta_bot, meta_ctd, json_data_directory)
+                bot_combined_dict, ctd_combined_dict, bot_meta, ctd_meta, json_data_directory)
 
         if not nc_dict['bot'] and not nc_dict['ctd']:
             print("Didn't process bottle or ctd")
@@ -479,7 +498,7 @@ def create_goship_argovis_unit_mapping_json_str(df_mapping):
     # Create goship to new units mapping json string
 
     df_unit_mapping = df_mapping[['goship_unit', 'unit']].copy()
-    # Remove rows if all NaN
+    # Remove rows if any NaN
     df_unit_mapping = df_unit_mapping.dropna(how='any')
 
     unit_mapping_dict = dict(
@@ -496,7 +515,7 @@ def create_goship_reference_scale_mapping_json_str(df_mapping):
     df_ref_scale_mapping = df_mapping[[
         'goship_name', 'goship_reference_scale']].copy()
 
-    # Remove rows if all NaN
+    # Remove rows if any NaN
     df_ref_scale_mapping = df_ref_scale_mapping.dropna(how='any')
 
     ref_scale_mapping_dict = dict(
@@ -539,7 +558,49 @@ def create_name_mapping_json_str(df_mapping):
     return json_str
 
 
-def create_bgc_meas_json_str(param_entries):
+def create_measurements_json_str(df_bgc_meas, core_values):
+
+    df_meas = pd.DataFrame()
+
+    for val in core_values:
+
+        try:
+            df_meas[val] = df_bgc_meas[val].copy()
+        except KeyError:
+            pass
+
+        try:
+            val = f"{val}_qc"
+            df_meas[val] = df_bgc_meas[val].copy()
+        except KeyError:
+            pass
+
+    # Keep qc = 2
+    def mark_not_qc_2(val):
+        if pd.isnull(val).any():
+            return np.nan
+        elif val.astype(int).any() != 2:
+            return np.nan
+        else:
+            return val
+
+    for col in core_values:
+
+        try:
+            key = f"{col}_qc"
+            df_meas[key].apply(lambda x: mark_not_qc_2(df_meas[key]))
+
+            df_meas = df_meas[df_meas[key].notnull()]
+
+        except KeyError:
+            pass
+
+    json_str = df_meas.to_json(orient='records')
+
+    return json_str
+
+
+def create_bgc_meas_df(param_entries):
 
     # Now split up param_entries into multiple json dicts
 
@@ -560,7 +621,7 @@ def create_bgc_meas_json_str(param_entries):
         col_type_dict = {col_name: int for col_name in qc_column_names}
 
         # throws error if try to convert NaN to int
-        # but if still have NaN in qc, rest are float
+        # if still have NaN in qc, rest are float
         df = df.astype(col_type_dict)
 
     except:
@@ -570,13 +631,22 @@ def create_bgc_meas_json_str(param_entries):
         col_type_dict = {'sample': int}
 
         # throws error if try to convert NaN to int
-        # but if still have NaN in qc, rest are float
+        # if still have NaN in qc, rest are float
         df = df.astype(col_type_dict)
 
     except:
         pass
 
+    return df
+
+
+def create_bgc_meas_json_str(df):
+
     json_str = df.to_json(orient='records')
+
+    # _qc":2.0
+    # If there is '.0' in qc value, remove it to get an int
+    json_str = re.sub(r'(_qc":\s?\d)\.0', r"\1", json_str)
 
     return json_str
 
@@ -611,11 +681,11 @@ def create_geolocation_json_str(nc):
     return json_str
 
 
-def create_json_entries(profile_group, names):
+def create_json_profiles(profile_group, names):
 
     # If NaN in column, int qc becomes float
 
-    json_entry = {}
+    json_profile = {}
 
     for name in names:
 
@@ -683,19 +753,20 @@ def create_json_entries(profile_group, names):
                 name_dict = {name: result}
                 json_str = json.dumps(name_dict)
 
-        json_entry[name] = json_str
+        json_profile[name] = json_str
 
-    json_entries = ''
+    json_profiles = ''
 
-    for entry in json_entry.values():
-        entry = entry.lstrip('{')
-        bare_entry = entry.rstrip('}')
-        json_entries = json_entries + ', ' + bare_entry
+    for profile in json_profile.values():
+        profile = profile.lstrip('{')
+        bare_profile = profile.rstrip('}')
+
+        json_profiles = json_profiles + ', ' + bare_profile
 
     # Strip off starting ', ' of string
-    json_entries = '{' + json_entries.strip(', ') + '}'
+    json_profiles = '{' + json_profiles.strip(', ') + '}'
 
-    return json_entries
+    return json_profiles
 
 
 def add_extra_coords(nc, profile_number, filename):
@@ -755,7 +826,7 @@ def add_extra_coords(nc, profile_number, filename):
     return nc
 
 
-def create_profile_dict(profile_number, profile_group, df_mapping, meta_param_names, filename):
+def create_profile_json_and_dict(profile_number, profile_group, df_mapping, meta_param_names, filename):
 
     # Create json without translating to dataframe first
 
@@ -776,8 +847,8 @@ def create_profile_dict(profile_number, profile_group, df_mapping, meta_param_na
     meta_param_names['meta'] = meta_names
     meta_param_names['param'] = param_names
 
-    meta_entries = create_json_entries(profile_group, meta_names)
-    param_entries = create_json_entries(profile_group, param_names)
+    meta_entries = create_json_profiles(profile_group, meta_names)
+    param_entries = create_json_profiles(profile_group, param_names)
 
     geolocation_json_str = create_geolocation_json_str(profile_group)
 
@@ -786,7 +857,11 @@ def create_profile_dict(profile_number, profile_group, df_mapping, meta_param_na
     meta_geo_str = geolocation_json_str.lstrip('{')
     meta_json_str = f"{meta_left_str}, {meta_geo_str}"
 
-    bgc_meas_json_str = create_bgc_meas_json_str(param_entries)
+    core_values = ['pres', 'temp', 'psal']
+
+    df_bgc = create_bgc_meas_df(param_entries)
+    bgc_meas_json_str = create_bgc_meas_json_str(df_bgc)
+    measurements_json_str = create_measurements_json_str(df_bgc, core_values)
 
     goship_argovis_name_mapping_json_str = create_name_mapping_json_str(
         df_mapping)
@@ -801,16 +876,18 @@ def create_profile_dict(profile_number, profile_group, df_mapping, meta_param_na
     goship_argovis_unit_mapping_json_str = create_goship_argovis_unit_mapping_json_str(
         df_mapping)
 
-    json_entry = {}
-    json_entry['meta'] = meta_json_str
-    json_entry['bgcMeas'] = bgc_meas_json_str
-    json_entry['goshipArgovisNameMapping'] = goship_argovis_name_mapping_json_str
-    json_entry['goshipArgovisUnitMapping'] = goship_argovis_unit_mapping_json_str
-    json_entry['argovisRefScaleMapping'] = argovis_reference_scale_mapping_json_str
-    json_entry['goshipRefScaleMapping'] = goship_reference_scale_mapping_json_str
+    json_profile = {}
+    json_profile['meta'] = meta_json_str
+    json_profile['bgcMeas'] = bgc_meas_json_str
+    json_profile['measurements'] = measurements_json_str
+    json_profile['goshipArgovisNameMapping'] = goship_argovis_name_mapping_json_str
+    json_profile['goshipArgovisUnitMapping'] = goship_argovis_unit_mapping_json_str
+    json_profile['argovisRefScaleMapping'] = argovis_reference_scale_mapping_json_str
+    json_profile['goshipRefScaleMapping'] = goship_reference_scale_mapping_json_str
 
     meta = json.loads(meta_json_str)
     bgc_meas = json.loads(bgc_meas_json_str)
+    measurements = json.loads(measurements_json_str)
     goship_argovis_name_mappping = json.loads(
         goship_argovis_name_mapping_json_str)
     goship_argovis_unit_mappping = json.loads(
@@ -820,26 +897,16 @@ def create_profile_dict(profile_number, profile_group, df_mapping, meta_param_na
     goship_reference_scale_mapping = json.loads(
         goship_reference_scale_mapping_json_str)
 
-    core_values = ['pres', 'temp', 'psal', 'temp_qc', 'psal_qc']
-
-    subset_bgc_meas = []
     profile_dict = {}
-
-    for meas_dict in bgc_meas:
-        keep_meas = {
-            key: val for key, val in meas_dict.items() if key in core_values}
-
-        subset_bgc_meas.append(keep_meas)
-
     profile_dict['meta'] = meta
     profile_dict['bgc_meas'] = bgc_meas
-    profile_dict['measurements'] = subset_bgc_meas
+    profile_dict['measurements'] = measurements
     profile_dict['goship_argovis_name_mappping'] = goship_argovis_name_mappping
     profile_dict['goship_argovis_unit_mappping'] = goship_argovis_unit_mappping
     profile_dict['argovis_reference_scale_mapping'] = argovis_reference_scale_mapping
     profile_dict['goship_reference_scale_mapping'] = goship_reference_scale_mapping
 
-    return profile_dict, json_entry
+    return profile_dict, json_profile
 
 
 def check_if_all_ctd_vars(nc, df_mapping):
@@ -916,7 +983,7 @@ def check_if_all_ctd_vars(nc, df_mapping):
     return has_ctd_vars
 
 
-def create_json(nc, meta_param_names, df_mapping, filename):
+def create_json_and_dict(nc, meta_param_names, df_mapping, filename):
 
     # Consider this as way to get values out of the xarray
     # xr_strs = nc[name].astype('str')
@@ -933,14 +1000,16 @@ def create_json(nc, meta_param_names, df_mapping, filename):
 
     for nc_group in nc.groupby('N_PROF'):
 
+        print(f"Processing profile {nc_group[0]}")
+
         profile_number = nc_group[0]
         profile_group = nc_group[1]
 
-        profile_dict, json_entry = create_profile_dict(
+        profile_dict, json_profile = create_profile_json_and_dict(
             profile_number, profile_group, df_mapping, meta_param_names, filename)
 
         all_profile_dicts.append(profile_dict)
-        all_json_entries.append(json_entry)
+        all_json_entries.append(json_profile)
 
     return all_profile_dicts, all_json_entries
 
@@ -1283,6 +1352,11 @@ def get_argo_goship_mapping(nc, argo_name_mapping_file):
     df_all_mapping = df_all_mapping.rename(
         columns={'index': 'goship_name'})
 
+    # Remove profile_type from mapping
+    indices = df_all_mapping[df_all_mapping['goship_name']
+                             == 'profile_type'].index
+    df_all_mapping.drop(indices, inplace=True)
+
     return df_all_mapping
 
 
@@ -1347,7 +1421,7 @@ def process_cruise(cruise_info, bot_found, ctd_found):
         ctd_path = cruise_info['ctd_path']
         ctd_url = f"https://cchdo.ucsd.edu{ctd_path}"
 
-        with fsspec.open(bot_url) as fobj:
+        with fsspec.open(ctd_url) as fobj:
             nc_dict['ctd'] = xr.open_dataset(fobj)
 
         filenames['ctd'] = cruise_info['ctd_filename']
@@ -1432,10 +1506,16 @@ def process_cruise(cruise_info, bot_found, ctd_found):
 def find_bot_ctd_file_info(s, file_ids):
 
     # Get file meta for each file id to search for cruise doc id and bottle id
+
+    file_info = {}
+
     bot_found = False
     ctd_found = False
 
-    file_info = {}
+    file_info['bot_id'] = None
+    file_info['bot_path'] = ''
+    file_info['ctd_id'] = None
+    file_info['ctd_path'] = ''
 
     for file_id in file_ids:
 
@@ -1457,11 +1537,6 @@ def find_bot_ctd_file_info(s, file_ids):
 
         file_path = file_meta['file_path']
 
-        file_info['bot_id'] = None
-        file_info['bot_path'] = ''
-        file_info['ctd_id'] = None
-        file_info['ctd_path'] = ''
-
         # Only returning file info if both a bottle and doc for cruise
         if file_role == "dataset":
             if data_type == "bottle" and data_format == "cf_netcdf":
@@ -1478,8 +1553,8 @@ def find_bot_ctd_file_info(s, file_ids):
                     '/')[-1]
                 ctd_found = True
 
-        if bot_found or ctd_found:
-            return file_info, bot_found, ctd_found
+    if bot_found or ctd_found:
+        return file_info, bot_found, ctd_found
 
     return {}, False, False
 
@@ -1531,11 +1606,9 @@ def get_cruise_information(s):
 
     all_cruises_info = []
 
-    # cruise_count = 0
+    cruise_count = 0
 
     for cruise in all_cruises:
-
-        cruise_info = {}
 
         programs = cruise['collections']['programs']
         programs = [x.lower() for x in programs]
@@ -1544,6 +1617,8 @@ def get_cruise_information(s):
 
         # Only want US GoShip
         if 'go-ship' in programs and country == 'US':
+
+            print(f"Finding cruise information for {cruise['expocode']}")
 
             # Get files attached to the cruise
             # Could be deleted ones so check if exist in all_files
@@ -1564,28 +1639,30 @@ def get_cruise_information(s):
 
             # bot_url = https://cchdo.ucsd.edu/data/<file id>/<filename>
 
-            cruise_info['cruise_id'] = cruise['id']
+            cruise_info = {}
+
             cruise_info['expocode'] = cruise['expocode']
+            cruise_info['cruise_id'] = cruise['id']
 
             if bot_found:
+                cruise_info['bot_found'] = True
                 cruise_info['bot_path'] = file_info['bot_path']
                 cruise_info['bot_filename'] = file_info['bot_filename']
 
             if ctd_found:
+                cruise_info['ctd_found'] = True
                 cruise_info['ctd_path'] = file_info['ctd_path']
                 cruise_info['ctd_filename'] = file_info['ctd_filename']
 
-            print(f"For {cruise['expocode']}, Programs are {programs}")
-
             all_cruises_info.append(cruise_info)
 
-        #     # DEVELOPEMENT
-        #     cruise_count = cruise_count + 1
+            # DEVELOPEMENT
+            cruise_count = cruise_count + 1
 
-        # if cruise_count == 1:
-        #     return all_cruises_info, bot_found, ctd_found
+            if cruise_count == 2:
+                return all_cruises_info
 
-    return all_cruises_info, bot_found, ctd_found
+    return all_cruises_info
 
 
 def main():
@@ -1610,7 +1687,7 @@ def main():
     # For now, grabbed by hand a bot and ctd file of one expocode and put
     # in a folder. Later generalize to match up all files by looping
     # through them
-    #input_netcdf_data_directory = './data/same_expocode_bot_ctd_netcdf'
+    # input_netcdf_data_directory = './data/same_expocode_bot_ctd_netcdf'
     json_data_directory = './data/same_expocode_json'
 
     argo_name_mapping_file = 'argo_goship_mapping.csv'
@@ -1625,7 +1702,7 @@ def main():
     s.mount('http://', a)
     s.mount('https://', b)
 
-    all_cruises_info, bot_found, ctd_found = get_cruise_information(s)
+    all_cruises_info = get_cruise_information(s)
 
     # nc_data_entry = os.scandir(input_netcdf_data_directory)
 
@@ -1639,7 +1716,7 @@ def main():
         expocode = cruise_info['expocode']
 
         print('=======')
-        print(expocode)
+        print(f"Processing {expocode}")
 
         # # Process folder to combine bot and ctd without
         # # caring about setting new coords and vals
@@ -1651,10 +1728,18 @@ def main():
         bot_profile_dicts = {}
         ctd_profile_dicts = {}
 
+        bot_found = cruise_info['bot_found']
+        ctd_found = cruise_info['ctd_found']
+
         filenames, nc_dict, bot_names, ctd_names = process_cruise(
             cruise_info, bot_found, ctd_found)
 
-        if nc_dict['bot']:
+        if bot_found:
+
+            print('---------------------------')
+            print('Start processing bottle profiles')
+            print('---------------------------')
+
             df_bot_mapping = get_argo_goship_mapping(nc_dict['bot'],
                                                      argo_name_mapping_file)
 
@@ -1665,10 +1750,19 @@ def main():
                 nc_dict['bot'], df_bot_mapping, bot_names)
 
             # Create ArgoVis json
-            bot_profile_dicts, bot_json_entries = create_json(
+            bot_profile_dicts, bot_json_entries = create_json_and_dict(
                 nc_dict['bot'], bot_names, df_bot_mapping, filenames['bot'])
 
-        if nc_dict['ctd']:
+            print('---------------------------')
+            print('Created bottle profiles')
+            print('---------------------------')
+
+        if ctd_found:
+
+            print('---------------------------')
+            print('Start processing ctd profiles')
+            print('---------------------------')
+
             df_ctd_mapping = get_argo_goship_mapping(nc_dict['ctd'],
                                                      argo_name_mapping_file)
 
@@ -1679,10 +1773,15 @@ def main():
                 nc_dict['ctd'], df_ctd_mapping, ctd_names)
 
             # Create ArgoVis json
-            ctd_profile_dicts, ctd_json_entries = create_json(
+            ctd_profile_dicts, ctd_json_entries = create_json_and_dict(
                 nc_dict['ctd'], ctd_names, df_ctd_mapping, filenames['ctd'])
 
-        if nc_dict['bot'] or nc_dict['ctd']:
+            print('---------------------------')
+            print('Created ctd profiles')
+            print('---------------------------')
+
+        if bot_found or ctd_found:
+            print('processing output')
             process_output(nc_dict, bot_profile_dicts,
                            ctd_profile_dicts, json_data_directory)
 
