@@ -1,5 +1,8 @@
 ﻿goship_unit,argo_unit,reference_scale
-degC,Celsius,
+degC,Celsius,ITS-90
 dbar,decibar,
 umol/kg,micromole/kg,
 1,psu,PSS-78
+meters,meters,
+degree_east,degree_east,
+degree_north,degree_north,
