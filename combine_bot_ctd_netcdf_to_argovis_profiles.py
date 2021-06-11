@@ -407,7 +407,7 @@ def process_output_per_profile_bot_ctd(bot_combined_dict, ctd_combined_dict, bot
 
     bot_renamed_meta = rename_meta_bot(bot_meta)
 
-    combined_bot_ctd_dict = {**ctd_meta, **bot_renamed_meta}
+    #combined_bot_ctd_dict = {**ctd_meta, **bot_renamed_meta}
 
     combined_bot_ctd_dict['measurements'] = [
         *ctd_combined_dict['measurements'], *bot_combined_dict['measurements']]
@@ -485,9 +485,9 @@ def process_output(nc_dict, bot_profile_dicts, ctd_profile_dicts, json_data_dire
 
             write_profile_json(json_data_directory, ctd_combined_dict)
 
-        if nc_dict['bot'] and nc_dict['ctd']:
-            process_output_per_profile_bot_ctd(
-                bot_combined_dict, ctd_combined_dict, bot_meta, ctd_meta, json_data_directory)
+        # if nc_dict['bot'] and nc_dict['ctd']:
+        #     process_output_per_profile_bot_ctd(
+        #         bot_combined_dict, ctd_combined_dict, bot_meta, ctd_meta, json_data_directory)
 
         if not nc_dict['bot'] and not nc_dict['ctd']:
             print("Didn't process bottle or ctd")
