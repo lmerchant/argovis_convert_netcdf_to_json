@@ -18,14 +18,6 @@ def get_argovis_reference_scale_per_type():
     }
 
 
-def get_argovis_reference_scale():
-
-    return {
-        'ctd_temperature': 'ITS-90',
-        'ctd_salinity': 'PSS-78'
-    }
-
-
 def get_goship_argovis_unit_mapping():
 
     return {
@@ -34,33 +26,6 @@ def get_goship_argovis_unit_mapping():
         'degC': 'Celsius',
         'umol/kg': 'micromole/kg',
         'meters': 'meters'
-    }
-
-
-def get_goship_argovis_core_values_mapping_bot():
-
-    return {
-        'pressure': 'pres',
-        'ctd_salinity': 'psal_btl',
-        'ctd_temperature': 'temp_btl',
-        'ctd_temperature_68': 'temp_btl',
-        'ctd_oxygen': 'doxy_btl',
-        'bottle_salinity': 'salinity_btl',
-        'latitude': 'lat',
-        'longitude': 'lon'
-    }
-
-
-def get_goship_argovis_core_values_mapping_ctd():
-
-    return {
-        'pressure': 'pres',
-        'ctd_salinity': 'psal_ctd',
-        'ctd_temperature': 'temp_ctd',
-        'ctd_temperature_68': 'temp_ctd',
-        'ctd_oxygen': 'doxy_ctd',
-        'latitude': 'lat',
-        'longitude': 'lon'
     }
 
 
@@ -92,11 +57,6 @@ def get_goship_argovis_core_values_mapping(type):
         }
 
 
-def get_core_values_no_qc():
-
-    return ['pressure', 'ctd_temperature', 'ctd_salinity', 'ctd_oxygen']
-
-
 def get_goship_core_values():
     return ['pressure', 'ctd_temperature', 'ctd_temperature_qc', 'ctd_salinity', 'ctd_oxygen', 'ctd_temperature_qc', 'ctd_salinity_qc', 'ctd_oxygen_qc', 'ctd_temperature_68', 'ctd_temperature_68_qc']
 
@@ -104,23 +64,6 @@ def get_goship_core_values():
 def get_argovis_meta_mapping():
     return {'latitude': 'lat',
             'longitude': 'lon'}
-
-
-def get_argovis_ref_scale_mapping_dict():
-
-    return {
-        'temp_ctd': 'ITS-90',
-        'psal_ctd': 'PSS-78'
-    }
-
-
-def get_argovis_ref_scale_mapping_dict_bot():
-
-    return {
-        'temp_btl': 'ITS-90',
-        'psal_btl': 'PSS-78',
-        'salinity_btl': 'PSS-78'
-    }
 
 
 def create_goship_ref_scale_mapping(data_obj):
