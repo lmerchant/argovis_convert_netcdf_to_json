@@ -777,7 +777,7 @@ def convert_sea_water_temp(nc, var, var_goship_ref_scale):
 
         nc[var].data = new_temperature
 
-        nc[var].attrs = 'IPT-90'
+        nc[var].attrs['reference_scale'] = 'ITS-90'
 
     return nc
 
@@ -986,9 +986,10 @@ def get_cruise_information(session):
         expocode = cruise['expocode']
 
         # # Find cruise 32MW9508 to check for ctd_temperature_68 case
+        # It isn't a Go-Ship cruise but has ctd temp on 68 scale
         # # And change check for Go-Ship to True
-        # if expocode != '32MW9508':
-        #     continue
+        if expocode != '32MW9508':
+            continue
 
         cruise_info = {}
         cruise_info['bot'] = {}
@@ -996,8 +997,8 @@ def get_cruise_information(session):
 
         # Only want US GoShip
         # TESTING non-goship cruise with True. change if statement back
-        if 'go-ship' in programs and country == 'US':
-            # if True:
+        # if 'go-ship' in programs and country == 'US':
+        if True:
 
             print(f"Finding cruise information for {cruise['expocode']}")
 
@@ -1080,20 +1081,14 @@ def main():
     console.setFormatter(formatter)
     logging.getLogger("").addHandler(console)
 
-    # TODO
-    # For now, grabbed by hand a bot and ctd file of one expocode and put
-    # in a folder. Later generalize to match up all files by looping
-    # through them
-    # input_netcdf_data_directory = './data/same_expocode_bot_ctd_netcdf'
     json_directory = './data/same_expocode_json'
-
-    # argo_name_mapping_file = 'argo_goship_mapping.csv'
-    # argo_units_mapping_file = 'argo_goship_units_mapping.csv'
 
     session = requests.Session()
     a = requests.adapters.HTTPAdapter(max_retries=3)
     session.mount('https://', a)
 
+    # Loop through all cruises and grap NetCDF files
+    # from US Go-Ship
     all_cruises_info = get_cruise_information(session)
 
     for cruise_info in all_cruises_info:
@@ -1141,23 +1136,21 @@ def main():
 
             bot_obj = read_file(bot_obj)
 
-            # Only converting temperature
-            bot_obj = convert_goship_to_argovis_ref_scale(bot_obj)
-
-            # Rename later. Keep 68 in name and show it maps to temp_ctd
-            # and ref scale show what scale it was converted to
-            #bot_obj = rn.rename_converted_temperature(bot_obj)
-
             bot_obj = gvm.create_goship_unit_mapping(bot_obj)
             bot_obj = gvm.create_goship_ref_scale_mapping(bot_obj)
 
-            # Don't need to "rename" units if supply a mapping
-            #bot_obj = rename_units_to_argovis(bot_obj)
+            # Only converting temperature so far
+            bot_obj = convert_goship_to_argovis_ref_scale(bot_obj)
+
+            # Rename converted temperature later.
+            # Keep 68 in name and show it maps to temp_ctd
+            # and ref scale show what scale it was converted to
 
             bot_profile_dicts = create_profile_dicts(bot_obj)
 
             # Rename with _btl suffix unless it is an Argovis variable
             # But no _btl suffix to meta data
+            # Add _btl when combine files
             renamed_bot_profile_dicts = rn.rename_profile_dicts_to_argovis(
                 bot_profile_dicts, 'bot')
 
@@ -1171,20 +1164,22 @@ def main():
 
             ctd_obj = read_file(ctd_obj)
 
-            # TODO
-            # Ask if this is just for ctd_temperature?
-            ctd_obj = convert_goship_to_argovis_ref_scale(ctd_obj)
-
-            # Rename later. Keep 68 in name and show it maps to temp_ctd
-            # and ref scale show what scale it was converted to
-            #ctd_obj = rn.rename_converted_temperature(ctd_obj)
-
             ctd_obj = gvm.create_goship_unit_mapping(ctd_obj)
             ctd_obj = gvm.create_goship_ref_scale_mapping(ctd_obj)
-            # Get goship  names
 
-            # Don't need to "rename" units if supply a mapping
-            #ctd_obj = rename_units_to_argovis(ctd_obj)
+            # TODO
+            # Are there other variables to convert besides ctd_temperature?
+            # And if I do, would need to note in argovis ref scale mapping
+            # that this temperare is on a new scale.
+            # I'm assuming goship will always refer to original vars before
+            # values converted.
+
+            # What if other temperatures not on ITS-90 scale?
+            ctd_obj = convert_goship_to_argovis_ref_scale(ctd_obj)
+
+            # Rename converted temperature later.
+            # Keep 68 in name and show it maps to temp_ctd
+            # and ref scale show what scale it was converted to
 
             ctd_profile_dicts = create_profile_dicts(ctd_obj)
 
