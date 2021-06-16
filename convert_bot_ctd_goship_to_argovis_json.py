@@ -30,6 +30,16 @@ API_END_POINT = "https://cchdo.ucsd.edu/api/v1"
 #     ds = xr.open_dataset(fobj)
 
 
+"""
+
+Convert Go-Ship CTD and bottle CF netCDF files to ArgoVis JSON format
+
+program by: Lynne Merchant
+date: 2021
+
+"""
+
+
 def dtjson(o):
     if isinstance(o, datetime):
         return o.isoformat()
@@ -68,9 +78,6 @@ def write_profile_json(json_dir, profile_dict):
     # Now combine with left over profile_dict
     data_dict = {**meta_dict, **profile_dict}
 
-    # use convert function to change numpy int values into python int
-    # Otherwise, not serializable
-
     id = data_dict['id']
     filename = f"{id}.json"
     expocode = data_dict['expocode']
@@ -92,6 +99,7 @@ def write_profile_json(json_dir, profile_dict):
 
     file = os.path.join(json_dir, folder_name, filename)
 
+    # TESTING
     # TODO Remove formatting when final
     with open(file, 'w') as f:
         json.dump(data_dict, f, indent=4, sort_keys=True, default=convert)
@@ -110,7 +118,6 @@ def write_profiles_json(json_dir, profile_dicts):
 
 def combine_output_per_profile_bot_ctd(bot_renamed_dict, ctd_renamed_dict):
 
-    # mime
     bot_meta = bot_renamed_dict['meta']
     ctd_meta = ctd_renamed_dict['meta']
 
@@ -135,28 +142,8 @@ def combine_output_per_profile_bot_ctd(bot_renamed_dict, ctd_renamed_dict):
 
     measurement = [*ctd_measurements, *bot_measurements]
 
-    # meta_names_bot = bot_obj['meta']
-    # param_names_bot = bot_obj['param']
-    # goship_names_bot = [*meta_names_bot, *param_names_bot]
-
-    # meta_names_ctd = ctd_obj['meta']
-    # param_names_ctd = ctd_obj['param']
-    # goship_names_ctd = [*meta_names_ctd, *param_names_ctd]
-
-    # TODO
-
-    # Don't  have this goship argovis name mapping?
-
-    # goship_argovis_name_mapping_bot = gvm.create_goship_argovis_core_values_mapping(
-    #     goship_names_bot, 'bot')
-    # goship_argovis_name_mapping_ctd = gvm.create_goship_argovis_core_values_mapping(
-    #     goship_names_ctd, 'ctd')
-
     goship_argovis_name_mapping_bot = bot_renamed_dict['goshipArgovisNameMapping']
     goship_argovis_name_mapping_ctd = ctd_renamed_dict['goshipArgovisNameMapping']
-
-    # goship_ref_scale_mapping_bot = gvm.create_goship_ref_scale_mapping(bot_obj)
-    # goship_ref_scale_mapping_ctd = gvm.create_goship_ref_scale_mapping(ctd_obj)
 
     goship_ref_scale_mapping_bot = bot_renamed_dict['goshipReferenceScale']
     goship_ref_scale_mapping_ctd = ctd_renamed_dict['goshipReferenceScale']
@@ -224,36 +211,6 @@ def combine_profile_dicts_bot_ctd(bot_profile_dicts, ctd_profile_dicts):
             bot_profile_dict, ctd_profile_dict)
 
         profile_dicts_list_bot_ctd.append(combined_profile_dict_bot_ctd)
-
-        # combined_profile_dict_bot_ctd = combine_output_per_profile_bot_ctd(
-        #     renamed_profile_dict_bot, renamed_profile_dict_ctd, bot_obj, ctd_obj)
-
-        # profile_dicts_list_bot_ctd.append(combined_profile_dict_bot_ctd)
-
-        # if bot_found:
-
-        #     bot_profile_dict = bot_profile_dicts[profile_number]
-
-        #     renamed_profile_dict_bot = rename_output_per_profile(
-        #         bot_profile_dict, 'bot')
-
-        #     profile_dicts_list_bot.append(renamed_profile_dict_bot)
-
-        # if ctd_found:
-
-        #     ctd_profile_dict = ctd_profile_dicts[profile_number]
-
-        #     renamed_profile_dict_ctd = rename_output_per_profile(
-        #         ctd_profile_dict, 'ctd')
-
-        #     profile_dicts_list_ctd.append(renamed_profile_dict_ctd)
-
-        # if bot_found and ctd_found:
-
-        #     combined_profile_dict_bot_ctd = combine_output_per_profile_bot_ctd(
-        #         renamed_profile_dict_bot, renamed_profile_dict_ctd, bot_obj, ctd_obj)
-
-        #     profile_dicts_list_bot_ctd.append(combined_profile_dict_bot_ctd)
 
     return profile_dicts_list_bot_ctd
 
@@ -620,7 +577,8 @@ def create_profile_dict(profile_group, data_obj):
 
 def check_if_all_ctd_vars(data_obj):
 
-    # Has all ctd vars if have both ctd temperature and pressure
+    # Check to see if have all ctd vars
+    # CTD vars are ctd temperature and pressure
 
     logging_filename = 'logging.txt'
 
@@ -662,6 +620,10 @@ def check_if_all_ctd_vars(data_obj):
         has_ctd_vars = True
     else:
         has_ctd_vars = False
+
+        print('**********************')
+        print('No CTD variables found')
+        print('**********************')
 
         logging.info('===========')
         logging.info('EXCEPTIONS FOUND')
@@ -745,9 +707,8 @@ def convert_sea_water_temp(nc, var, var_goship_ref_scale):
 
         new_temperature = round(converted_temperature, num_decimal_places)
 
-        # TODO: check if can set precision.
-        # want the same as the orig temperature precision
-
+        # Set temperature value in nc because use it later to
+        # create profile dict
         nc[var].data = new_temperature
 
         nc[var].attrs['reference_scale'] = 'ITS-90'
@@ -945,9 +906,9 @@ def get_cruise_information(session):
 
     all_cruises_info = []
 
-    # TODO
+    # TESTING
     # For Testing. Use when wanting to limit the number of cruises processed
-    # cruise_count = 0
+    cruise_count = 0
 
     for cruise in all_cruises:
 
@@ -1033,7 +994,7 @@ def get_cruise_information(session):
 
             # TESTING
             # Used to limit number of cruises processed
-            #cruise_count = cruise_count + 1
+            cruise_count = cruise_count + 1
 
         # TESTING
         # Used to limit number of cruises processed
@@ -1044,8 +1005,6 @@ def get_cruise_information(session):
 
 
 def main():
-
-    # TODO: Need to add in bot and ctd files used in creating the json
 
     start_time = datetime.now()
 
@@ -1080,9 +1039,6 @@ def main():
         print("======================\n")
         print(f"Processing {expocode}")
 
-        bot_profile_dicts = []
-        ctd_profile_dicts = []
-
         if cruise_info['bot']:
             bot_found = cruise_info['bot']['found']
         else:
@@ -1092,11 +1048,6 @@ def main():
             ctd_found = cruise_info['ctd']['found']
         else:
             ctd_found = False
-
-        bot_obj = {}
-        ctd_obj = {}
-        bot_obj['found'] = False
-        ctd_obj['found'] = False
 
         bot_profile_dicts = []
         ctd_profile_dicts = []
@@ -1123,25 +1074,27 @@ def main():
             has_ctd_vars = check_if_all_ctd_vars(bot_obj)
 
             if not has_ctd_vars:
-                bot_obj['found'] = False
+                bot_found = False
 
-            bot_obj = gvm.create_goship_unit_mapping(bot_obj)
-            bot_obj = gvm.create_goship_ref_scale_mapping(bot_obj)
+            else:
 
-            # Only converting temperature so far
-            bot_obj = convert_goship_to_argovis_ref_scale(bot_obj)
+                bot_obj = gvm.create_goship_unit_mapping(bot_obj)
+                bot_obj = gvm.create_goship_ref_scale_mapping(bot_obj)
 
-            # Rename converted temperature later.
-            # Keep 68 in name and show it maps to temp_ctd
-            # and ref scale show what scale it was converted to
+                # Only converting temperature so far
+                bot_obj = convert_goship_to_argovis_ref_scale(bot_obj)
 
-            bot_profile_dicts = create_profile_dicts(bot_obj)
+                # Rename converted temperature later.
+                # Keep 68 in name and show it maps to temp_ctd
+                # and ref scale show what scale it was converted to
 
-            # Rename with _btl suffix unless it is an Argovis variable
-            # But no _btl suffix to meta data
-            # Add _btl when combine files
-            renamed_bot_profile_dicts = rn.rename_profile_dicts_to_argovis(
-                bot_profile_dicts, 'bot')
+                bot_profile_dicts = create_profile_dicts(bot_obj)
+
+                # Rename with _btl suffix unless it is an Argovis variable
+                # But no _btl suffix to meta data
+                # Add _btl when combine files
+                renamed_bot_profile_dicts = rn.rename_profile_dicts_to_argovis(
+                    bot_profile_dicts, 'bot')
 
         if ctd_found:
 
@@ -1157,32 +1110,34 @@ def main():
             has_ctd_vars = check_if_all_ctd_vars(ctd_obj)
 
             if not has_ctd_vars:
-                ctd_obj['found'] = False
+                ctd_found = False
 
-            ctd_obj = gvm.create_goship_unit_mapping(ctd_obj)
+            else:
 
-            ctd_obj = gvm.create_goship_ref_scale_mapping(ctd_obj)
+                ctd_obj = gvm.create_goship_unit_mapping(ctd_obj)
 
-            # TODO
-            # Are there other variables to convert besides ctd_temperature?
-            # And if I do, would need to note in argovis ref scale mapping
-            # that this temperare is on a new scale.
-            # I'm assuming goship will always refer to original vars before
-            # values converted.
+                ctd_obj = gvm.create_goship_ref_scale_mapping(ctd_obj)
 
-            # What if other temperatures not on ITS-90 scale?
-            ctd_obj = convert_goship_to_argovis_ref_scale(ctd_obj)
+                # TODO
+                # Are there other variables to convert besides ctd_temperature?
+                # And if I do, would need to note in argovis ref scale mapping
+                # that this temperare is on a new scale.
+                # I'm assuming goship will always refer to original vars before
+                # values converted.
 
-            # Rename converted temperature later.
-            # Keep 68 in name and show it maps to temp_ctd
-            # and ref scale show what scale it was converted to
+                # What if other temperatures not on ITS-90 scale?
+                ctd_obj = convert_goship_to_argovis_ref_scale(ctd_obj)
 
-            ctd_profile_dicts = create_profile_dicts(ctd_obj)
+                # Rename converted temperature later.
+                # Keep 68 in name and show it maps to temp_ctd
+                # and ref scale show what scale it was converted to
 
-            # Rename with _ctd suffix unless it is an Argovis variable
-            # But no _ctd suffix to meta data
-            renamed_ctd_profile_dicts = rn.rename_profile_dicts_to_argovis(
-                ctd_profile_dicts, 'ctd')
+                ctd_profile_dicts = create_profile_dicts(ctd_obj)
+
+                # Rename with _ctd suffix unless it is an Argovis variable
+                # But no _ctd suffix to meta data
+                renamed_ctd_profile_dicts = rn.rename_profile_dicts_to_argovis(
+                    ctd_profile_dicts, 'ctd')
 
         if bot_found and ctd_found:
 
@@ -1203,11 +1158,12 @@ def main():
         elif ctd_found:
             write_profiles_json(json_directory, renamed_ctd_profile_dicts)
 
-        print('---------------------------')
-        print(f"All profiles written to files for cruise {expocode}")
-        print('---------------------------')
+        if bot_found or ctd_found:
+            print('---------------------------')
+            print(f"All profiles written to files for cruise {expocode}")
+            print('---------------------------')
 
-        print("*****************************\n")
+            print("*****************************\n")
 
     logging.info(datetime.now() - start_time)
 
