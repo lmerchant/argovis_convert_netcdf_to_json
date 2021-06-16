@@ -1067,7 +1067,9 @@ def main():
     console.setFormatter(formatter)
     logging.getLogger("").addHandler(console)
 
-    json_directory = './data/same_expocode_json'
+    json_directory = './converted_data'
+
+    os.makedirs(json_directory, exist_ok=True)
 
     session = requests.Session()
     a = requests.adapters.HTTPAdapter(max_retries=3)
