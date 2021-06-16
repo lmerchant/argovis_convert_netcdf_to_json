@@ -1,35 +1,8 @@
 import copy
 
-
 import get_variable_mappings as gvm
 
-
 # Rename objects
-
-
-def rename_argovis_value_meta(obj):
-
-    # hi
-
-  # For mapping cases goship_argovis_name_mapping_bot goship is the key
-  # and argovis is the value
-    core_values_mapping = gvm.get_argovis_meta_mapping()
-
-    core_values = [core for core in core_values_mapping]
-
-    new_obj = {}
-
-    for key in obj:
-
-        if key in core_values:
-            new_val = core_values_mapping[key]
-
-        else:
-            new_val = f"{key}"
-
-        new_obj[key] = new_val
-
-    return new_obj
 
 
 def rename_argovis_meta(obj):
@@ -95,9 +68,6 @@ def rename_goship_on_key_not_meta(obj, type):
 
 
 def rename_bot_by_key_meta(obj):
-
-    # Alread renamed lat  and lon
-    # Want to add _btl extension to all
 
     new_obj = {}
 
@@ -214,111 +184,6 @@ def rename_key_not_meta_argovis(obj, type):
             new_obj[new_key] = val
 
     return new_obj
-
-
-def rename_ctd_value_not_meta(obj):
-
-    # For case when goship is key and mapping to argovis
-
-    core_values_mapping = gvm.get_goship_argovis_core_values_mapping('ctd')
-
-    core_values = [core for core in core_values_mapping]
-
-    new_obj = {}
-
-    for key in obj:
-
-        if '_qc' in key:
-            check_core = key.replace('_qc', '')
-            if check_core in core_values:
-                new_val = f"{core_values_mapping[check_core]}_qc"
-
-        elif key in core_values:
-            new_val = core_values_mapping[key]
-
-        elif '_qc' in key:
-            key_wo_qc = key.replace('_qc', '')
-            new_val = f"{key_wo_qc}_ctd_qc"
-        else:
-            new_val = f"{key}_ctd"
-
-        new_obj[key] = new_val
-
-    return new_obj
-
-
-def rename_ctd_key_not_meta(obj):
-
-    core_values_mapping = gvm.get_goship_argovis_core_values_mapping('ctd')
-
-    core_values = [core for core in core_values_mapping]
-
-    new_obj = {}
-
-    for key, val in obj.items():
-
-        if '_qc' in key:
-            check_core = key.replace('_qc', '')
-            if check_core in core_values:
-                new_key = f"{core_values_mapping[check_core]}_qc"
-
-        elif key in core_values:
-            new_key = core_values_mapping[key]
-
-        elif '_qc' in key:
-            key_wo_qc = key.replace('_qc', '')
-            new_key = f"{key_wo_qc}_ctd_qc"
-        else:
-            new_key = f"{key}_ctd"
-
-        new_obj[new_key] = val
-
-    return new_obj
-
-
-def rename_ctd_key_meta(obj):
-
-    # fix
-    core_values_mapping = gvm.get_goship_argovis_core_values_mapping('ctd')
-
-    core_values = [core for core in core_values_mapping]
-
-    new_obj = {}
-
-    for key, val in obj.items():
-
-        if key in core_values:
-            new_key = core_values_mapping[key]
-
-        else:
-            new_key = f"{key}"
-
-        new_obj[new_key] = val
-
-    return new_obj
-
-
-# TODO. Do i use this?
-def rename_mapping_ctd_key_list(obj_list):
-
-    core_values = gvm.get_goship_core_values()
-
-    new_list = []
-
-    for obj in obj_list:
-        new_mapping = {}
-        for key, val in obj.items():
-            if key in core_values:
-                new_key = key
-            elif '_qc' in key:
-                new_key = key.replace('_qc', '_ctd_qc')
-            else:
-                new_key = f"{key}_ctd"
-
-            new_mapping[new_key] = val
-        new_list.append(new_mapping)
-
-    return new_list
 
 
 def rename_output_per_profile(profile_dict, type):
