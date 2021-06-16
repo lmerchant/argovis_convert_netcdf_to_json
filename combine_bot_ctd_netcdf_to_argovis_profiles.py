@@ -8,13 +8,14 @@ from datetime import datetime
 import json
 import logging
 from decimal import Decimal
-# import requests
-# from requests.adapters import HTTPAdapter
+import requests
+from requests.adapters import HTTPAdapter
 import fsspec
 import re
-from cchdo.auth.session import session as requests
 import copy
 
+import get_variable_mappings as gvm
+import rename_objects as rn
 
 API_END_POINT = "https://cchdo.ucsd.edu/api/v1"
 
@@ -107,669 +108,13 @@ def write_profiles_json(json_dir, profile_dicts):
         write_profile_json(json_dir, profile_dict)
 
 
-def get_goship_salniity_reference_scale():
-
-    return {
-        'goship_ref_scale': 'PSS-78'
-    }
-
-
-def get_argovis_reference_scale_per_type():
-
-    return {
-        'temperature': 'ITS-90',
-        'salinity': 'PSS-78'
-    }
-
-
-def get_argovis_reference_scale():
-
-    return {
-        'ctd_temperature': 'ITS-90',
-        'ctd_salinity': 'PSS-78'
-    }
-
-
-def get_goship_argovis_unit_mapping():
-
-    return {
-        'dbar': 'decibar',
-        '1': 'psu',
-        'degC': 'Celsius',
-        'umol/kg': 'micromole/kg',
-        'meters': 'meters'
-    }
-
-
-# def get_goship_argovis_name_mapping_meta_bot():
-
-#     return {
-#         'latitude': 'lat',
-#         'longitude': 'lon'
-#     }
-
-
-def get_goship_argovis_name_mapping_bot():
-
-    return {
-        'pressure': 'pres',
-        'ctd_salinity': 'psal_btl',
-        'ctd_temperature': 'temp_btl',
-        'ctd_oxygen': 'doxy_btl',
-        'bottle_salinity':  'salinity_btl',
-        'latitude': 'lat',
-        'longitude': 'lon'
-    }
-
-
-def get_goship_argovis_name_mapping_ctd():
-
-    return {
-        'pressure': 'pres',
-        'ctd_salinity': 'psal_ctd',
-        'ctd_temperature': 'temp_ctd',
-        'ctd_oxygen': 'doxy_ctd',
-        'latitude': 'lat',
-        'longitude': 'lon'
-    }
-
-
-def get_core_values_no_qc():
-
-    # return ['pres', 'temp', 'psal', 'doxy']
-    return ['pressure', 'ctd_temperature', 'ctd_salinity', 'ctd_oxygen']
-
-
-# def get_core_values():
-#     return ['pres', 'temp', 'psal',
-#             'doxy', 'temp_qc', 'psal_qc', 'doxy_qc']
-
-def get_core_values():
-    return ['pressure', 'ctd_temperature', 'ctd_temperature_qc', 'ctd_salinity', 'ctd_oxygen', 'ctd_temperature_qc', 'ctd_salinity_qc', 'ctd_oxygen_qc']
-
-
-def get_argovis_meta_mapping():
-    return {'latitude': 'lat',
-            'longitude': 'lon'}
-
-
-def get_core_values_mapping_bot():
-    return {'pressure': 'pres',
-            'ctd_temperature': 'temp_btl',
-            'ctd_salinity': 'psal_btl',
-            'ctd_oxygen': 'doxy_btl',
-            'bottle_salinity':  'salinity_btl',
-            'latitude': 'lat',
-            'longitude': 'lon'
-            }
-
-
-def get_core_values_mapping_ctd():
-    return {'pressure': 'pres',
-            'ctd_temperature': 'temp_ctd',
-            'ctd_salinity': 'psal_ctd',
-            'ctd_oxygen': 'doxy_ctd',
-            'latitude': 'lat',
-            'longitude': 'lon'}
-
-
-def get_goship_units(data_obj):
-
-    nc = data_obj['nc']
-    meta = data_obj['meta']
-    params = data_obj['param']
-
-    new_obj = {}
-
-    for var in params:
-
-        # Not all vars have units
-        try:
-            # Get goship units of var
-            var_goship_unit = nc[var].attrrs['units']
-            new_obj[var] = var_goship_unit
-        except:
-            pass
-
-    for var in meta:
-
-        # Not all vars have units
-        try:
-            # Get goship units of var
-            var_goship_unit = nc.coords[var].attrrs['units']
-            new_obj[var] = var_goship_unit
-        except:
-            pass
-
-    return new_obj
-
-
-def create_renamed_list_of_objs_argovis(cur_list, type):
-
-    # Common names are pres, temp, psal, and doxy will have suffix _ctd and _ctd_qc
-    # All ctd vars will have suffix _ctd and _ctd_qc
-    # All bot vars will have suffx _btl and _btl_qc
-    # Special case is bottle_salinity to psal_btl
-
-    # Creating list, don't modify key since already renamed as element  of list
-
-    # here
-
-    if type == 'bot':
-
-        new_list = []
-
-        new_obj = {}
-
-        for obj in cur_list:
-
-            new_obj = rename_key_not_meta_argovis(obj, type)
-
-            new_list.append(new_obj)
-
-    if type == 'ctd':
-
-        new_list = []
-
-        new_obj = {}
-
-        for obj in cur_list:
-
-            new_obj = rename_key_not_meta_argovis(obj, type)
-
-            new_list.append(new_obj)
-
-    return new_list
-
-
-def create_renamed_list_of_objs(cur_list, type):
-
-    new_list = []
-
-    if type == 'bot':
-
-        new_obj = {}
-
-        for obj in cur_list:
-
-            new_obj = rename_key_not_meta(obj, 'bot')
-
-            new_list.append(new_obj)
-
-    if type == 'ctd':
-
-        new_obj = {}
-
-        for obj in cur_list:
-
-            new_obj = rename_key_not_meta(obj, 'ctd')
-
-            new_list.append(new_obj)
-
-    return new_list
-
-
-def rename_argovis_value_meta(obj):
-
-  # For mapping cases goship_argovis_name_mapping_bot goship is the key
-  # and argovis is the value
-    core_values_mapping = get_argovis_meta_mapping()
-
-    core_values = [core for core in core_values_mapping]
-
-    new_obj = {}
-
-    for key in obj:
-
-        if key in core_values:
-            new_val = core_values_mapping[key]
-
-        else:
-            new_val = f"{key}"
-
-        new_obj[key] = new_val
-
-    return new_obj
-
-
-def rename_value_not_meta(obj, type):
-
-  # For mapping cases wgoship_argovis_name_mapping_bot goship is the key
-  # and argovis is the value
-
-    if type == 'bot':
-
-        core_values_mapping = get_core_values_mapping_bot()
-
-        core_values = [core for core in core_values_mapping]
-
-        new_obj = {}
-
-        for key in obj:
-
-            if '_qc' in key:
-                check_core = key.replace('_qc', '')
-                if check_core in core_values:
-                    new_val = f"{core_values_mapping[check_core]}_qc"
-
-            elif key in core_values:
-                new_val = core_values_mapping[key]
-
-            elif '_qc' in key:
-                key_wo_qc = key.replace('_qc', '')
-                new_val = f"{key_wo_qc}_btl_qc"
-            else:
-                new_val = f"{key}_btl"
-
-            new_obj[key] = new_val
-
-    if type == 'ctd':
-
-        # For case when goship is key and mapping to argovis
-
-        core_values_mapping = get_core_values_mapping_ctd()
-
-        core_values = [core for core in core_values_mapping]
-
-        new_obj = {}
-
-        for key in obj:
-
-            if '_qc' in key:
-                check_core = key.replace('_qc', '')
-                if check_core in core_values:
-                    new_val = f"{core_values_mapping[check_core]}_qc"
-
-            elif key in core_values:
-                new_val = core_values_mapping[key]
-
-            elif '_qc' in key:
-                key_wo_qc = key.replace('_qc', '')
-                new_val = f"{key_wo_qc}_ctd_qc"
-            else:
-                new_val = f"{key}_ctd"
-
-            new_obj[key] = new_val
-
-    return new_obj
-
-
-def rename_argovis_meta(obj):
-
-    core_values_mapping = get_argovis_meta_mapping()
-
-    core_values = [core for core in core_values_mapping]
-
-    new_obj = {}
-
-    for key, val in obj.items():
-
-        if key in core_values:
-            new_key = core_values_mapping[key]
-
-        else:
-            new_key = key
-
-        new_obj[new_key] = val
-
-    return new_obj
-
-
-def rename_argovis_not_meta(obj, type):
-
-    if type == 'bot':
-
-        core_values_mapping = get_core_values_mapping_bot()
-
-        core_values = [core for core in core_values_mapping]
-
-        new_obj = {}
-
-        for key, val in obj.items():
-
-            if key in core_values:
-                new_key = core_values_mapping[key]
-
-            else:
-                new_key = key
-
-            new_obj[new_key] = val
-
-    if type == 'ctd':
-
-        core_values_mapping = get_core_values_mapping_ctd()
-
-        core_values = [core for core in core_values_mapping]
-
-        new_obj = {}
-
-        for key, val in obj.items():
-
-            if key in core_values:
-                new_key = core_values_mapping[key]
-
-            else:
-                new_key = key
-
-            new_obj[new_key] = val
-
-    return new_obj
-
-
-def rename_bot_by_key_meta(obj):
-
-    # Alread renamed lat  and lon
-    # Want to add _btl extension to all
-
-    new_obj = {}
-
-    for key, val in obj.items():
-
-        new_key = f"{key}_btl"
-
-        new_obj[new_key] = val
-
-    return new_obj
-
-
-def rename_key_not_meta(obj, type):
-
-    if type == 'bot':
-
-        core_values_mapping = get_goship_argovis_name_mapping_bot()
-
-        core_values = [core for core in core_values_mapping]
-
-        new_obj = {}
-
-        for key, val in obj.items():
-
-            if '_qc' in key:
-                check_core = key.replace('_qc', '')
-                if check_core in core_values:
-                    new_key = f"{core_values_mapping[check_core]}_qc"
-
-            elif key in core_values:
-                new_key = core_values_mapping[key]
-
-            elif '_qc' in key:
-                key_wo_qc = key.replace('_qc', '')
-                new_key = f"{key_wo_qc}_btl_qc"
-            else:
-                new_key = f"{key}_btl"
-
-            new_obj[new_key] = val
-
-    if type == 'ctd':
-
-        core_values_mapping = get_goship_argovis_name_mapping_ctd()
-
-        core_values = [core for core in core_values_mapping]
-
-        new_obj = {}
-
-        for key, val in obj.items():
-
-            if '_qc' in key:
-                check_core = key.replace('_qc', '')
-                if check_core in core_values:
-                    new_key = f"{core_values_mapping[check_core]}_qc"
-
-            elif key in core_values:
-                new_key = core_values_mapping[key]
-
-            elif '_qc' in key:
-                key_wo_qc = key.replace('_qc', '')
-                new_key = f"{key_wo_qc}_ctd_qc"
-            else:
-                new_key = f"{key}_ctd"
-
-            new_obj[new_key] = val
-
-    return new_obj
-
-
-def rename_key_not_meta_argovis(obj, type):
-
-    if type == 'bot':
-
-        core_values_mapping = get_core_values_mapping_bot()
-        core_values = [core for core in core_values_mapping]
-
-        new_obj = {}
-
-        for key, val in obj.items():
-
-            if '_qc' in key:
-                check_core = key.replace('_qc', '')
-                if check_core in core_values:
-                    new_key = f"{core_values_mapping[check_core]}_qc"
-
-            elif key in core_values:
-                new_key = core_values_mapping[key]
-
-            else:
-                new_key = val
-
-            new_obj[new_key] = val
-
-    if type == 'ctd':
-
-        core_values_mapping = get_core_values_mapping_ctd()
-        core_value = [core for core in core_values_mapping]
-
-        new_obj = {}
-
-        for key, val in obj.items():
-
-            if '_qc' in key:
-                check_core = key.replace('_qc', '')
-                if check_core in core_value:
-                    new_key = f"{core_values_mapping[check_core]}_qc"
-
-            elif key in core_value:
-                new_key = core_values_mapping[key]
-
-            else:
-                new_key = val
-
-            new_obj[new_key] = val
-
-    return new_obj
-
-
-def rename_ctd_value_not_meta(obj):
-
-    # For case when goship is key and mapping to argovis
-
-    core_values_mapping = get_core_values_mapping_ctd()
-
-    core_values = [core for core in core_values_mapping]
-
-    new_obj = {}
-
-    for key in obj:
-
-        if '_qc' in key:
-            check_core = key.replace('_qc', '')
-            if check_core in core_values:
-                new_val = f"{core_values_mapping[check_core]}_qc"
-
-        elif key in core_values:
-            new_val = core_values_mapping[key]
-
-        elif '_qc' in key:
-            key_wo_qc = key.replace('_qc', '')
-            new_val = f"{key_wo_qc}_ctd_qc"
-        else:
-            new_val = f"{key}_ctd"
-
-        new_obj[key] = new_val
-
-    return new_obj
-
-
-def rename_ctd_key_not_meta(obj):
-
-    core_values_mapping = get_core_values_mapping_ctd()
-
-    core_values = [core for core in core_values_mapping]
-
-    new_obj = {}
-
-    for key, val in obj.items():
-
-        if '_qc' in key:
-            check_core = key.replace('_qc', '')
-            if check_core in core_values:
-                new_key = f"{core_values_mapping[check_core]}_qc"
-
-        elif key in core_values:
-            new_key = core_values_mapping[key]
-
-        elif '_qc' in key:
-            key_wo_qc = key.replace('_qc', '')
-            new_key = f"{key_wo_qc}_ctd_qc"
-        else:
-            new_key = f"{key}_ctd"
-
-        new_obj[new_key] = val
-
-    return new_obj
-
-
-def rename_ctd_key_meta(obj):
-
-    core_values_mapping = get_core_values_mapping_ctd()
-
-    core_values = [core for core in core_values_mapping]
-
-    new_obj = {}
-
-    for key, val in obj.items():
-
-        if key in core_values:
-            new_key = core_values_mapping[key]
-
-        else:
-            new_key = f"{key}"
-
-        new_obj[new_key] = val
-
-    return new_obj
-
-
-# TODO. Do i use this?
-def rename_mapping_ctd_key_list(obj_list):
-
-    core_values = get_core_values()
-
-    new_list = []
-
-    for obj in obj_list:
-        new_mapping = {}
-        for key, val in obj.items():
-            if key in core_values:
-                new_key = key
-            elif '_qc' in key:
-                new_key = key.replace('_qc', '_ctd_qc')
-            else:
-                new_key = f"{key}_ctd"
-
-            new_mapping[new_key] = val
-        new_list.append(new_mapping)
-
-    return new_list
-
-
-def rename_output_per_profile(profile_dict, type):
-
-    if type == 'bot':
-
-        # Make a new object because will be using it next if combine profiles
-        # but do rename lat and lon
-        meta = profile_dict['meta']
-        renamed_meta = rename_argovis_meta(meta)
-
-        # TODO. Do I still need a deep copy?
-        meta_copy = copy.deepcopy(meta)
-
-        measurements_list = profile_dict['measurements']
-        bgc_list = profile_dict['bgc_meas']
-        name_mapping = profile_dict['goship_argovis_name_mappping']
-
-        renamed_bgc_list = create_renamed_list_of_objs(bgc_list, 'bot')
-
-        renamed_measurements_list = {}
-
-        renamed_measurements_list = create_renamed_list_of_objs_argovis(
-            measurements_list, 'bot')
-
-        # TODO
-        # Should this meta renaming have btl suffix?
-
-        # name_mapping_meta = rename_argovis_value_meta(names)
-        # name_mapping_param = rename_value_not_meta(names, 'bot')
-        # name_mapping = {**name_mapping_param, **name_mapping_meta}
-
-        argovis_ref_scale_mapping = profile_dict['argovis_ref_scale_mapping']
-
-    if type == 'ctd':
-
-        # Make a new object because will be using it next if combine profiles
-        # but do rename lat and lon
-        meta = profile_dict['meta']
-        meta_copy = copy.deepcopy(meta)
-
-        renamed_meta = rename_argovis_meta(meta)
-
-        measurements_list = profile_dict['measurements']
-        bgc_list = profile_dict['bgc_meas']
-        name_mapping = profile_dict['goship_argovis_name_mappping']
-
-        renamed_bgc_list = create_renamed_list_of_objs(bgc_list, 'ctd')
-
-        #renamed_measurements_list = []
-        renamed_measurements_list = create_renamed_list_of_objs_argovis(
-            measurements_list, 'ctd')
-
-        # Ask if want extension to ctd variables like bot has
-        # even when single
-
-        # Don't need to do this since created a mapping dictionary
-        # of goship to argovis names including meta and param names
-        #name_mapping = rename_ctd_value_not_meta(names)
-
-        # name_mapping_meta = rename_argovis_value_meta(names)
-        # name_mapping_param = rename_value_not_meta(names, 'ctd')
-        # name_mapping = {**name_mapping_param, **name_mapping_meta}
-
-        argovis_ref_scale_mapping = profile_dict['argovis_ref_scale_mapping']
-
-    goship_ref_scale_mappping = profile_dict['goship_ref_scale_mapping']
-    goship_argovis_unit_mapping = profile_dict['goship_argovis_unit_mappping']
-
-    # don't rename meta yet incase not both bot and ctd combined
-
-    renamed_profile_dict = {}
-    renamed_profile_dict['meta'] = renamed_meta
-    renamed_profile_dict['measurements'] = renamed_measurements_list
-    renamed_profile_dict['bgcMeas'] = renamed_bgc_list
-    renamed_profile_dict['goshipArgovisNameMapping'] = name_mapping
-    renamed_profile_dict['goshipReferenceScale'] = goship_ref_scale_mappping
-    renamed_profile_dict['argovisReferenceScale'] = argovis_ref_scale_mapping
-    renamed_profile_dict['goshipArgovisUnitsMapping'] = goship_argovis_unit_mapping
-
-    return renamed_profile_dict
-
-
 def combine_output_per_profile_bot_ctd(bot_renamed_dict, ctd_renamed_dict, bot_obj, ctd_obj):
 
     bot_meta = bot_renamed_dict['meta']
     ctd_meta = ctd_renamed_dict['meta']
 
     # Rename meta which has already had latitude and longitude changed
-    bot_renamed_meta = rename_bot_by_key_meta(bot_meta)
+    bot_renamed_meta = rn.rename_bot_by_key_meta(bot_meta)
 
     meta = {**ctd_meta, **bot_renamed_meta}
 
@@ -789,13 +134,16 @@ def combine_output_per_profile_bot_ctd(bot_renamed_dict, ctd_renamed_dict, bot_o
 
     measurement = [*ctd_measurements, *bot_measurements]
 
-    goship_argovis_name_mapping_bot = get_goship_argovis_name_mapping_bot()
-    goship_argovis_name_mapping_ctd = get_goship_argovis_name_mapping_ctd()
-
-    goship_ref_scale_mapping_bot = create_goship_ref_scale_mapping_dict(
+    goship_argovis_name_mapping_bot = gvm.create_goship_argovis_core_values_mapping(
         bot_obj)
-    goship_ref_scale_mapping_ctd = create_goship_ref_scale_mapping_dict(
+    goship_argovis_name_mapping_ctd = gvm.create_goship_argovis_core_values_mapping(
         ctd_obj)
+
+    # goship_ref_scale_mapping_bot = gvm.create_goship_ref_scale(bot_obj)
+    # goship_ref_scale_mapping_ctd = gvm.create_goship_ref_scale(ctd_obj)
+
+    goship_ref_scale_mapping_bot = bot_obj['goship_ref_scale']
+    goship_ref_scale_mapping_ctd = ctd_obj['goship_ref_scale']
 
     goship_ref_scale_mapping = {
         **goship_ref_scale_mapping_ctd, **goship_ref_scale_mapping_bot}
@@ -820,33 +168,6 @@ def combine_output_per_profile_bot_ctd(bot_renamed_dict, ctd_renamed_dict, bot_o
     combined_bot_ctd_dict['goshipArgovisUnitsMapping'] = goship_argovis_units_mapping
 
     return combined_bot_ctd_dict
-
-
-def rename_profile_dicts_to_argovis(data_obj, profile_dicts):
-
-    # TODO
-    # add following flags
-    # isGOSHIPctd = true
-    # isGOSHIPbottle = true
-    # core_info = 1  # is ctd
-    # core_info = 2  # is bottle (no ctd)
-    # core_info = 12  # is ctd and tgoship_argovis_name_mapping_bot is bottle too (edited)
-
-    type = data_obj['type']
-
-    num_profiles = len(profile_dicts)
-
-    profile_dicts_list = []
-
-    for profile_number in range(num_profiles):
-
-        profile_dict = profile_dicts[profile_number]
-
-        processed_profile_dict = rename_output_per_profile(profile_dict, type)
-
-        profile_dicts_list.append(processed_profile_dict)
-
-    return profile_dicts_list
 
 
 def combine_profile_dicts_bot_ctd(bot_obj, ctd_obj, bot_profile_dicts, ctd_profile_dicts):
@@ -921,41 +242,6 @@ def combine_profile_dicts_bot_ctd(bot_obj, ctd_obj, bot_profile_dicts, ctd_profi
     return profile_dicts_list_bot_ctd
 
 
-def create_goship_ref_scale_mapping_dict(data_obj):
-
-    nc = data_obj['nc']
-    vars = nc.keys()
-    mapping = {}
-
-    for var in vars:
-        try:
-            ref_scale = nc[var].attrs['reference_scale']
-
-            mapping[var] = ref_scale
-
-        except KeyError:
-            pass
-
-    return mapping
-
-
-def get_argovis_ref_scale_mapping_dict():
-
-    return {
-        'temp_ctd': 'ITS-90',
-        'psal_ctd': 'PSS-78'
-    }
-
-
-def get_argovis_ref_scale_mapping_dict_bot():
-
-    return {
-        'temp_btl': 'ITS-90',
-        'psal_btl': 'PSS-78',
-        'salinity_btl': 'PSS-78'
-    }
-
-
 def create_measurements_dict_list(df_bgc_meas):
 
     # TODO
@@ -964,7 +250,7 @@ def create_measurements_dict_list(df_bgc_meas):
 
     df_meas = pd.DataFrame()
 
-    core_values = get_core_values()
+    core_values = gvm.get_goship_core_values()
 
     for val in core_values:
 
@@ -1295,27 +581,21 @@ def create_profile_dict(profile_group, data_obj):
 
     df_bgc = create_bgc_meas_df(param_json)
 
-    # rename if bot  vs ctd or rename as a list?
     bgc_meas_dict_list = create_bgc_meas_dict_list(df_bgc)
+    measurements_dict_list = create_measurements_dict_list(df_bgc)
 
-    measurements_dict = create_measurements_dict_list(df_bgc)
-
-    type = data_obj['type']
-
-    if type == 'bot':
-
-        goship_argovis_name_mapping_dict = get_goship_argovis_name_mapping_bot()
-        argovis_ref_scale_mapping_dict = get_argovis_ref_scale_mapping_dict_bot()
-
-    elif type == 'ctd':
-
-        goship_argovis_name_mapping_dict = get_goship_argovis_name_mapping_ctd()
-        argovis_ref_scale_mapping_dict = get_argovis_ref_scale_mapping_dict()
-
-    goship_argovis_unit_mapping_dict = get_goship_argovis_unit_mapping()
-
-    goship_ref_scale_mapping_dict = create_goship_ref_scale_mapping_dict(
+    goship_argovis_name_mapping_dict = gvm.create_goship_argovis_core_values_mapping(
         data_obj)
+
+    argovis_ref_scale_mapping_dict = gvm.create_argovis_ref_scale_mapping(
+        data_obj)
+
+    goship_units_dict = data_obj['goship_units']
+    goship_argovis_unit_mapping_dict = gvm.get_goship_argovis_unit_mapping()
+    # goship_ref_scale_mapping_dict = create_goship_ref_scale(
+    #     data_obj)
+
+    goship_ref_scale_mapping_dict = data_obj['goship_ref_scale']
 
     # TODO
     # do  I need to do this now that not creating profile obj
@@ -1328,14 +608,15 @@ def create_profile_dict(profile_group, data_obj):
     profile_dict = {}
     profile_dict['meta'] = meta_copy
     profile_dict['bgc_meas'] = bgc_meas_dict_list
-    profile_dict['measurements'] = measurements_dict
+    profile_dict['measurements'] = measurements_dict_list
+    profile_dict['goship_ref_scale_mapping'] = goship_ref_scale_mapping_dict
+    profile_dict['goship_units'] = goship_units_dict
 
     # TODO
     # move mapping information later when do renaming
     profile_dict['goship_argovis_name_mappping'] = goship_argovis_name_mapping_dict
     profile_dict['goship_argovis_unit_mappping'] = goship_argovis_unit_mapping_dict
     profile_dict['argovis_ref_scale_mapping'] = argovis_ref_scale_mapping_dict
-    profile_dict['goship_ref_scale_mapping'] = goship_ref_scale_mapping_dict
 
     return profile_dict
 
@@ -1427,9 +708,10 @@ def create_profile_dicts(data_obj):
     has_ctd_vars = check_if_all_ctd_vars(data_obj)
 
     if not has_ctd_vars:
-        return {}, {}
+        # TODO (log this and write to file)
+        return []
 
-    all_profile_dicts = []
+    all_profiles_dict_list = []
 
     for nc_group in nc.groupby('N_PROF'):
 
@@ -1440,9 +722,9 @@ def create_profile_dicts(data_obj):
 
         profile_dict = create_profile_dict(profile_group, data_obj)
 
-        all_profile_dicts.append(profile_dict)
+        all_profiles_dict_list.append(profile_dict)
 
-    return all_profile_dicts
+    return all_profiles_dict_list
 
 
 def convert_sea_water_temp(nc, var, var_goship_ref_scale):
@@ -1480,92 +762,6 @@ def convert_sea_water_temp(nc, var, var_goship_ref_scale):
     return nc
 
 
-def rename_units_to_argovis(data_obj):
-
-    units_mapping = get_goship_argovis_unit_mapping()
-    goship_salinity_ref_scale = get_goship_salniity_reference_scale()
-
-    nc = data_obj['nc']
-
-    coords = nc.coords
-    vars = nc.keys()
-
-    for var in coords:
-
-        try:
-            goship_unit = nc.coords[var].attrs['units']
-        except KeyError:
-            goship_unit = None
-
-        # use try block because not all vars have a reference scale
-        try:
-            argovis_unit = units_mapping[goship_unit]
-        except:
-            argovis_unit = goship_unit
-
-        if goship_unit:
-            try:
-                nc.coords[var].attrs['units'] = units_mapping[goship_unit]
-            except:
-                # No unit mapping
-                pass
-
-    for var in vars:
-
-        try:
-            goship_unit = nc[var].attrs['units']
-        except KeyError:
-            goship_unit = None
-
-        # use try block because not all vars have a reference scale
-        try:
-            argovis_unit = units_mapping[goship_unit]
-        except:
-            argovis_unit = goship_unit
-
-        # Check if salinity unit of 1
-        if goship_unit == '1':
-            try:
-                var_goship_ref_scale = nc[var].attrs['reference_scale']
-
-                if var_goship_ref_scale == goship_salinity_ref_scale:
-                    argovis_unit = units_mapping[goship_unit]
-
-                    nc[var].attrs['units'] = argovis_unit
-
-            except KeyError:
-                pass
-
-        if goship_unit:
-            try:
-                nc[var].attrs['units'] = units_mapping[goship_unit]
-            except:
-                # No unit mapping
-                pass
-
-    data_obj['nc'] = nc
-
-    return data_obj
-
-
-def rename_converted_temperature(data_obj):
-
-    nc = data_obj['nc']
-
-    data_vars = nc.keys()
-
-    def rename_var(var):
-        new_name = var.replace('_68', '')
-        return {var: new_name}
-
-    new_name_mapping = [rename_var(var) for var in data_vars if '_68' in var]
-
-    for name_map in new_name_mapping:
-        nc.rename(name_map)
-
-    return data_obj
-
-
 def convert_goship_to_argovis_ref_scale(data_obj):
 
     nc = data_obj['nc']
@@ -1573,20 +769,12 @@ def convert_goship_to_argovis_ref_scale(data_obj):
     params = data_obj['param']
 
     # If argo ref scale not equal to goship ref scale, convert
+
     # So far, it's only the case for temperature
 
-    argovis_ref_scale_per_type = get_argovis_reference_scale_per_type()
-
-    for var in meta_vars:
-
-        # Not all vars have a reference scale
-        try:
-            pass
-        except:
-            pass
+    argovis_ref_scale_per_type = gvm.get_argovis_reference_scale_per_type()
 
     for var in params:
-
         # Not all vars have a reference scale
         try:
             # Get goship reference scale of var
@@ -1594,9 +782,10 @@ def convert_goship_to_argovis_ref_scale(data_obj):
 
             if 'temperature' in var:
                 argovis_ref_scale = argovis_ref_scale_per_type['temperature']
-                is_same_scale = var_goship_ref_scale != argovis_ref_scale
+                is_same_scale = var_goship_ref_scale == argovis_ref_scale
+                is_IPTS68_scale = var_goship_ref_scale == 'IPTS-68'
 
-                if argovis_ref_scale == 'IPT-90' and is_same_scale:
+                if is_IPTS68_scale and not is_same_scale:
                     nc = convert_sea_water_temp(nc, var, var_goship_ref_scale)
 
         except:
@@ -1605,138 +794,6 @@ def convert_goship_to_argovis_ref_scale(data_obj):
     data_obj['nc'] = nc
 
     return data_obj
-
-
-def create_new_names_mapping(df, data_obj):
-
-    # Look at var names to rename temperature and salinity
-    # depending on goship name because tgoship_argovis_name_mapping_bot are multiple types
-    params = data_obj['param']
-
-    is_ctd_temp = False
-    is_ctd_temp_68 = False
-    # is_ctd_temp_unknown = False
-
-    for name in params:
-
-        # if both ctd_temperature and ctd_temperature_68,
-        # use ctd_temperature to temp only
-        if name == 'ctd_temperature':
-            is_ctd_temp = True
-        if name == 'ctd_temperature_68':
-            is_ctd_temp_68 = True
-
-    # Create new column with new names. Start as argo names if exist
-    df['name'] = df['argovis_name']
-
-    # if argo name is nan, use goship name
-    df['name'] = np.wgoship_argovis_name_mapping_bot(df['argovis_name'].isna(),
-                                                     df['goship_name'], df['name'])
-
-    # if both temp on ITS-90 scale and temp on IPTS-68 scale,
-    # just change name of ctd_temperature (ITS-90) to temp, and
-    # don't change name of ctd_temperature_68. So keep names as is.
-
-    # If don't have an argo name of temp yet and do have a ctd temperature
-    # on the 68 scale, call it temp
-    if not is_ctd_temp and is_ctd_temp_68:
-        # change name to temp and convert to ITS-90 scale later
-        df.loc[df['goship_name'] == 'ctd_temperature_68', 'name'] = 'temp'
-        df_qc = df.isin({'goship_name': ['ctd_temperature_68_qc']}).any()
-
-        if df_qc.any(axis=None):
-            df.loc[df['goship_name'] ==
-                   'ctd_temperature_68_qc', 'name'] = 'temp_qc'
-
-    return df
-
-
-def add_qc_names_to_argo_names(df_mapping):
-
-    # If goship name has a qc, rename corresponding argo name to argo name qc
-    goship_qc_names = df_mapping.loc[df_mapping['goship_name'].str.contains(
-        '_qc')]['goship_name'].tolist()
-
-    for goship_qc_name in goship_qc_names:
-
-        # find argo name of goship name without qc
-        goship_base_name = goship_qc_name.replace('_qc', '')
-        argo_name = df_mapping.loc[df_mapping['goship_name']
-                                   == goship_base_name, 'argovis_name']
-
-        # If argo_name not empty, add qc name
-        if pd.notna(argo_name.values[0]):
-            df_mapping.loc[df_mapping['goship_name'] == goship_qc_name,
-                           'argovis_name'] = argo_name.values[0] + '_qc'
-
-    return df_mapping
-
-
-def get_goship_var_attributes(nc):
-
-    # Get units, reference scale and c_format from nc
-    coord_names = list(nc.coords)
-    var_names = list(nc.keys())
-
-    name_to_units = {}
-    name_to_ref_scale = {}
-    name_to_c_format = {}
-
-    for coord in coord_names:
-
-        try:
-            name_to_units[coord] = nc.coords[coord].attrs['units']
-        except KeyError:
-            name_to_units[coord] = np.nan
-
-        try:
-            name_to_ref_scale[coord] = nc.coords[coord].attrs['reference_scale']
-        except KeyError:
-            name_to_ref_scale[coord] = np.nan
-
-        try:
-            name_to_c_format[coord] = nc.coords[coord].attrs['C_format']
-        except KeyError:
-            name_to_c_format[coord] = np.nan
-
-    for var in var_names:
-
-        try:
-            name_to_units[var] = nc[var].attrs['units']
-        except KeyError:
-            name_to_units[var] = np.nan
-
-        try:
-            name_to_ref_scale[var] = nc[var].attrs['reference_scale']
-            # Replace 'unknown' with np.nan
-            if name_to_ref_scale[var] == 'unknown':
-                name_to_ref_scale[var] = np.nan
-        except KeyError:
-            name_to_ref_scale[var] = np.nan
-
-        try:
-            name_to_c_format[var] = nc[var].attrs['C_format']
-        except KeyError:
-            name_to_c_format[var] = np.nan
-
-    var_attrs = {}
-
-    var_attrs['goship_unit'] = name_to_units
-    var_attrs['goship_reference_scale'] = name_to_ref_scale
-    var_attrs['goship_c_format'] = name_to_c_format
-
-    return var_attrs
-
-
-def get_argo_mapping_df(argo_name_mapping_file):
-
-    df = pd.read_csv(argo_name_mapping_file)
-
-    # Only want part of the csv file
-    df = df[['argovis_name', 'argo_unit',
-             'argo_reference_scale', 'goship_name']].copy()
-
-    return df
 
 
 def get_meta_param_names(nc):
@@ -1796,7 +853,7 @@ def read_file(data_obj):
     return data_obj
 
 
-def find_bot_ctd_file_info(file_ids):
+def find_bot_ctd_file_info(file_ids, session):
 
     # Get file meta for each file id to search for cruise doc id and bottle id
 
@@ -1815,10 +872,11 @@ def find_bot_ctd_file_info(file_ids):
         # Following api only lists active files
 
         query = f"{API_END_POINT}/file/{file_id}"
-        response = requests.get(query)
+        response = session.get(query)
 
         if response.status_code != 200:
-            print('api not reached in function get_cruise_information')
+            print('api not reached in function find_bot_ctd_file_info')
+            print(response)
             exit(1)
 
         file_meta = response.json()
@@ -1845,34 +903,36 @@ def find_bot_ctd_file_info(file_ids):
     return file_info
 
 
-def get_all_file_ids():
+def get_all_file_ids(session):
 
     # Use api query to get all active file ids
-    query = f"{API_END_POINT}/file"
+    query = f"{API_END_POINT}/file/all"
 
-    response = requests.get(query)
+    response = session.get(query)
 
     if response.status_code != 200:
         print('api not reached in get_all_files')
+        print(response)
         exit(1)
 
-    all_files = response.json()['files']
+    all_files = response.json()
 
     all_file_ids = [file['id'] for file in all_files]
 
     return all_file_ids
 
 
-def get_all_cruises():
+def get_all_cruises(session):
 
     # Use api query to get all cruise id with their attached file ids
 
     query = f"{API_END_POINT}/cruise/all"
 
-    response = requests.get(query)
+    response = session.get(query)
 
     if response.status_code != 200:
         print('api not reached in get_all_cruises')
+        print(response)
         exit(1)
 
     all_cruises = response.json()
@@ -1880,15 +940,15 @@ def get_all_cruises():
     return all_cruises
 
 
-def get_cruise_information():
+def get_cruise_information(session):
 
     # To get expocodes and cruise ids, Use get cruise/all to get all cruise metadata
     # and search cruises to get Go-Ship cruises expocodes and cruise ids,
     # from attached file ids, Search file metadata from doc file id, bottle file id
 
     # Get all cruises and active files
-    all_cruises = get_all_cruises()
-    all_file_ids = get_all_file_ids()
+    all_cruises = get_all_cruises(session)
+    all_file_ids = get_all_file_ids(session)
 
     all_cruises_info = []
 
@@ -1904,10 +964,6 @@ def get_cruise_information():
 
         country = cruise['country']
         expocode = cruise['expocode']
-
-        # This cruise has both bot and ctd
-        # if expocode == '318M20130321':
-        #     continue
 
         cruise_info = {}
         cruise_info['bot'] = {}
@@ -1931,7 +987,7 @@ def get_cruise_information():
 
             # Get file meta for each file id to search for
             # cruise doc and bottle info
-            file_info = find_bot_ctd_file_info(active_file_ids)
+            file_info = find_bot_ctd_file_info(active_file_ids, session)
 
             bot_found = file_info['bot_found']
             ctd_found = file_info['ctd_found']
@@ -2004,24 +1060,14 @@ def main():
     # input_netcdf_data_directory = './data/same_expocode_bot_ctd_netcdf'
     json_directory = './data/same_expocode_json'
 
-    argo_name_mapping_file = 'argo_goship_mapping.csv'
-    argo_units_mapping_file = 'argo_goship_units_mapping.csv'
+    # argo_name_mapping_file = 'argo_goship_mapping.csv'
+    # argo_units_mapping_file = 'argo_goship_units_mapping.csv'
 
-    # s = requests.Session()
-    # a = requests.adapters.HTTPAdapter(max_retries=3)
-    # b = requests.adapters.HTTPAdapter(max_retries=3)
+    session = requests.Session()
+    a = requests.adapters.HTTPAdapter(max_retries=3)
+    session.mount('https://', a)
 
-    # session.mount('http://', a)
-    # session.mount('https://', b)
-
-    all_cruises_info = get_cruise_information()
-
-    # nc_data_entry = os.scandir(input_netcdf_data_directory)
-
-    # for nc_folder in nc_data_entry:
-
-    #     if nc_folder.name != '32NH047_1':
-    #         continue
+    all_cruises_info = get_cruise_information(session)
 
     for cruise_info in all_cruises_info:
 
@@ -2029,13 +1075,6 @@ def main():
 
         print("======================\n")
         print(f"Processing {expocode}")
-
-        # # Process folder to combine bot and ctd without
-        # # caring about setting new coords and vals
-        # if nc_folder.is_dir():
-
-        # filenames, nc_dict, bot_names, ctd_names = process_folder(
-        #     nc_folder)
 
         bot_profile_dicts = []
         ctd_profile_dicts = []
@@ -2060,9 +1099,6 @@ def main():
 
         expocode = cruise_info['expocode']
 
-        # filenames, nc_dict, bot_names, ctd_names = read_file(
-        #     cruise_info, bot_found, ctd_found)
-
         # TODO
         # remove
         # bot_found = False
@@ -2078,17 +1114,24 @@ def main():
 
             bot_obj = read_file(bot_obj)
 
+            # Only converting temperature
             bot_obj = convert_goship_to_argovis_ref_scale(bot_obj)
 
-            bot_obj = rename_converted_temperature(bot_obj)
+            # Rename later. Keep 68 in name and show it maps to temp_ctd
+            # and ref scale show what scale it was converted to
+            #bot_obj = rn.rename_converted_temperature(bot_obj)
 
-            bot_obj = rename_units_to_argovis(bot_obj)
+            bot_obj = gvm.create_goship_unit_mapping(bot_obj)
+            bot_obj = gvm.create_goship_ref_scale(bot_obj)
+
+            # Don't need to "rename" units if supply a mapping
+            #bot_obj = rename_units_to_argovis(bot_obj)
 
             bot_profile_dicts = create_profile_dicts(bot_obj)
 
             # Rename with _btl suffix unless it is an Argovis variable
             # But no _btl suffix to meta data
-            renamed_bot_profile_dicts = rename_profile_dicts_to_argovis(
+            renamed_bot_profile_dicts = rn.rename_profile_dicts_to_argovis(
                 bot_obj, bot_profile_dicts)
 
         if ctd_found:
@@ -2101,17 +1144,25 @@ def main():
 
             ctd_obj = read_file(ctd_obj)
 
+            # TODO
+            # Ask if this is just for ctd_temperature?
             ctd_obj = convert_goship_to_argovis_ref_scale(ctd_obj)
 
-            ctd_obj = rename_converted_temperature(ctd_obj)
+            # Rename later. Keep 68 in name and show it maps to temp_ctd
+            # and ref scale show what scale it was converted to
+            #ctd_obj = rn.rename_converted_temperature(ctd_obj)
 
-            ctd_obj = rename_units_to_argovis(ctd_obj)
+            ctd_obj = gvm.create_goship_unit_mapping(ctd_obj)
+            ctd_obj = gvm.create_goship_ref_scale(ctd_obj)
+
+            # Don't need to "rename" units if supply a mapping
+            #ctd_obj = rename_units_to_argovis(ctd_obj)
 
             ctd_profile_dicts = create_profile_dicts(ctd_obj)
 
             # Rename with _ctd suffix unless it is an Argovis variable
             # But no _ctd suffix to meta data
-            renamed_ctd_profile_dicts = rename_profile_dicts_to_argovis(
+            renamed_ctd_profile_dicts = rn.rename_profile_dicts_to_argovis(
                 ctd_obj, ctd_profile_dicts)
 
         if bot_found and ctd_found:
