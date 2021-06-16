@@ -951,7 +951,9 @@ def get_cruise_information(session):
 
     all_cruises_info = []
 
-    cruise_count = 0
+    # TODO
+    # For Testing. Use when wanting to limit the number of cruises processed
+    # cruise_count = 0
 
     for cruise in all_cruises:
 
@@ -962,11 +964,12 @@ def get_cruise_information(session):
         programs = [x.lower() for x in programs]
 
         country = cruise['country']
-        expocode = cruise['expocode']
 
-        # # Find cruise 32MW9508 to check for ctd_temperature_68 case
+        # TESTING
+        # Find cruise 32MW9508 to check for ctd_temperature_68 case
         # It isn't a Go-Ship cruise but has ctd temp on 68 scale
-        # # And change check for Go-Ship to True
+        # And change check for Go-Ship to True
+        # expocode = cruise['expocode']
         # if expocode != '32MW9508':
         #     continue
 
@@ -974,8 +977,10 @@ def get_cruise_information(session):
         cruise_info['bot'] = {}
         cruise_info['ctd'] = {}
 
-        # Only want US GoShip
-        # TESTING non-goship cruise with True. change if statement back
+        # Only want US Go-Ship
+
+        # TESTING
+        # Get non-goship cruise with True
         # if True:
         if 'go-ship' in programs and country == 'US':
 
@@ -1028,16 +1033,18 @@ def get_cruise_information(session):
 
                 cruise_info['ctd'] = ctd_obj
 
-            cruise_count = cruise_count + 1
-
-            # DEVELOPEMENT
-            if cruise_count == 2:  # count 5 gives one bottle, count 2 gives both
-                return all_cruises_info
-
         if cruise_info['bot'] or cruise_info['ctd']:
-            cruise_info['expocode'] = expocode
-            cruise_info['cruise_id'] = cruise['id']
+
             all_cruises_info.append(cruise_info)
+
+            # TESTING
+            # Used to limit number of cruises processed
+            #cruise_count = cruise_count + 1
+
+        # TESTING
+        # Used to limit number of cruises processed
+        # if cruise_count == 1:  # at count 5 gives one bottle, count 1 gives both
+        #     return all_cruises_info
 
     return all_cruises_info
 
@@ -1193,8 +1200,6 @@ def main():
         print('---------------------------')
 
         print("*****************************\n")
-
-        exit(1)
 
     logging.info(datetime.now() - start_time)
 
