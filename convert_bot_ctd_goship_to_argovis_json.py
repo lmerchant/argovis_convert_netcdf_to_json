@@ -1123,8 +1123,7 @@ def main():
             has_ctd_vars = check_if_all_ctd_vars(bot_obj)
 
             if not has_ctd_vars:
-                # TODO (log this and write to file)
-                continue
+                bot_obj['found'] = False
 
             bot_obj = gvm.create_goship_unit_mapping(bot_obj)
             bot_obj = gvm.create_goship_ref_scale_mapping(bot_obj)
@@ -1158,8 +1157,7 @@ def main():
             has_ctd_vars = check_if_all_ctd_vars(ctd_obj)
 
             if not has_ctd_vars:
-                # TODO (log this and write to file)
-                continue
+                ctd_obj['found'] = False
 
             ctd_obj = gvm.create_goship_unit_mapping(ctd_obj)
 
