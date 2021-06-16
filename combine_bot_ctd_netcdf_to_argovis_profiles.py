@@ -108,8 +108,9 @@ def write_profiles_json(json_dir, profile_dicts):
         write_profile_json(json_dir, profile_dict)
 
 
-def combine_output_per_profile_bot_ctd(bot_renamed_dict, ctd_renamed_dict, bot_obj, ctd_obj):
+def combine_output_per_profile_bot_ctd(bot_renamed_dict, ctd_renamed_dict):
 
+    # mime
     bot_meta = bot_renamed_dict['meta']
     ctd_meta = ctd_renamed_dict['meta']
 
@@ -134,16 +135,31 @@ def combine_output_per_profile_bot_ctd(bot_renamed_dict, ctd_renamed_dict, bot_o
 
     measurement = [*ctd_measurements, *bot_measurements]
 
-    goship_argovis_name_mapping_bot = gvm.create_goship_argovis_core_values_mapping(
-        bot_obj)
-    goship_argovis_name_mapping_ctd = gvm.create_goship_argovis_core_values_mapping(
-        ctd_obj)
+    # meta_names_bot = bot_obj['meta']
+    # param_names_bot = bot_obj['param']
+    # goship_names_bot = [*meta_names_bot, *param_names_bot]
 
-    # goship_ref_scale_mapping_bot = gvm.create_goship_ref_scale(bot_obj)
-    # goship_ref_scale_mapping_ctd = gvm.create_goship_ref_scale(ctd_obj)
+    # meta_names_ctd = ctd_obj['meta']
+    # param_names_ctd = ctd_obj['param']
+    # goship_names_ctd = [*meta_names_ctd, *param_names_ctd]
 
-    goship_ref_scale_mapping_bot = bot_obj['goship_ref_scale']
-    goship_ref_scale_mapping_ctd = ctd_obj['goship_ref_scale']
+    # TODO
+
+    # Don't  have this goship argovis name mapping?
+
+    # goship_argovis_name_mapping_bot = gvm.create_goship_argovis_core_values_mapping(
+    #     goship_names_bot, 'bot')
+    # goship_argovis_name_mapping_ctd = gvm.create_goship_argovis_core_values_mapping(
+    #     goship_names_ctd, 'ctd')
+
+    goship_argovis_name_mapping_bot = bot_renamed_dict['goshipArgovisNameMapping']
+    goship_argovis_name_mapping_ctd = ctd_renamed_dict['goshipArgovisNameMapping']
+
+    # goship_ref_scale_mapping_bot = gvm.create_goship_ref_scale_mapping(bot_obj)
+    # goship_ref_scale_mapping_ctd = gvm.create_goship_ref_scale_mapping(ctd_obj)
+
+    goship_ref_scale_mapping_bot = bot_renamed_dict['goshipReferenceScale']
+    goship_ref_scale_mapping_ctd = ctd_renamed_dict['goshipReferenceScale']
 
     goship_ref_scale_mapping = {
         **goship_ref_scale_mapping_ctd, **goship_ref_scale_mapping_bot}
@@ -170,7 +186,7 @@ def combine_output_per_profile_bot_ctd(bot_renamed_dict, ctd_renamed_dict, bot_o
     return combined_bot_ctd_dict
 
 
-def combine_profile_dicts_bot_ctd(bot_obj, ctd_obj, bot_profile_dicts, ctd_profile_dicts):
+def combine_profile_dicts_bot_ctd(bot_profile_dicts, ctd_profile_dicts):
 
     # TODO
     # add following flags
@@ -205,7 +221,7 @@ def combine_profile_dicts_bot_ctd(bot_obj, ctd_obj, bot_profile_dicts, ctd_profi
         # only need to rename  bot for meta
 
         combined_profile_dict_bot_ctd = combine_output_per_profile_bot_ctd(
-            bot_profile_dict, ctd_profile_dict, bot_obj, ctd_obj)
+            bot_profile_dict, ctd_profile_dict)
 
         profile_dicts_list_bot_ctd.append(combined_profile_dict_bot_ctd)
 
@@ -584,18 +600,10 @@ def create_profile_dict(profile_group, data_obj):
     bgc_meas_dict_list = create_bgc_meas_dict_list(df_bgc)
     measurements_dict_list = create_measurements_dict_list(df_bgc)
 
-    goship_argovis_name_mapping_dict = gvm.create_goship_argovis_core_values_mapping(
-        data_obj)
-
-    argovis_ref_scale_mapping_dict = gvm.create_argovis_ref_scale_mapping(
-        data_obj)
-
     goship_units_dict = data_obj['goship_units']
-    goship_argovis_unit_mapping_dict = gvm.get_goship_argovis_unit_mapping()
-    # goship_ref_scale_mapping_dict = create_goship_ref_scale(
-    #     data_obj)
-
     goship_ref_scale_mapping_dict = data_obj['goship_ref_scale']
+
+    goship_names_list = [*meta_names, *param_names]
 
     # TODO
     # do  I need to do this now that not creating profile obj
@@ -609,14 +617,24 @@ def create_profile_dict(profile_group, data_obj):
     profile_dict['meta'] = meta_copy
     profile_dict['bgc_meas'] = bgc_meas_dict_list
     profile_dict['measurements'] = measurements_dict_list
-    profile_dict['goship_ref_scale_mapping'] = goship_ref_scale_mapping_dict
+    profile_dict['goship_ref_scale'] = goship_ref_scale_mapping_dict
     profile_dict['goship_units'] = goship_units_dict
+    profile_dict['goship_names'] = goship_names_list
 
-    # TODO
-    # move mapping information later when do renaming
-    profile_dict['goship_argovis_name_mappping'] = goship_argovis_name_mapping_dict
-    profile_dict['goship_argovis_unit_mappping'] = goship_argovis_unit_mapping_dict
-    profile_dict['argovis_ref_scale_mapping'] = argovis_ref_scale_mapping_dict
+    # # TODO
+    # # move mapping information later when do renaming
+
+    # goship_argovis_name_mapping_dict = gvm.create_goship_argovis_core_values_mapping(
+    #     data_obj)
+
+    # argovis_ref_scale_mapping_dict = gvm.get_argovis_ref_scale_mapping(
+    #     data_obj)
+
+    # goship_argovis_unit_mapping_dict = gvm.get_goship_argovis_unit_mapping()
+
+    # profile_dict['goship_argovis_name_mappping'] = goship_argovis_name_mapping_dict
+    # profile_dict['goship_argovis_unit_mappping'] = goship_argovis_unit_mapping_dict
+    # profile_dict['argovis_ref_scale_mapping'] = argovis_ref_scale_mapping_dict
 
     return profile_dict
 
@@ -642,9 +660,11 @@ def check_if_all_ctd_vars(data_obj):
 
     vars = nc.keys()
 
+    temperature_vars = ['ctd_temperature', 'ctd_temperature_68']
+
     for var in vars:
 
-        if var == 'ctd_temperature':
+        if var in temperature_vars:
             has_ctd_temperature = True
 
         try:
@@ -652,9 +672,9 @@ def check_if_all_ctd_vars(data_obj):
         except:
             var_ref_scale = None
 
-        if var == 'ctd_temperature' and var_ref_scale:
+        if var in temperature_vars and var_ref_scale:
             is_ctd_temp_w_refscale = True
-        elif var == 'ctd_temperature' and not var_ref_scale:
+        elif var in temperature_vars and not var_ref_scale:
             is_ctd_temp_w_refscale = False
 
     expocode = nc.coords['expocode'].data[0]
@@ -965,12 +985,19 @@ def get_cruise_information(session):
         country = cruise['country']
         expocode = cruise['expocode']
 
+        # # Find cruise 32MW9508 to check for ctd_temperature_68 case
+        # # And change check for Go-Ship to True
+        # if expocode != '32MW9508':
+        #     continue
+
         cruise_info = {}
         cruise_info['bot'] = {}
         cruise_info['ctd'] = {}
 
         # Only want US GoShip
+        # TESTING non-goship cruise with True. change if statement back
         if 'go-ship' in programs and country == 'US':
+            # if True:
 
             print(f"Finding cruise information for {cruise['expocode']}")
 
@@ -1100,7 +1127,7 @@ def main():
         expocode = cruise_info['expocode']
 
         # TODO
-        # remove
+        # remove after testing
         # bot_found = False
         #ctd_found = False
 
@@ -1122,7 +1149,7 @@ def main():
             #bot_obj = rn.rename_converted_temperature(bot_obj)
 
             bot_obj = gvm.create_goship_unit_mapping(bot_obj)
-            bot_obj = gvm.create_goship_ref_scale(bot_obj)
+            bot_obj = gvm.create_goship_ref_scale_mapping(bot_obj)
 
             # Don't need to "rename" units if supply a mapping
             #bot_obj = rename_units_to_argovis(bot_obj)
@@ -1132,7 +1159,7 @@ def main():
             # Rename with _btl suffix unless it is an Argovis variable
             # But no _btl suffix to meta data
             renamed_bot_profile_dicts = rn.rename_profile_dicts_to_argovis(
-                bot_obj, bot_profile_dicts)
+                bot_profile_dicts, 'bot')
 
         if ctd_found:
 
@@ -1153,7 +1180,8 @@ def main():
             #ctd_obj = rn.rename_converted_temperature(ctd_obj)
 
             ctd_obj = gvm.create_goship_unit_mapping(ctd_obj)
-            ctd_obj = gvm.create_goship_ref_scale(ctd_obj)
+            ctd_obj = gvm.create_goship_ref_scale_mapping(ctd_obj)
+            # Get goship  names
 
             # Don't need to "rename" units if supply a mapping
             #ctd_obj = rename_units_to_argovis(ctd_obj)
@@ -1163,13 +1191,13 @@ def main():
             # Rename with _ctd suffix unless it is an Argovis variable
             # But no _ctd suffix to meta data
             renamed_ctd_profile_dicts = rn.rename_profile_dicts_to_argovis(
-                ctd_obj, ctd_profile_dicts)
+                ctd_profile_dicts, 'ctd')
 
         if bot_found and ctd_found:
 
             # Combine and add _btl suffix to meta variables
             combined_bot_ctd_dicts = combine_profile_dicts_bot_ctd(
-                bot_obj, ctd_obj, renamed_bot_profile_dicts, renamed_ctd_profile_dicts)
+                renamed_bot_profile_dicts, renamed_ctd_profile_dicts)
 
             print('---------------------------')
             print('Processed bot and ctd combined profiles')
