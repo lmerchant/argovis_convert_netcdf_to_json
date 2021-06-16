@@ -171,7 +171,7 @@ def combine_output_per_profile_bot_ctd(bot_renamed_dict, ctd_renamed_dict):
         **argovis_ref_scale_ctd, **argovis_ref_scale_bot}
 
     goship_argovis_units_mapping = {
-        **ctd_renamed_dict['goshipArgovisUnitsMapping'], **bot_renamed_dict['goshipArgovisUnitsMapping']}
+        **ctd_renamed_dict['goshipArgovisUnitNameMapping'], **bot_renamed_dict['goshipArgovisUnitNameMapping']}
 
     combined_bot_ctd_dict = {}
     combined_bot_ctd_dict['meta'] = meta
@@ -181,7 +181,7 @@ def combine_output_per_profile_bot_ctd(bot_renamed_dict, ctd_renamed_dict):
     combined_bot_ctd_dict['goshipArgovisNameMappingCtd'] = goship_argovis_name_mapping_ctd
     combined_bot_ctd_dict['goshipReferenceScale'] = goship_ref_scale_mapping
     combined_bot_ctd_dict['argovisReferenceScale'] = argovis_reference_scale
-    combined_bot_ctd_dict['goshipArgovisUnitsMapping'] = goship_argovis_units_mapping
+    combined_bot_ctd_dict['goshipArgovisUnitNameMapping'] = goship_argovis_units_mapping
 
     return combined_bot_ctd_dict
 
@@ -589,12 +589,6 @@ def create_profile_dict(profile_group, data_obj):
 
     param_json = create_json_profiles(profile_group, param_names)
 
-    # TODO
-    # PROBABLY DELETE CREATING JSON FIRST
-
-    # When to rename
-    # probably after create dict
-
     df_bgc = create_bgc_meas_df(param_json)
 
     bgc_meas_dict_list = create_bgc_meas_dict_list(df_bgc)
@@ -620,21 +614,6 @@ def create_profile_dict(profile_group, data_obj):
     profile_dict['goship_ref_scale'] = goship_ref_scale_mapping_dict
     profile_dict['goship_units'] = goship_units_dict
     profile_dict['goship_names'] = goship_names_list
-
-    # # TODO
-    # # move mapping information later when do renaming
-
-    # goship_argovis_name_mapping_dict = gvm.create_goship_argovis_core_values_mapping(
-    #     data_obj)
-
-    # argovis_ref_scale_mapping_dict = gvm.get_argovis_ref_scale_mapping(
-    #     data_obj)
-
-    # goship_argovis_unit_mapping_dict = gvm.get_goship_argovis_unit_mapping()
-
-    # profile_dict['goship_argovis_name_mappping'] = goship_argovis_name_mapping_dict
-    # profile_dict['goship_argovis_unit_mappping'] = goship_argovis_unit_mapping_dict
-    # profile_dict['argovis_ref_scale_mapping'] = argovis_ref_scale_mapping_dict
 
     return profile_dict
 
@@ -988,8 +967,8 @@ def get_cruise_information(session):
         # # Find cruise 32MW9508 to check for ctd_temperature_68 case
         # It isn't a Go-Ship cruise but has ctd temp on 68 scale
         # # And change check for Go-Ship to True
-        if expocode != '32MW9508':
-            continue
+        # if expocode != '32MW9508':
+        #     continue
 
         cruise_info = {}
         cruise_info['bot'] = {}
@@ -997,8 +976,8 @@ def get_cruise_information(session):
 
         # Only want US GoShip
         # TESTING non-goship cruise with True. change if statement back
-        # if 'go-ship' in programs and country == 'US':
-        if True:
+        # if True:
+        if 'go-ship' in programs and country == 'US':
 
             print(f"Finding cruise information for {cruise['expocode']}")
 
@@ -1122,8 +1101,9 @@ def main():
         expocode = cruise_info['expocode']
 
         # TODO
-        # remove after testing
-        # bot_found = False
+        # remove after testing. Using on a cruise with both bot and ctd
+        # to see what each looks individually and combined
+        #bot_found = False
         #ctd_found = False
 
         if bot_found:
@@ -1165,6 +1145,7 @@ def main():
             ctd_obj = read_file(ctd_obj)
 
             ctd_obj = gvm.create_goship_unit_mapping(ctd_obj)
+
             ctd_obj = gvm.create_goship_ref_scale_mapping(ctd_obj)
 
             # TODO

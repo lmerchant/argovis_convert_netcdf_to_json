@@ -151,10 +151,15 @@ def create_goship_argovis_core_values_mapping(goship_names, type):
         core_mapping = {
             'pressure': 'pres',
             'ctd_salinity': 'psal_btl',
+            'ctd_salinity_qc': 'psal_btl_qc',
             'ctd_temperature': 'temp_btl',
+            'ctd_temperature_qc': 'temp_btl_qc',
             'ctd_temperature_68': 'temp_btl',
+            'ctd_temperature_68_qc': 'temp_btl_qc',
             'ctd_oxygen': 'doxy_btl',
+            'ctd_oxygen_qc': 'doxy_btl_qc',
             'bottle_salinity': 'salinity_btl',
+            'bottle_salinity_qc': 'salinity_btl_qc',
             'latitude': 'lat',
             'longitude': 'lon'
         }
@@ -164,9 +169,13 @@ def create_goship_argovis_core_values_mapping(goship_names, type):
         core_mapping = {
             'pressure': 'pres',
             'ctd_salinity': 'psal_ctd',
+            'ctd_salinity_qc': 'psal_ctd_qc',
             'ctd_temperature': 'temp_ctd',
+            'ctd_temperature_qc': 'temp_ctd_qc',
             'ctd_temperature_68': 'temp_ctd',
+            'ctd_temperature_68_qc': 'temp_ctd_qc',
             'ctd_oxygen': 'doxy_ctd',
+            'ctd_oxygen_qc': 'doxy_ctd_qc',
             'latitude': 'lat',
             'longitude': 'lon'
         }
@@ -200,7 +209,7 @@ def create_goship_unit_mapping(data_obj):
         # Not all vars have units
         try:
             # Get goship units of var
-            var_goship_unit = nc.coords[var].attrrs['units']
+            var_goship_unit = nc.coords[var].attrs['units']
             goship_units[var] = var_goship_unit
         except:
             pass
@@ -210,7 +219,7 @@ def create_goship_unit_mapping(data_obj):
         # Not all vars have units
         try:
             # Get goship units of var
-            var_goship_unit = nc[var].attrrs['units']
+            var_goship_unit = nc[var].attrs['units']
             goship_units[var] = var_goship_unit
         except:
             pass

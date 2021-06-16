@@ -345,6 +345,8 @@ def rename_output_per_profile(profile_dict, type):
 
         goship_ref_scale = profile_dict['goship_ref_scale']
 
+        goship_units = profile_dict['goship_units']
+
         goship_argovis_name = gvm.create_goship_argovis_core_values_mapping(
             goship_names, type)
 
@@ -374,6 +376,8 @@ def rename_output_per_profile(profile_dict, type):
 
         goship_ref_scale = profile_dict['goship_ref_scale']
 
+        goship_units = profile_dict['goship_units']
+
         goship_argovis_name = gvm.create_goship_argovis_core_values_mapping(
             goship_names, type)
 
@@ -382,106 +386,107 @@ def rename_output_per_profile(profile_dict, type):
 
         goship_argovis_unit = gvm.get_goship_argovis_unit_mapping()
 
-    # don't rename meta yet incase not both bot and ctd combined
+    # don't rename meta yet in case not both bot and ctd combined
 
     renamed_profile_dict = {}
     renamed_profile_dict['meta'] = renamed_meta
     renamed_profile_dict['measurements'] = renamed_measurements_list
     renamed_profile_dict['bgcMeas'] = renamed_bgc_list
+    renamed_profile_dict['goshipUnits'] = goship_units
     renamed_profile_dict['goshipArgovisNameMapping'] = goship_argovis_name
     renamed_profile_dict['goshipReferenceScale'] = goship_ref_scale
     renamed_profile_dict['argovisReferenceScale'] = argovis_ref_scale
-    renamed_profile_dict['goshipArgovisUnitsMapping'] = goship_argovis_unit
+    renamed_profile_dict['goshipArgovisUnitNameMapping'] = goship_argovis_unit
 
     return renamed_profile_dict
 
 
-def rename_units_to_argovis(data_obj):
+# def rename_units_to_argovis(data_obj):
 
-    units_mapping = gvm.get_goship_argovis_unit_mapping()
-    goship_salinity_ref_scale = gvm.get_goship_salniity_reference_scale()
+#     units_mapping = gvm.get_goship_argovis_unit_mapping()
+#     goship_salinity_ref_scale = gvm.get_goship_salniity_reference_scale()
 
-    nc = data_obj['nc']
+#     nc = data_obj['nc']
 
-    coords = nc.coords
-    vars = nc.keys()
+#     coords = nc.coords
+#     vars = nc.keys()
 
-    for var in coords:
+#     for var in coords:
 
-        # use try block because not all vars have a unit
-        try:
-            goship_unit = nc.coords[var].attrs['units']
-        except KeyError:
-            goship_unit = None
+#         # use try block because not all vars have a unit
+#         try:
+#             goship_unit = nc.coords[var].attrs['units']
+#         except KeyError:
+#             goship_unit = None
 
-        try:
-            argovis_unit = units_mapping[goship_unit]
-        except:
-            argovis_unit = goship_unit
+#         try:
+#             argovis_unit = units_mapping[goship_unit]
+#         except:
+#             argovis_unit = goship_unit
 
-        if goship_unit:
-            try:
-                nc.coords[var].attrs['units'] = units_mapping[goship_unit]
-            except:
-                # No unit mapping
-                pass
+#         if goship_unit:
+#             try:
+#                 nc.coords[var].attrs['units'] = units_mapping[goship_unit]
+#             except:
+#                 # No unit mapping
+#                 pass
 
-    for var in vars:
+#     for var in vars:
 
-        try:
-            goship_unit = nc[var].attrs['units']
-        except KeyError:
-            goship_unit = None
+#         try:
+#             goship_unit = nc[var].attrs['units']
+#         except KeyError:
+#             goship_unit = None
 
-        # use try block because not all vars have a reference scale
-        try:
-            argovis_unit = units_mapping[goship_unit]
-        except:
-            argovis_unit = goship_unit
+#         # use try block because not all vars have a reference scale
+#         try:
+#             argovis_unit = units_mapping[goship_unit]
+#         except:
+#             argovis_unit = goship_unit
 
-        # Check if salinity unit of 1
-        if goship_unit == '1':
-            try:
-                var_goship_ref_scale = nc[var].attrs['reference_scale']
+#         # Check if salinity unit of 1
+#         if goship_unit == '1':
+#             try:
+#                 var_goship_ref_scale = nc[var].attrs['reference_scale']
 
-                if var_goship_ref_scale == goship_salinity_ref_scale:
-                    argovis_unit = units_mapping[goship_unit]
+#                 if var_goship_ref_scale == goship_salinity_ref_scale:
+#                     argovis_unit = units_mapping[goship_unit]
 
-                    nc[var].attrs['units'] = argovis_unit
+#                     nc[var].attrs['units'] = argovis_unit
 
-            except KeyError:
-                pass
+#             except KeyError:
+#                 pass
 
-        if goship_unit:
-            try:
-                nc[var].attrs['units'] = units_mapping[goship_unit]
-            except:
-                # No unit mapping
-                pass
+#         if goship_unit:
+#             try:
+#                 nc[var].attrs['units'] = units_mapping[goship_unit]
+#             except:
+#                 # No unit mapping
+#                 pass
 
-    data_obj['nc'] = nc
+#     data_obj['nc'] = nc
 
-    return data_obj
+#     return data_obj
 
 
-def rename_converted_temperature(data_obj):
+# def rename_converted_temperature(data_obj):
 
-    # Only renaming ctd temperatures on
+#     # Only renaming ctd temperatures on
 
-    nc = data_obj['nc']
+#     nc = data_obj['nc']
 
-    data_vars = nc.keys()
+#     data_vars = nc.keys()
 
-    def rename_var(var):
-        new_name = var.replace('_68', '')
-        return {var: new_name}
+#     def rename_var(var):
+#         new_name = var.replace('_68', '')
+#         return {var: new_name}
 
-    new_name_mapping = [rename_var(var) for var in data_vars if '_68' in var]
+#     new_name_mapping = [rename_var(var) for var in data_vars if '_68' in var]
 
-    for name_map in new_name_mapping:
-        nc.rename(name_map)
+#     for name_map in new_name_mapping:
+#         nc.rename(name_map)
 
-    return data_obj
+#     return data_obj
 
 
 def rename_profile_dicts_to_argovis(profile_dicts, type):
