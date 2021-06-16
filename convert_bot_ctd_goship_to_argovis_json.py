@@ -101,6 +101,10 @@ def write_profile_json(json_dir, profile_dict):
 
     # TESTING
     # TODO Remove formatting when final
+
+    # use convert function to change numpy int values into python int
+    # Otherwise, not serializable
+
     with open(file, 'w') as f:
         json.dump(data_dict, f, indent=4, sort_keys=True, default=convert)
 
@@ -108,9 +112,6 @@ def write_profile_json(json_dir, profile_dict):
 def write_profiles_json(json_dir, profile_dicts):
 
     # Write profile_dict to as json to a profile file
-
-    # use convert function to change numpy int values into python int
-    # Otherwise, not serializable
 
     for profile_dict in profile_dicts:
         write_profile_json(json_dir, profile_dict)
@@ -121,15 +122,12 @@ def combine_output_per_profile_bot_ctd(bot_renamed_dict, ctd_renamed_dict):
     bot_meta = bot_renamed_dict['meta']
     ctd_meta = ctd_renamed_dict['meta']
 
-    # Rename meta which has already had latitude and longitude changed
     bot_renamed_meta = rn.rename_bot_by_key_meta(bot_meta)
 
     meta = {**ctd_meta, **bot_renamed_meta}
 
-    # Remove expocode_btl
+    # Remove _btl variables that are the same as CTD
     meta.pop('expocode_btl', None)
-
-    # Remove cruise_url_btl
     meta.pop('cruise_url_btl', None)
 
     bot_bgc_meas = bot_renamed_dict['bgcMeas']
@@ -176,6 +174,7 @@ def combine_output_per_profile_bot_ctd(bot_renamed_dict, ctd_renamed_dict):
 def combine_profile_dicts_bot_ctd(bot_profile_dicts, ctd_profile_dicts):
 
     # TODO
+    # Ask if this is still wanted
     # add following flags
     # isGOSHIPctd = true
     # isGOSHIPbottle = true
@@ -189,8 +188,8 @@ def combine_profile_dicts_bot_ctd(bot_profile_dicts, ctd_profile_dicts):
     num_profiles = max(bot_num_profiles, ctd_num_profiles)
 
     # TODO: what to do in the case when not equal when have both bot and ctd?
-    #  Is tgoship_argovis_name_mapping_bot a case for this?
-    # if bot_found and ctd_found:
+    #  Is there a case like this?
+
     if bot_num_profiles != ctd_num_profiles:
         print(
             f"bot profiles {bot_num_profiles} and ctd profiles {ctd_num_profiles} are different")
@@ -202,8 +201,6 @@ def combine_profile_dicts_bot_ctd(bot_profile_dicts, ctd_profile_dicts):
         bot_profile_dict = bot_profile_dicts[profile_number]
         ctd_profile_dict = ctd_profile_dicts[profile_number]
 
-        # TODO Remove if bot and ctd since checked that befor running functiion
-        # Check
         # Already renamed bot and ctd in preceding if statements
         # only need to rename  bot for meta
 
@@ -217,9 +214,7 @@ def combine_profile_dicts_bot_ctd(bot_profile_dicts, ctd_profile_dicts):
 
 def create_measurements_dict_list(df_bgc_meas):
 
-    # TODO
-    # QUESTION
-    # what if goship_argovis_name_mapping_bot is no qc flag value, set as NaN
+    # If qc are all NaN, all core values are rejected
 
     df_meas = pd.DataFrame()
 
@@ -254,8 +249,6 @@ def create_measurements_dict_list(df_bgc_meas):
         try:
             key = f"{col}_qc"
             df_meas[key] = df_meas[key].apply(mark_not_qc_2)
-            # df_meas[key] = df_meas[key].apply(
-            #     lambda row: mark_not_qc_2(df_meas[key]))
 
         except KeyError:
             pass
@@ -264,11 +257,6 @@ def create_measurements_dict_list(df_bgc_meas):
     for col in df_meas.columns:
         if '_qc' in col:
             df_meas = df_meas.drop([col], axis=1)
-
-    # Replace '' with nan to filter on nan
-    # TODO
-    # Do I need this?
-    # df_meas = df_meas.replace(r'^\s*$', np.nan, regex=True)
 
     df_meas = df_meas.dropna(how='all')
 
@@ -355,15 +343,17 @@ def create_geolocation_json_str(nc):
 
 def create_json_profiles(profile_group, names):
 
+    # Do the  following to keep precision of numbers
+    # If had used pandas dataframe, it would
+    # have added more decimal places
+
     # If NaN in column, int qc becomes float
+    # Will fix this later by doing a regex
+    # replace to remove ".0" from qc
 
     json_profile = {}
 
     for name in names:
-
-        # name either coord or data var
-        # Test if float to convert to string and
-        # keep precision
 
         is_int = False
         is_float = False
@@ -479,9 +469,6 @@ def add_extra_coords(nc, data_obj):
     datetime64 = nc['time'].values
     date = pd.to_datetime(datetime64)
 
-    # # Then remove time from nc
-    # nc.drop('time')
-
     new_coords['date_formatted'] = date.strftime("%Y-%m-%d")
 
     # Create date coordiinate and convert date to iso
@@ -509,8 +496,6 @@ def add_extra_coords(nc, data_obj):
 
 def create_meta_dict(profile_group, meta_names):
 
-    # Remove geometry_container from profile_group
-
     meta_json_str = create_json_profiles(profile_group, meta_names)
 
     geolocation_json_str = create_geolocation_json_str(
@@ -528,21 +513,16 @@ def create_meta_dict(profile_group, meta_names):
 
 def create_profile_dict(profile_group, data_obj):
 
-    # don't rename yet
-
-    # Create json without translating to dataframe first
-
-    # Consider this as way to get values out of the xarray
-    # xr_strs = profile_group[name].astype('str')
-    # np_arr = xr_strs.values
-
-    # profile_group = profile_group.rename(name_mapping_dict)
+    # don't rename variables yet
 
     profile_group = add_extra_coords(profile_group, data_obj)
 
     meta_names, param_names = get_meta_param_names(profile_group)
 
     meta_dict = create_meta_dict(profile_group, meta_names)
+
+    # Remove  time from meta since used it to create date variable
+    meta_dict.pop('time', None)
 
     param_json = create_json_profiles(profile_group, param_names)
 
@@ -556,16 +536,9 @@ def create_profile_dict(profile_group, data_obj):
 
     goship_names_list = [*meta_names, *param_names]
 
-    # TODO
-    # do  I need to do this now that not creating profile obj
-    meta_copy = copy.deepcopy(meta_dict)
-
-    # Remove  time from meta
-    meta_copy.pop('time', None)
-
     # Save meta separate for renaming later
     profile_dict = {}
-    profile_dict['meta'] = meta_copy
+    profile_dict['meta'] = meta_dict
     profile_dict['bgc_meas'] = bgc_meas_dict_list
     profile_dict['measurements'] = measurements_dict_list
     profile_dict['goship_ref_scale'] = goship_ref_scale_mapping_dict
@@ -661,7 +634,6 @@ def check_if_all_ctd_vars(data_obj):
 
 def create_profile_dicts(data_obj):
 
-    # Check if all ctd vars available: pressure and temperature
     nc = data_obj['nc']
 
     type = data_obj['type']
@@ -778,7 +750,7 @@ def get_meta_param_names(nc):
         except KeyError:
             meta_names.append(name)
 
-    # Remove names
+    # Remove variables not wanted
     meta_names.remove('profile_type')
     meta_names.remove('geometry_container')
 
@@ -1096,6 +1068,10 @@ def main():
                 renamed_bot_profile_dicts = rn.rename_profile_dicts_to_argovis(
                     bot_profile_dicts, 'bot')
 
+                print('---------------------------')
+                print('Processed bot profiles')
+                print('---------------------------')
+
         if ctd_found:
 
             print('---------------------------')
@@ -1138,6 +1114,10 @@ def main():
                 # But no _ctd suffix to meta data
                 renamed_ctd_profile_dicts = rn.rename_profile_dicts_to_argovis(
                     ctd_profile_dicts, 'ctd')
+
+                print('---------------------------')
+                print('Processed ctd profiles')
+                print('---------------------------')
 
         if bot_found and ctd_found:
 
