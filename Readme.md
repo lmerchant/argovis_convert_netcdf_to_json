@@ -150,3 +150,9 @@ Main script is convert_bot_ctd_goship_to_argovis_json.py
 To run, use python 3
 
     python convert_bot_ctd_goship_to_argovis_json.py
+
+## Folder for converted data
+
+A folder named converted_data is created in the same folder as the script unless
+it already exists. This is where converted data is stored. Each dataset is saved
+in a subfolder named with the expocode of the cruise.
