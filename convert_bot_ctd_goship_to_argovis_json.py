@@ -704,12 +704,6 @@ def create_profile_dicts(data_obj):
 
     type = data_obj['type']
 
-    has_ctd_vars = check_if_all_ctd_vars(data_obj)
-
-    if not has_ctd_vars:
-        # TODO (log this and write to file)
-        return []
-
     all_profiles_dict_list = []
 
     for nc_group in nc.groupby('N_PROF'):
@@ -1125,6 +1119,13 @@ def main():
 
             bot_obj = read_file(bot_obj)
 
+            # Check if all ctd vars available: pressure and temperature
+            has_ctd_vars = check_if_all_ctd_vars(bot_obj)
+
+            if not has_ctd_vars:
+                # TODO (log this and write to file)
+                continue
+
             bot_obj = gvm.create_goship_unit_mapping(bot_obj)
             bot_obj = gvm.create_goship_ref_scale_mapping(bot_obj)
 
@@ -1152,6 +1153,13 @@ def main():
             ctd_obj = cruise_info['ctd']
 
             ctd_obj = read_file(ctd_obj)
+
+            # Check if all ctd vars available: pressure and temperature
+            has_ctd_vars = check_if_all_ctd_vars(ctd_obj)
+
+            if not has_ctd_vars:
+                # TODO (log this and write to file)
+                continue
 
             ctd_obj = gvm.create_goship_unit_mapping(ctd_obj)
 
