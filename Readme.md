@@ -5,17 +5,23 @@
 Convert US Go-Ship CF netCDF Bottle and CTD files from CCHDO into ArgoVis JSON
 formatted files.
 
-## Processing Steps
+## Conversion Steps
 
 ### Read in files
 
 Reads in Bottle and CTD CF netCDF files from cchdo.ucsd.edu for US Go-Ship
-cruises.
+cruises. Uses get requests to the CCHDO API cchdo.ucsd.edu/api/v1 to get the
+cruise information and path to the data files.
 
 ### Convert to ArgoVis Reference Scale
 
 Converts CTD Temperature to the ITS-90 scale if it's on the IPTS-68 scale. At
 the moment, only CTD temperatures are converted and no other variables.
+
+### Check if the file has CTD variables
+
+A check is done to see if the file has at a minimum a pressure and a
+ctd_temperature. If it doesn't, it is not converted.
 
 ### Convert to ArgoVis JSON format
 
@@ -130,6 +136,12 @@ The bgcMeas bottle and ctd objects are combined into one. Same for the
 measurements object. The unit and reference scale mappings are combined. The
 name mapping is kept separate and identified by a Btl and Ctd suffix because
 their goship names are the same.
+
+## Unique identifier id
+
+The unique identifier is a combination of <expocode>_<station>_<cast>
+
+> TODO. Zero pad the station and cast number to 3 places
 
 ## To Run it
 
