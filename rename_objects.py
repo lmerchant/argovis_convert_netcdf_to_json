@@ -53,7 +53,7 @@ def rename_argovis_meta(obj):
     return new_obj
 
 
-def rename_argovis_not_meta(obj, type):
+def rename_goship_on_key_not_meta(obj, type):
 
     if type == 'bot':
 
@@ -333,17 +333,25 @@ def rename_output_per_profile(profile_dict, type):
         # TODO. Do I still need a deep copy?
         meta_copy = copy.deepcopy(meta)
 
-        measurements_list = profile_dict['measurements']
         bgc_list = profile_dict['bgc_meas']
-        name_mapping = profile_dict['goship_argovis_name_mappping']
-
         renamed_bgc_list = create_renamed_list_of_objs(bgc_list, 'bot')
 
+        measurements_list = profile_dict['measurements']
         renamed_measurements_list = []
         renamed_measurements_list = create_renamed_list_of_objs_argovis(
             measurements_list, 'bot')
 
-        argovis_ref_scale_mapping = profile_dict['argovis_ref_scale_mapping']
+        goship_names = profile_dict['goship_names']
+
+        goship_ref_scale = profile_dict['goship_ref_scale']
+
+        goship_argovis_name = gvm.create_goship_argovis_core_values_mapping(
+            goship_names, type)
+
+        argovis_ref_scale = gvm.get_argovis_ref_scale_mapping(
+            goship_names, type)
+
+        goship_argovis_unit = gvm.get_goship_argovis_unit_mapping()
 
     if type == 'ctd':
 
@@ -354,24 +362,25 @@ def rename_output_per_profile(profile_dict, type):
 
         renamed_meta = rename_argovis_meta(meta)
 
-        measurements_list = profile_dict['measurements']
         bgc_list = profile_dict['bgc_meas']
-        name_mapping = profile_dict['goship_argovis_name_mappping']
+        renamed_bgc_list = create_renamed_list_of_objs(bgc_list, type)
 
-        renamed_bgc_list = create_renamed_list_of_objs(bgc_list, 'ctd')
-
+        measurements_list = profile_dict['measurements']
         #renamed_measurements_list = []
         renamed_measurements_list = create_renamed_list_of_objs_argovis(
-            measurements_list, 'ctd')
+            measurements_list, type)
 
-        # TODO
-        # Ask if want extension to ctd variables like bot has
-        # even when single?
+        goship_names = profile_dict['goship_names']
 
-        argovis_ref_scale_mapping = profile_dict['argovis_ref_scale_mapping']
+        goship_ref_scale = profile_dict['goship_ref_scale']
 
-    goship_ref_scale_mappping = profile_dict['goship_ref_scale_mapping']
-    goship_argovis_unit_mapping = profile_dict['goship_argovis_unit_mappping']
+        goship_argovis_name = gvm.create_goship_argovis_core_values_mapping(
+            goship_names, type)
+
+        argovis_ref_scale = gvm.get_argovis_ref_scale_mapping(
+            goship_names, type)
+
+        goship_argovis_unit = gvm.get_goship_argovis_unit_mapping()
 
     # don't rename meta yet incase not both bot and ctd combined
 
@@ -379,10 +388,10 @@ def rename_output_per_profile(profile_dict, type):
     renamed_profile_dict['meta'] = renamed_meta
     renamed_profile_dict['measurements'] = renamed_measurements_list
     renamed_profile_dict['bgcMeas'] = renamed_bgc_list
-    renamed_profile_dict['goshipArgovisNameMapping'] = name_mapping
-    renamed_profile_dict['goshipReferenceScale'] = goship_ref_scale_mappping
-    renamed_profile_dict['argovisReferenceScale'] = argovis_ref_scale_mapping
-    renamed_profile_dict['goshipArgovisUnitsMapping'] = goship_argovis_unit_mapping
+    renamed_profile_dict['goshipArgovisNameMapping'] = goship_argovis_name
+    renamed_profile_dict['goshipReferenceScale'] = goship_ref_scale
+    renamed_profile_dict['argovisReferenceScale'] = argovis_ref_scale
+    renamed_profile_dict['goshipArgovisUnitsMapping'] = goship_argovis_unit
 
     return renamed_profile_dict
 
@@ -475,7 +484,7 @@ def rename_converted_temperature(data_obj):
     return data_obj
 
 
-def rename_profile_dicts_to_argovis(data_obj, profile_dicts):
+def rename_profile_dicts_to_argovis(profile_dicts, type):
 
     # TODO
     # add following flags
@@ -485,7 +494,7 @@ def rename_profile_dicts_to_argovis(data_obj, profile_dicts):
     # core_info = 2  # is bottle (no ctd)
     # core_info = 12  # is ctd and tgoship_argovis_name_mapping_bot is bottle too (edited)
 
-    type = data_obj['type']
+    #type = data_obj['type']
 
     num_profiles = len(profile_dicts)
 

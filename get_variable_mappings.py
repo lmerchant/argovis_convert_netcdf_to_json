@@ -57,7 +57,7 @@ def get_goship_argovis_core_values_mapping_ctd():
         'pressure': 'pres',
         'ctd_salinity': 'psal_ctd',
         'ctd_temperature': 'temp_ctd',
-        'ctd_temperature_68': 'temp_btl',
+        'ctd_temperature_68': 'temp_ctd',
         'ctd_oxygen': 'doxy_ctd',
         'latitude': 'lat',
         'longitude': 'lon'
@@ -85,7 +85,7 @@ def get_goship_argovis_core_values_mapping(type):
             'pressure': 'pres',
             'ctd_salinity': 'psal_ctd',
             'ctd_temperature': 'temp_ctd',
-            'ctd_temperature_68': 'temp_btl',
+            'ctd_temperature_68': 'temp_ctd',
             'ctd_oxygen': 'doxy_ctd',
             'latitude': 'lat',
             'longitude': 'lon'
@@ -123,7 +123,7 @@ def get_argovis_ref_scale_mapping_dict_bot():
     }
 
 
-def create_goship_ref_scale(data_obj):
+def create_goship_ref_scale_mapping(data_obj):
 
     nc = data_obj['nc']
     vars = nc.keys()
@@ -133,7 +133,8 @@ def create_goship_ref_scale(data_obj):
         try:
             var_ref_scale = nc[var].attrs['reference_scale']
 
-            ref_scale[var] = var_ref_scale
+            if var_ref_scale != 'unknown':
+                ref_scale[var] = var_ref_scale
 
         except KeyError:
             pass
@@ -143,9 +144,9 @@ def create_goship_ref_scale(data_obj):
     return data_obj
 
 
-def create_goship_argovis_core_values_mapping(data_obj):
+def create_goship_argovis_core_values_mapping(goship_names, type):
 
-    if data_obj['type'] == 'bot':
+    if type == 'bot':
 
         core_mapping = {
             'pressure': 'pres',
@@ -158,7 +159,7 @@ def create_goship_argovis_core_values_mapping(data_obj):
             'longitude': 'lon'
         }
 
-    elif data_obj['type'] == 'ctd':
+    if type == 'ctd':
 
         core_mapping = {
             'pressure': 'pres',
@@ -170,29 +171,18 @@ def create_goship_argovis_core_values_mapping(data_obj):
             'longitude': 'lon'
         }
 
-    meta_names = data_obj['meta']
-    param_names = data_obj['param']
-
     # If meta or param in the core_mapping, keep in
     # the returned mapping
     core_names = core_mapping.keys()
 
     new_mapping = {}
 
-    for name in meta_names:
+    for name in goship_names:
         if name in core_names:
             new_mapping[name] = core_mapping[name]
 
-    for name in meta_names:
-        if name in core_names:
-            new_mapping[name] = core_mapping[name]
-
-    new_mapping_meta = {key: val for key,
-                        val in core_mapping.items() if key in meta_names}
-    new_mapping_param = {key: val for key,
-                         val in core_mapping.items() if key in param_names}
-
-    name_mapping = {**new_mapping_meta, **new_mapping_param}
+    name_mapping = {key: val for key,
+                    val in core_mapping.items() if key in goship_names}
 
     return name_mapping
 
@@ -230,30 +220,25 @@ def create_goship_unit_mapping(data_obj):
     return data_obj
 
 
-def create_argovis_ref_scale_mapping(data_obj):
+def get_argovis_ref_scale_mapping(goship_names, type):
 
-    # here
+    # Want to use ship names as a key and then rename according to obj type
 
-    type = data_obj['type']
+    # By the time this mapping is created, ctd_temperature_68 was
+    # already converted to the ITS-90 scale
 
     core_mapping = {
         'ctd_temperature': 'ITS-90',
+        'ctd_temperature_68': 'ITS-90',
         'ctd_salinity': 'PSS-78',
         'bottle_salinity': 'PSS-78'
     }
 
-    meta_names = data_obj['meta']
-    param_names = data_obj['param']
+    ref_scale_mapping = {key: val for key,
+                         val in core_mapping.items() if key in goship_names}
 
-    meta_mapping = {key: val for key,
-                    val in core_mapping.items() if key in meta_names}
-
-    param_mapping = {key: val for key,
-                     val in core_mapping.items() if key in param_names}
-
-    ref_scale_mapping = {**meta_mapping, **param_mapping}
-
-    # Now convert to argovis names
-    new_ref_scale_mapping = rn.rename_argovis_not_meta(ref_scale_mapping, type)
+    # Now convert to argovis names depending on type
+    new_ref_scale_mapping = rn.rename_goship_on_key_not_meta(
+        ref_scale_mapping, type)
 
     return new_ref_scale_mapping
