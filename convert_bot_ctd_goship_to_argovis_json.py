@@ -250,7 +250,7 @@ def create_measurements_list(df_bgc_meas, data_obj):
             # when convert df to dict list and then know
             # which valus to remove
             df_meas[col] = df_meas.apply(lambda x: x[col] if pd.notnull(
-                x[qc_key]) and int(x[qc_key]) == 2 else -222222, axis=1)
+                x[qc_key]) and int(x[qc_key]) == 2 else np.nan, axis=1)
 
         except KeyError:
             pass
@@ -265,13 +265,8 @@ def create_measurements_list(df_bgc_meas, data_obj):
 
     json_str = df_meas.to_json(orient='records')
 
-    # If use an integer fill flag, remove trailing zeros when in
-    # a column with floats, because it will become a float
-    # json_str = re.sub(r'(-999)\.0*', r"\1", json_str)
-
     data_dict_list = json.loads(json_str)
 
-    # Loop through dict and remove objects with value nan
     # If it is a bottle file, check to see if it
     # has ctd_salinity and bottle_salinity
     # Then if no ctd_salinity, use bottle_salinity
@@ -281,14 +276,8 @@ def create_measurements_list(df_bgc_meas, data_obj):
 
     for obj in data_dict_list:
 
-        keep_obj = {key: val for key,
-                    val in obj.items() if val != -222222}
-
-        if type == 'bot' and 'ctd_salinity' in keep_obj.keys() and 'bottle_salinity' in keep_obj.keys():
-            del keep_obj['bottle_salinity']
-
-        if keep_obj:
-            new_data_list.append(keep_obj)
+        if type == 'bot' and 'ctd_salinity' in obj.keys() and 'bottle_salinity' in obj.keys():
+            del obj['bottle_salinity']
 
     return new_data_list
 
@@ -480,6 +469,7 @@ def add_extra_coords(nc, data_obj):
     # TODO
     # zero pad the station and cast to 3 places
     _id = f"{expocode}_{station}_{cast}"
+
     new_coords['_id'] = _id
     new_coords['id'] = _id
 
@@ -1057,7 +1047,7 @@ def main():
         # remove after testing. Using on a cruise with both bot and ctd
         # to see what each looks individually and combined
         #bot_found = False
-        ctd_found = False
+        #ctd_found = False
 
         if bot_found:
 
