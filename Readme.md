@@ -36,9 +36,6 @@ ctd_oxygen with a quality code of 2. These are the core variables.
     Core Variables:
     pressure, ctd_temperature, ctd_oxygen, ctd_salinity and bottle_salinity if ctd_salinity doesn't exist.
 
-> TODO: Use bottle_salinity if ctd_salinity doesn't exist for the bgcMeas
-> object.
-
 Meta Data:
 
     "DATA_CENTRE", "POSITIONING_SYSTEM", "_id", "id"
