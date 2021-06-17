@@ -87,7 +87,7 @@ def write_profile_json(json_dir, profile_dict):
     # TODO
     # check did this earlier in program
     # _qc":2.0
-    # If tgoship_argovis_name_mapping_bot is '.0' in qc value, remove it to get an int
+    # If qc value in json_str matches '.0' at end, remove it to get an int qc
     json_str = re.sub(r'(_qc":\s?\d)\.0', r"\1", json_str)
 
     folder_name = expocode
@@ -129,6 +129,7 @@ def combine_output_per_profile_bot_ctd(bot_renamed_dict, ctd_renamed_dict):
     # Remove _btl variables that are the same as CTD
     meta.pop('expocode_btl', None)
     meta.pop('cruise_url_btl', None)
+    meta.pop('DATA_CENTRE_btl', None)
 
     bot_bgc_meas = bot_renamed_dict['bgcMeas']
     ctd_bgc_meas = ctd_renamed_dict['bgcMeas']
@@ -201,9 +202,6 @@ def combine_profile_dicts_bot_ctd(bot_profile_dicts, ctd_profile_dicts):
         bot_profile_dict = bot_profile_dicts[profile_number]
         ctd_profile_dict = ctd_profile_dicts[profile_number]
 
-        # Already renamed bot and ctd in preceding if statements
-        # only need to rename  bot for meta
-
         combined_profile_dict_bot_ctd = combine_output_per_profile_bot_ctd(
             bot_profile_dict, ctd_profile_dict)
 
@@ -212,13 +210,23 @@ def combine_profile_dicts_bot_ctd(bot_profile_dicts, ctd_profile_dicts):
     return profile_dicts_list_bot_ctd
 
 
-def create_measurements_dict_list(df_bgc_meas):
+def create_measurements_list(df_bgc_meas, data_obj):
 
-    # If qc are all NaN, all core values are rejected
+    # TODO
+    # If find qc != 2, do I throw away the value
+    # or set it to nan?
+
+    type = data_obj['type']
 
     df_meas = pd.DataFrame()
 
+    # core values includes '_qc' vars
     core_values = gvm.get_goship_core_values()
+
+    if type == 'bot':
+        # add in bottle_salinity to get a subset of
+        bottle_salinity_vars = ['bottle_salinity', 'bottle_salinity_qc']
+        core_values.append(bottle_salinity_vars)
 
     for val in core_values:
 
@@ -233,37 +241,56 @@ def create_measurements_dict_list(df_bgc_meas):
         except KeyError:
             pass
 
-    # TODO
-    # test with values not qc = 2
+    core_non_qc = [elem for elem in core_values if '_qc' not in elem]
 
-    # Keep qc = 2
-    # Mark those without as np.nan  so can drop rows with all nan
-    def mark_not_qc_2(val):
-        if pd.notnull(val) and int(val) == 2:
-            return val
-        else:
-            return np.nan
-
-    for col in core_values:
-
+    for col in core_non_qc:
         try:
-            key = f"{col}_qc"
-            df_meas[key] = df_meas[key].apply(mark_not_qc_2)
+            qc_key = f"{col}_qc"
+            # Set value to -222222 at qc !=2 so can find them
+            # when convert df to dict list and then know
+            # which valus to remove
+            df_meas[col] = df_meas.apply(lambda x: x[col] if pd.notnull(
+                x[qc_key]) and int(x[qc_key]) == 2 else -222222, axis=1)
 
         except KeyError:
             pass
 
-    # drop qc columns
+    # drop qc columns now that have marked non_qc column values
     for col in df_meas.columns:
         if '_qc' in col:
             df_meas = df_meas.drop([col], axis=1)
 
+    # If all core values have nan, drop row
     df_meas = df_meas.dropna(how='all')
 
     json_str = df_meas.to_json(orient='records')
-    data_dict = json.loads(json_str)
 
-    return data_dict
+    # If use an integer fill flag, remove trailing zeros when in
+    # a column with floats, because it will become a float
+    # json_str = re.sub(r'(-999)\.0*', r"\1", json_str)
+
+    data_dict_list = json.loads(json_str)
+
+    # Loop through dict and remove objects with value nan
+    # If it is a bottle file, check to see if it
+    # has ctd_salinity and bottle_salinity
+    # Then if no ctd_salinity, use bottle_salinity
+    # if it does, remove bottle_salinity entry
+
+    new_data_list = []
+
+    for obj in data_dict_list:
+
+        keep_obj = {key: val for key,
+                    val in obj.items() if val != -222222}
+
+        if type == 'bot' and 'ctd_salinity' in keep_obj.keys() and 'bottle_salinity' in keep_obj.keys():
+            del keep_obj['bottle_salinity']
+
+        if keep_obj:
+            new_data_list.append(keep_obj)
+
+    return new_data_list
 
 
 def create_bgc_meas_df(param_json_str):
@@ -291,14 +318,13 @@ def create_bgc_meas_df(param_json_str):
 
     df = pd.DataFrame.from_records(new_list)
 
-    # df = df.dropna(how='all')
-
-    # df = df.reset_index(drop=True)
+    df = df.dropna(how='all')
+    df = df.reset_index(drop=True)
 
     return df
 
 
-def create_bgc_meas_dict_list(df):
+def create_bgc_meas_list(df):
 
     json_str = df.to_json(orient='records')
 
@@ -521,15 +547,16 @@ def create_profile_dict(profile_group, data_obj):
 
     meta_dict = create_meta_dict(profile_group, meta_names)
 
-    # Remove  time from meta since used it to create date variable
+    # Remove  time from meta since it was just used to create date variable
     meta_dict.pop('time', None)
 
     param_json = create_json_profiles(profile_group, param_names)
 
     df_bgc = create_bgc_meas_df(param_json)
 
-    bgc_meas_dict_list = create_bgc_meas_dict_list(df_bgc)
-    measurements_dict_list = create_measurements_dict_list(df_bgc)
+    bgc_meas_dict_list = create_bgc_meas_list(df_bgc)
+
+    measurements_dict_list = create_measurements_list(df_bgc, data_obj)
 
     goship_units_dict = data_obj['goship_units']
     goship_ref_scale_mapping_dict = data_obj['goship_ref_scale']
@@ -1030,7 +1057,7 @@ def main():
         # remove after testing. Using on a cruise with both bot and ctd
         # to see what each looks individually and combined
         #bot_found = False
-        #ctd_found = False
+        ctd_found = False
 
         if bot_found:
 
