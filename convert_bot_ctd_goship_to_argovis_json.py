@@ -246,9 +246,6 @@ def create_measurements_list(df_bgc_meas, data_obj):
     for col in core_non_qc:
         try:
             qc_key = f"{col}_qc"
-            # Set value to -222222 at qc !=2 so can find them
-            # when convert df to dict list and then know
-            # which valus to remove
             df_meas[col] = df_meas.apply(lambda x: x[col] if pd.notnull(
                 x[qc_key]) and int(x[qc_key]) == 2 else np.nan, axis=1)
 
@@ -278,6 +275,14 @@ def create_measurements_list(df_bgc_meas, data_obj):
 
         if type == 'bot' and 'ctd_salinity' in obj.keys() and 'bottle_salinity' in obj.keys():
             del obj['bottle_salinity']
+
+        # Do I rename bottle salinity to psal_btl
+        # And if I do, do I include a flag
+        # elif type == 'bot' and 'ctd_salinity' not in obj.keys() and 'bottle_salinity' in obj.keys():
+        #     obj['ctd_salinity'] = obj['bottle_salinity']
+        #     del obj['bottle_salinity']
+
+        new_data_list.append(obj)
 
     return new_data_list
 
@@ -774,13 +779,28 @@ def get_meta_param_names(nc):
     return meta_names, param_names
 
 
-def move_pressure_to_vars():
-    pass
+def read_file_test(data_obj):
+
+    data_path = data_path = data_obj['data_path']
+
+    nc = xr.open_dataset(data_path)
+
+    data_obj['nc'] = nc
+
+    expocode = nc.coords['expocode'].data[0]
+
+    meta_names, param_names = get_meta_param_names(nc)
+
+    data_obj['meta'] = meta_names
+    data_obj['param'] = param_names
+
+    return data_obj, expocode
 
 
 def read_file(data_obj):
 
-    data_path = data_obj['data_path']
+    data_path = data_path = data_obj['data_path']
+
     data_url = f"https://cchdo.ucsd.edu{data_path}"
 
     with fsspec.open(data_url) as fobj:
@@ -901,12 +921,8 @@ def get_cruise_information(session):
 
     for cruise in all_cruises:
 
-        bot_found = False
-        ctd_found = False
-
         programs = cruise['collections']['programs']
         programs = [x.lower() for x in programs]
-
         country = cruise['country']
 
         # TESTING
@@ -917,10 +933,6 @@ def get_cruise_information(session):
         # if expocode != '32MW9508':
         #     continue
 
-        cruise_info = {}
-        cruise_info['bot'] = {}
-        cruise_info['ctd'] = {}
-
         # Only want US Go-Ship
 
         # TESTING
@@ -929,9 +941,6 @@ def get_cruise_information(session):
         if 'go-ship' in programs and country == 'US':
 
             print(f"Finding cruise information for {cruise['expocode']}")
-
-            bot_obj = {}
-            ctd_obj = {}
 
             # Get files attached to the cruise
             # Could be deleted ones so check if exist in all_files
@@ -952,16 +961,14 @@ def get_cruise_information(session):
             if not len(file_info):
                 continue
 
-            # bot_url = https://cchdo.ucsd.edu/data/<file id>/<filename>
-
+            cruise_info = {}
+            cruise_info['bot'] = {'found': False}
+            cruise_info['ctd'] = {'found': False}
             cruise_info['expocode'] = cruise['expocode']
             cruise_info['cruise_id'] = cruise['id']
 
-            bot_obj['found'] = False
-            ctd_obj['found'] = False
-
             if bot_found:
-
+                bot_obj = {}
                 bot_obj['found'] = True
                 bot_obj['type'] = 'bot'
                 bot_obj['data_path'] = file_info['bot_path']
@@ -970,6 +977,7 @@ def get_cruise_information(session):
                 cruise_info['bot'] = bot_obj
 
             if ctd_found:
+                ctd_obj = {}
                 ctd_obj['found'] = True
                 ctd_obj['type'] = 'ctd'
                 ctd_obj['data_path'] = file_info['ctd_path']
@@ -977,7 +985,7 @@ def get_cruise_information(session):
 
                 cruise_info['ctd'] = ctd_obj
 
-        if cruise_info['bot'] or cruise_info['ctd']:
+        if cruise_info['bot']['found'] or cruise_info['ctd']['found']:
 
             all_cruises_info.append(cruise_info)
 
@@ -991,6 +999,65 @@ def get_cruise_information(session):
         #     return all_cruises_info
 
     return all_cruises_info
+
+
+def setup_test_obj(dir, filename, type):
+
+    if type == 'bot':
+        bot_obj = {}
+        bot_obj['found'] = True
+        bot_obj['type'] = 'bot'
+        bot_obj['data_path'] = os.path.join(dir, filename)
+        bot_obj['filename'] = filename
+
+        return bot_obj
+
+    if type == 'ctd':
+        ctd_obj = {}
+        ctd_obj['found'] = True
+        ctd_obj['type'] = 'ctd'
+        ctd_obj['data_path'] = os.path.join(dir, filename)
+        ctd_obj['filename'] = filename
+
+        return ctd_obj
+
+
+def setup_testing(bot_file, ctd_file, test_bot, test_ctd):
+
+    input_dir = './testing_data/modify_data_for_testing'
+    output_dir = './testing_output'
+    os.makedirs(output_dir, exist_ok=True)
+
+    bot_obj = {}
+    ctd_obj = {}
+    bot_obj['found'] = False
+    ctd_obj['found'] = False
+
+    cruise_info = {}
+    cruise_info['bot'] = {}
+    cruise_info['ctd'] = {}
+    cruise_info['bot']['found'] = False
+    cruise_info['ctd']['found'] = False
+    cruise_info['expocode'] = 'testing'
+    cruise_info['cruise_id'] = None
+
+    all_cruises_info = []
+    all_cruises_info.append(cruise_info)
+
+    # Enter test files
+    if test_bot:
+        bot_obj = setup_test_obj(input_dir, bot_file, 'bot')
+
+        print("======================\n")
+        print(f"Processing bot test file {bot_file}")
+
+    if test_ctd:
+        ctd_obj = setup_test_obj(input_dir, ctd_file, 'ctd')
+
+        print("======================\n")
+        print(f"Processing ctd test file {ctd_file}")
+
+    return output_dir, all_cruises_info, bot_obj, ctd_obj
 
 
 def main():
@@ -1009,45 +1076,49 @@ def main():
     console.setFormatter(formatter)
     logging.getLogger("").addHandler(console)
 
-    json_directory = './converted_data'
-
-    os.makedirs(json_directory, exist_ok=True)
-
     session = requests.Session()
     a = requests.adapters.HTTPAdapter(max_retries=3)
     session.mount('https://', a)
 
-    # Loop through all cruises and grap NetCDF files
-    # from US Go-Ship
-    all_cruises_info = get_cruise_information(session)
+    # TESTING
+    testing = False
+
+    if testing:
+
+        # Change this
+        test_bot = False
+        test_ctd = True
+
+        bot_file = 'modified_318M20130321_bottle_no_psal.nc'
+        ctd_file = 'modified_318M20130321_ctd_core_bad_flag.nc'
+
+        json_directory, all_cruises_info, bot_obj, ctd_obj = setup_testing(
+            bot_file, ctd_file, test_bot, test_ctd)
+
+        bot_found = bot_obj['found']
+        ctd_found = ctd_obj['found']
+
+    else:
+        # Loop through all cruises and grap NetCDF files
+        # from US Go-Ship
+        all_cruises_info = get_cruise_information(session)
+
+        json_directory = './converted_data'
+        os.makedirs(json_directory, exist_ok=True)
 
     for cruise_info in all_cruises_info:
 
-        expocode = cruise_info['expocode']
+        if not testing:
+            expocode = cruise_info['expocode']
 
-        print("======================\n")
-        print(f"Processing {expocode}")
+            print("======================\n")
+            print(f"Processing {expocode}")
 
-        if cruise_info['bot']:
             bot_found = cruise_info['bot']['found']
-        else:
-            bot_found = False
-
-        if cruise_info['ctd']:
             ctd_found = cruise_info['ctd']['found']
-        else:
-            ctd_found = False
 
         bot_profile_dicts = []
         ctd_profile_dicts = []
-
-        expocode = cruise_info['expocode']
-
-        # TODO
-        # remove after testing. Using on a cruise with both bot and ctd
-        # to see what each looks individually and combined
-        #bot_found = False
-        #ctd_found = False
 
         if bot_found:
 
@@ -1055,9 +1126,12 @@ def main():
             print('Start processing bottle profiles')
             print('---------------------------')
 
-            bot_obj = cruise_info['bot']
+            if test_bot:
+                bot_obj, expocode = read_file_test(bot_obj)
 
-            bot_obj = read_file(bot_obj)
+            else:
+                bot_obj = cruise_info['bot']
+                bot_obj = read_file(bot_obj)
 
             # Check if all ctd vars available: pressure and temperature
             has_ctd_vars = check_if_all_ctd_vars(bot_obj)
@@ -1066,7 +1140,6 @@ def main():
                 bot_found = False
 
             else:
-
                 bot_obj = gvm.create_goship_unit_mapping(bot_obj)
                 bot_obj = gvm.create_goship_ref_scale_mapping(bot_obj)
 
@@ -1095,9 +1168,12 @@ def main():
             print('Start processing ctd profiles')
             print('---------------------------')
 
-            ctd_obj = cruise_info['ctd']
+            if test_ctd:
+                ctd_obj, expocode = read_file_test(ctd_obj)
 
-            ctd_obj = read_file(ctd_obj)
+            else:
+                ctd_obj = cruise_info['ctd']
+                ctd_obj = read_file(ctd_obj)
 
             # Check if all ctd vars available: pressure and temperature
             has_ctd_vars = check_if_all_ctd_vars(ctd_obj)
@@ -1106,7 +1182,6 @@ def main():
                 ctd_found = False
 
             else:
-
                 ctd_obj = gvm.create_goship_unit_mapping(ctd_obj)
 
                 ctd_obj = gvm.create_goship_ref_scale_mapping(ctd_obj)
