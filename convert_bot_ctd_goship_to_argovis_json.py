@@ -212,10 +212,6 @@ def combine_profile_dicts_bot_ctd(bot_profile_dicts, ctd_profile_dicts):
 
 def create_measurements_list(df_bgc_meas, data_obj):
 
-    # TODO
-    # If find qc != 2, do I throw away the value
-    # or set it to nan?
-
     type = data_obj['type']
 
     df_meas = pd.DataFrame()
@@ -459,6 +455,9 @@ def add_extra_coords(nc, data_obj):
     filename = data_obj['filename']
     data_path = data_obj['data_path']
 
+    # TODO
+    # Log if expocode is none
+
     if '/' in expocode:
         expocode = expocode.replace('/', '_')
         cruise_url = f"https://cchdo.ucsd.edu/cruise/{expocode}"
@@ -473,7 +472,10 @@ def add_extra_coords(nc, data_obj):
 
     # TODO
     # zero pad the station and cast to 3 places
-    _id = f"{expocode}_{station}_{cast}"
+    padded_station = str(station).zfill(3)
+    padded_cast = str(cast).zfill(3)
+
+    _id = f"{expocode}_{padded_station}_{padded_cast}"
 
     new_coords['_id'] = _id
     new_coords['id'] = _id
@@ -484,8 +486,6 @@ def add_extra_coords(nc, data_obj):
     new_coords['netcdf_url'] = data_path
 
     new_coords['data_filename'] = filename
-
-    # TODO
 
     datetime64 = nc['time'].values
     date = pd.to_datetime(datetime64)
