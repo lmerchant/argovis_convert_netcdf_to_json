@@ -57,8 +57,15 @@ def get_goship_argovis_core_values_mapping(type):
         }
 
 
+# def get_goship_core_values():
+#     return ['pressure', 'ctd_temperature', 'ctd_temperature_qc', 'ctd_salinity', 'ctd_oxygen', 'ctd_temperature_qc', 'ctd_salinity_qc', 'ctd_oxygen_qc', 'ctd_temperature_68', 'ctd_temperature_68_qc']
+
+
+# Add in bottle_salinity since will use this in
+# measurements to check if have ctd_salinity, and
+# if now, use bottle_salinity
 def get_goship_core_values():
-    return ['pressure', 'ctd_temperature', 'ctd_temperature_qc', 'ctd_salinity', 'ctd_oxygen', 'ctd_temperature_qc', 'ctd_salinity_qc', 'ctd_oxygen_qc', 'ctd_temperature_68', 'ctd_temperature_68_qc']
+    return ['pressure', 'ctd_temperature', 'ctd_temperature_qc', 'ctd_salinity', 'ctd_temperature_qc', 'ctd_salinity_qc', 'ctd_temperature_68', 'ctd_temperature_68_qc', 'bottle_salinity', 'bottle_salinity_qc']
 
 
 def get_argovis_meta_mapping():
