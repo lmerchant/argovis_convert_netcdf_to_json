@@ -12,7 +12,7 @@ import requests
 from requests.adapters import HTTPAdapter
 import fsspec
 import re
-import copy
+import errno
 
 import get_variable_mappings as gvm
 import rename_objects as rn
@@ -70,6 +70,14 @@ def defaultencode(o):
     raise TypeError(repr(o) + " is not JSON serializable")
 
 
+def remove_file(filename):
+    try:
+        os.remove(filename)
+    except OSError as e:
+        if e.errno != errno.ENOENT:  # errno.ENOENT = no such file or directory
+            raise  # re-raise exception if a different error occurred
+
+
 def write_profile_json(json_dir, profile_dict):
 
     # Pop off meta key and use as start of data_dict
@@ -90,14 +98,20 @@ def write_profile_json(json_dir, profile_dict):
     # If qc value in json_str matches '.0' at end, remove it to get an int qc
     json_str = re.sub(r'(_qc":\s?\d)\.0', r"\1", json_str)
 
-    folder_name = expocode
+    if '/' in filename:
+        filename = filename.replace('/', '_')
 
-    path = os.path.join(json_dir, folder_name)
+    if '/' in expocode:
+        folder = expocode.replace('/', '_')
+    else:
+        folder = expocode
+
+    path = os.path.join(json_dir, folder)
 
     if not os.path.exists(path):
         os.makedirs(path)
 
-    file = os.path.join(json_dir, folder_name, filename)
+    file = os.path.join(json_dir, folder, filename)
 
     # TESTING
     # TODO Remove formatting when final
@@ -109,12 +123,247 @@ def write_profile_json(json_dir, profile_dict):
         json.dump(data_dict, f, indent=4, sort_keys=True, default=convert)
 
 
-def write_profiles_json(json_dir, profile_dicts):
+def write_profiles_json(json_dir, profile_dicts, type):
+
+    # Write units for one  profile
+    profile = profile_dicts[0]
+
+    if type == 'bot':
+        goship_units = profile['goshipUnitsBtl']
+    if type == 'ctd':
+        goship_units = profile['goshipUnitsCtd']
+    if type == 'bot_ctd':
+        goship_units_btl = profile['goshipUnitsBtl']
+        goship_units_ctd = profile['goshipUnitsCtd']
+        goship_units = {**goship_units_btl, **goship_units_ctd}
+
+    filename = 'files_goship_units.txt'
+    with open(filename, 'a') as f:
+        json.dump(goship_units, f, indent=4,
+                  sort_keys=True, default=convert)
 
     # Write profile_dict to as json to a profile file
-
     for profile_dict in profile_dicts:
         write_profile_json(json_dir, profile_dict)
+
+
+def set_obj_nan(measurements, type):
+
+    new_measurements = []
+
+    try:
+        for obj in measurements:
+            obj[type] = np.nan
+            new_measurements.append(obj)
+    except KeyError:
+        new_measurements = measurements
+
+    return new_measurements
+
+
+def filter_combined_measurements(bot_measurements, ctd_measurements, use_ctd_meas, use_btl_meas):
+
+    # Assume use all of ctd
+    # If not, see if use pieces of ctd and btl or if use all btl
+    is_nan_temp_btl = False
+    is_nan_psal_btl = False
+    is_nan_salinity_btl = False
+    is_nan_temp_ctd = False
+    is_nan_psal_ctd = False
+
+    is_all_nan_btl = False
+    is_all_nan_ctd = False
+
+    use_btl = False
+    use_ctd = False
+
+    if use_ctd_meas['temp']:
+        use_ctd = True
+        bot_measurements = set_obj_nan(bot_measurements, 'temp_btl')
+        is_nan_temp_btl = True
+    if not use_ctd_meas['temp'] and use_btl_meas['temp']:
+        use_btl = True
+        ctd_measurements = set_obj_nan(ctd_measurements, 'temp_ctd')
+        is_nan_temp_ctd = True
+    if not use_ctd_meas['temp'] and not use_btl_meas['temp']:
+        bot_measurements = set_obj_nan(bot_measurements, 'temp_btl')
+        is_nan_temp_btl = True
+        ctd_measurements = set_obj_nan(ctd_measurements, 'temp_ctd')
+        is_nan_temp_ctd = True
+
+    if use_ctd_meas['psal']:
+        use_ctd = True
+        is_nan_psal_btl = True
+        bot_measurements = set_obj_nan(bot_measurements, 'psal_btl')
+        is_nan_salinity_btl = True
+        bot_measurements = set_obj_nan(bot_measurements, 'salinity_btl')
+    if not use_ctd_meas['psal'] and use_btl_meas['psal'] and not use_btl_meas['salinity']:
+        use_btl = True
+        bot_measurements = set_obj_nan(bot_measurements, 'salinity_btl')
+        is_nan_salinity_btl = True
+        is_nan_psal_ctd = True
+    if not use_ctd_meas['psal'] and not use_btl_meas['psal'] and use_btl_meas['salinity']:
+        use_btl = True
+        is_nan_psal_btl = True
+        is_nan_psal_ctd = True
+
+    if is_nan_salinity_btl:
+        is_all_nan_btl = is_nan_temp_btl and is_nan_psal_btl
+    else:
+        is_all_nan_btl = False
+
+    if is_all_nan_btl:
+        bot_measurements = set_obj_nan(bot_measurements, 'pres')
+
+    is_all_nan_ctd = is_nan_temp_ctd and is_nan_psal_ctd
+
+    if is_all_nan_ctd:
+        ctd_measurements = set_obj_nan(ctd_measurements, 'pres')
+
+    if is_all_nan_ctd:
+        ctd_measurements = []
+        use_ctd = False
+
+    if is_all_nan_btl:
+        bot_measurements = []
+        use_btl = False
+
+    if not is_all_nan_ctd and is_all_nan_btl:
+        use_btl = False
+        use_ctd = True
+
+    elif is_all_nan_ctd and not is_all_nan_btl:
+        use_btl = True
+        use_ctd = False
+
+    return use_btl, use_ctd, bot_measurements, ctd_measurements
+
+
+def combine_bot_ctd_measurements(bot_measurements, ctd_measurements):
+
+    # 1) If temp_ctd and psal_ctd, exclude bottle objects
+    # 2) If no temp_ctd but there is temp_btl, keep _btl objects,
+    #    put nan in  temp_ctd of ctd objs and use btl objs  with temp_btl
+    #   a) Keep _ctd object if there is  psal_ctd,
+    #   b) otherwise delete object because just pressure variable
+    # 3) If there is no psal_ctd, set to nan (keep objs), and use bottle
+    #    objects, too. If no psal_btl, use salinity_btl. Still
+    #    keep ctd objects if has temp_ctd (just missing psal_ctd)
+    # Set measurements flag to 'CTD_BTL' if use bot BTL and CTD objs
+    # If  just one  or the other, flag is CTD or BTL
+
+    # First, filter ctd objects: keep only temp_ctd and psal_ctd
+    # Question: What if some ctd objs missing psal, probably
+    # just psal to nan and keep. Don't rely on btl because diff pressure
+    # So check if min psal_ctd
+
+    # Object will always have pres, psal_ctd, temp_ctd for ctd file
+    # Object will always pres, temp_btl and psal_btl or salinity_btl in btl file
+
+    has_psal_btl = False
+    has_salinity_btl = False
+    has_temp_btl = False
+
+    has_psal_ctd = False
+    has_temp_ctd = False
+
+    psal_results = [
+        True for obj in ctd_measurements if pd.notnull(obj['psal_ctd'])]
+
+    if len(psal_results):
+        has_psal_ctd = True
+
+    temp_results = [
+        True for obj in ctd_measurements if pd.notnull(obj['temp_ctd'])]
+
+    if len(temp_results):
+        has_temp_ctd = True
+
+    temp_results = [
+        True for obj in bot_measurements if pd.notnull(obj['temp_btl'])]
+
+    if len(temp_results):
+        has_temp_btl = True
+
+    psal_results = [
+        True for obj in bot_measurements if pd.notnull(obj['psal_btl'])]
+
+    if len(psal_results):
+        has_psal_btl = True
+
+    try:
+        salinity_results = [
+            True for obj in bot_measurements if pd.notnull(obj['salinity_btl'])]
+    except:
+        salinity_results = []
+
+    if len(salinity_results):
+        has_salinity_btl = True
+
+    use_temp_ctd = False
+    use_psal_ctd = False
+    use_temp_btl = False
+    use_psal_btl = False
+    use_salinity_btl = False
+
+    if has_temp_ctd:
+        use_temp_ctd = True
+
+    if has_psal_ctd:
+        use_psal_ctd = True
+
+    if not has_temp_ctd and has_temp_btl:
+        use_temp_btl = True
+
+    if not has_psal_ctd and has_psal_btl:
+        use_psal_btl = True
+
+    if not has_psal_ctd and not has_psal_btl and has_salinity_btl:
+        use_salinity_btl = True
+
+    use_ctd_meas = {}
+    use_ctd_meas['temp'] = use_temp_ctd
+    use_ctd_meas['psal'] = use_psal_ctd
+    use_btl_meas = {}
+    use_btl_meas['temp'] = use_temp_btl
+    use_btl_meas['psal'] = use_psal_btl
+    use_btl_meas['salinity'] = use_salinity_btl
+
+    use_btl, use_ctd, bot_measurements, ctd_measurements = filter_combined_measurements(
+        bot_measurements, ctd_measurements, use_ctd_meas, use_btl_meas)
+
+    combined_bot_ctd_measurements = [*ctd_measurements, *bot_measurements]
+
+    # Remove suffix
+    for obj in combined_bot_ctd_measurements:
+        delete_keys = []
+        new_obj = {}
+
+        for key, val in obj.items():
+            if '_btl' in key:
+                new_key = key.replace('_btl', '')
+                new_obj[new_key] = val
+                delete_keys.append(key)
+            if '_ctd' in key:
+                new_key = key.replace('_ctd', '')
+                new_obj[new_key] = val
+                delete_keys.append(key)
+
+        for key, val in new_obj.items():
+            obj[key] = val
+
+        for key in delete_keys:
+            obj.pop(key, None)
+
+    # Get measurements flag
+    if use_ctd and use_btl:
+        flag = 'BOT_CTD'
+    elif use_ctd and not use_btl:
+        flag = 'CTD'
+    elif not use_ctd and use_btl:
+        flag = 'BOT'
+
+    return combined_bot_ctd_measurements, flag
 
 
 def combine_output_per_profile_bot_ctd(bot_renamed_dict, ctd_renamed_dict):
@@ -139,7 +388,10 @@ def combine_output_per_profile_bot_ctd(bot_renamed_dict, ctd_renamed_dict):
     bot_measurements = bot_renamed_dict['measurements']
     ctd_measurements = ctd_renamed_dict['measurements']
 
-    measurement = [*ctd_measurements, *bot_measurements]
+    measurements, meas_flag = combine_bot_ctd_measurements(
+        bot_measurements, ctd_measurements)
+
+    measurements_source_qc = {"source": meas_flag, "qc": 2}
 
     goship_argovis_name_mapping_bot = bot_renamed_dict['goshipArgovisNameMapping']
     goship_argovis_name_mapping_ctd = ctd_renamed_dict['goshipArgovisNameMapping']
@@ -159,15 +411,21 @@ def combine_output_per_profile_bot_ctd(bot_renamed_dict, ctd_renamed_dict):
     goship_argovis_units_mapping = {
         **ctd_renamed_dict['goshipArgovisUnitNameMapping'], **bot_renamed_dict['goshipArgovisUnitNameMapping']}
 
+    goship_units_btl = bot_renamed_dict['goshipUnits']
+    goship_units_ctd = ctd_renamed_dict['goshipUnits']
+
     combined_bot_ctd_dict = {}
     combined_bot_ctd_dict['meta'] = meta
-    combined_bot_ctd_dict['measurements'] = measurement
+    combined_bot_ctd_dict['measurements'] = measurements
     combined_bot_ctd_dict['bgcMeas'] = bgc_meas
+    combined_bot_ctd_dict['measurementsSourceQC'] = measurements_source_qc
     combined_bot_ctd_dict['goshipArgovisNameMappingBtl'] = goship_argovis_name_mapping_bot
     combined_bot_ctd_dict['goshipArgovisNameMappingCtd'] = goship_argovis_name_mapping_ctd
     combined_bot_ctd_dict['goshipReferenceScale'] = goship_ref_scale_mapping
     combined_bot_ctd_dict['argovisReferenceScale'] = argovis_reference_scale
     combined_bot_ctd_dict['goshipArgovisUnitNameMapping'] = goship_argovis_units_mapping
+    combined_bot_ctd_dict['goshipUnitsBtl'] = goship_units_btl
+    combined_bot_ctd_dict['goshipUnitsCtd'] = goship_units_ctd
 
     return combined_bot_ctd_dict
 
@@ -219,11 +477,6 @@ def create_measurements_list(df_bgc_meas, data_obj):
     # core values includes '_qc' vars
     core_values = gvm.get_goship_core_values()
 
-    if type == 'bot':
-        # add in bottle_salinity to get a subset of
-        bottle_salinity_vars = ['bottle_salinity', 'bottle_salinity_qc']
-        core_values.append(bottle_salinity_vars)
-
     for val in core_values:
 
         try:
@@ -271,12 +524,6 @@ def create_measurements_list(df_bgc_meas, data_obj):
 
         if type == 'bot' and 'ctd_salinity' in obj.keys() and 'bottle_salinity' in obj.keys():
             del obj['bottle_salinity']
-
-        # Do I rename bottle salinity to psal_btl
-        # And if I do, do I include a flag
-        # elif type == 'bot' and 'ctd_salinity' not in obj.keys() and 'bottle_salinity' in obj.keys():
-        #     obj['ctd_salinity'] = obj['bottle_salinity']
-        #     del obj['bottle_salinity']
 
         new_data_list.append(obj)
 
@@ -455,9 +702,6 @@ def add_extra_coords(nc, data_obj):
     filename = data_obj['filename']
     data_path = data_obj['data_path']
 
-    # TODO
-    # Log if expocode is none
-
     if '/' in expocode:
         expocode = expocode.replace('/', '_')
         cruise_url = f"https://cchdo.ucsd.edu/cruise/{expocode}"
@@ -553,7 +797,16 @@ def create_profile_dict(profile_group, data_obj):
 
     measurements_dict_list = create_measurements_list(df_bgc, data_obj)
 
+    if data_obj['type'] == 'bot':
+
+        measurements_source_qc = {"source": 'BTL',  'qc': "0-9"}
+
+    if data_obj['type'] == 'ctd':
+
+        measurements_source_qc = {"source": 'CTD',  'qc': "0-9"}
+
     goship_units_dict = data_obj['goship_units']
+
     goship_ref_scale_mapping_dict = data_obj['goship_ref_scale']
 
     goship_names_list = [*meta_names, *param_names]
@@ -563,6 +816,7 @@ def create_profile_dict(profile_group, data_obj):
     profile_dict['meta'] = meta_dict
     profile_dict['bgc_meas'] = bgc_meas_dict_list
     profile_dict['measurements'] = measurements_dict_list
+    profile_dict['measurments_source_qc'] = measurements_source_qc
     profile_dict['goship_ref_scale'] = goship_ref_scale_mapping_dict
     profile_dict['goship_units'] = goship_units_dict
     profile_dict['goship_names'] = goship_names_list
@@ -570,12 +824,10 @@ def create_profile_dict(profile_group, data_obj):
     return profile_dict
 
 
-def check_if_all_ctd_vars(data_obj):
+def check_if_all_ctd_vars(data_obj, logging, logging_dir):
 
     # Check to see if have all ctd vars
     # CTD vars are ctd temperature and pressure
-
-    logging_filename = 'logging.txt'
 
     nc = data_obj['nc']
 
@@ -592,11 +844,11 @@ def check_if_all_ctd_vars(data_obj):
 
     vars = nc.keys()
 
-    temperature_vars = ['ctd_temperature', 'ctd_temperature_68']
+    ctd_temperature_vars = ['ctd_temperature', 'ctd_temperature_68']
 
     for var in vars:
 
-        if var in temperature_vars:
+        if var in ctd_temperature_vars:
             has_ctd_temperature = True
 
         try:
@@ -604,9 +856,9 @@ def check_if_all_ctd_vars(data_obj):
         except:
             var_ref_scale = None
 
-        if var in temperature_vars and var_ref_scale:
+        if var in ctd_temperature_vars and var_ref_scale:
             is_ctd_temp_w_refscale = True
-        elif var in temperature_vars and not var_ref_scale:
+        elif var in ctd_temperature_vars and not var_ref_scale:
             is_ctd_temp_w_refscale = False
 
     expocode = nc.coords['expocode'].data[0]
@@ -623,33 +875,37 @@ def check_if_all_ctd_vars(data_obj):
         logging.info('===========')
         logging.info('EXCEPTIONS FOUND')
         logging.info(expocode)
-        logging.info(logging_filename)
 
     if not is_pres and not is_ctd_temp_w_refscale:
         logging.info('missing pres and ctd temperature')
-        with open('files_no_core_ctd_vars.csv', 'a') as f:
-            f.write(f"{expocode}, {logging_filename} \n")
+        filename = 'files_no_core_ctd_vars.txt'
+        filepath = os.path.join(logging_dir, filename)
+        with open(filepath, 'a') as f:
+            f.write(f"{expocode} \n")
 
     if not is_ctd_temp_w_refscale:
         logging.info('CTD temperature with no ref scale')
-        # Write to file listing files without ctd variables
-        with open('files_no_ctd_temp_w_ref_scale.csv', 'a') as f:
-            f.write(f"{expocode}, {logging_filename} \n")
+        filename = 'files_no_ctd_temp_w_ref_scale.txt'
+        filepath = os.path.join(logging_dir, filename)
+        with open(filepath, 'a') as f:
+            f.write(f"{expocode}\n")
 
     if not has_ctd_temperature:
-        logging.info('No ctd temperture')
-        # Write to file listing files without ctd variables
-        with open('files_no_ctd_temp.csv', 'a') as f:
-            f.write(f"{expocode}, {logging_filename} \n")
+        logging.info('No ctd temperature')
+        filename = 'files_no_ctd_temp.txt'
+        filepath = os.path.join(logging_dir, filename)
+        with open(filepath, 'a') as f:
+            f.write(f"{expocode} \n")
 
     expocode = nc.coords['expocode'].data[0]
 
     if expocode == 'None':
         has_ctd_vars = False
         logging.info('No expocode')
-        # Write to file listing files without ctd variables
-        with open('files_no_expocode.csv', 'a') as f:
-            f.write(f"{expocode}, {logging_filename} \n")
+        filename = 'files_no_expocode.txt'
+        filepath = os.path.join(logging_dir, filename)
+        with open(filepath, 'a') as f:
+            f.write(f"{expocode}\n")
 
     return has_ctd_vars
 
@@ -910,6 +1166,7 @@ def get_cruise_information(session):
     # from attached file ids, Search file metadata from doc file id, bottle file id
 
     # Get all cruises and active files
+    print('Get CCHDO cruise information')
     all_cruises = get_all_cruises(session)
     all_file_ids = get_all_file_ids(session)
 
@@ -933,59 +1190,59 @@ def get_cruise_information(session):
         # if expocode != '32MW9508':
         #     continue
 
-        # Only want US Go-Ship
-
         # TESTING
         # Get non-goship cruise with True
         # if True:
-        if 'go-ship' in programs and country == 'US':
 
-            print(f"Finding cruise information for {cruise['expocode']}")
+        # Take this if statement out, looking at all coords netcdf files
+        # if 'go-ship' in programs and country == 'US':
 
-            # Get files attached to the cruise
-            # Could be deleted ones so check if exist in all_files
-            file_ids = cruise['files']
+        print(f"Finding cruise information for {cruise['expocode']}")
 
-            # Get only file_ids in all_file_ids (active files)
-            active_file_ids = list(
-                filter(lambda x: (x in all_file_ids), file_ids))
+        # Get files attached to the cruise
+        # Could be deleted ones so check if exist in all_files
+        file_ids = cruise['files']
 
-            # Get file meta for each file id to search for
-            # cruise doc and bottle info
-            file_info = find_bot_ctd_file_info(active_file_ids, session)
+        # Get only file_ids in all_file_ids (active files)
+        active_file_ids = list(
+            filter(lambda x: (x in all_file_ids), file_ids))
 
-            bot_found = file_info['bot_found']
-            ctd_found = file_info['ctd_found']
+        # Get file meta for each file id to search for
+        # cruise doc and bottle info
+        file_info = find_bot_ctd_file_info(active_file_ids, session)
 
-            # Only want cruises with both dataset bot and doc files
-            if not len(file_info):
-                continue
+        bot_found = file_info['bot_found']
+        ctd_found = file_info['ctd_found']
 
-            cruise_info = {}
-            cruise_info['bot'] = {'found': False}
-            cruise_info['ctd'] = {'found': False}
-            cruise_info['expocode'] = cruise['expocode']
-            cruise_info['cruise_id'] = cruise['id']
+        # Only want cruises with both dataset bot and doc files
+        if not len(file_info):
+            continue
 
-            if bot_found:
-                bot_obj = {}
-                bot_obj['found'] = True
-                bot_obj['type'] = 'bot'
-                bot_obj['data_path'] = file_info['bot_path']
-                bot_obj['filename'] = file_info['bot_filename']
+        cruise_info = {}
+        cruise_info['bot'] = {'found': False}
+        cruise_info['ctd'] = {'found': False}
+        cruise_info['expocode'] = cruise['expocode']
+        cruise_info['cruise_id'] = cruise['id']
 
-                cruise_info['bot'] = bot_obj
+        if bot_found:
+            bot_obj = {}
+            bot_obj['found'] = True
+            bot_obj['type'] = 'bot'
+            bot_obj['data_path'] = file_info['bot_path']
+            bot_obj['filename'] = file_info['bot_filename']
 
-            if ctd_found:
-                ctd_obj = {}
-                ctd_obj['found'] = True
-                ctd_obj['type'] = 'ctd'
-                ctd_obj['data_path'] = file_info['ctd_path']
-                ctd_obj['filename'] = file_info['ctd_filename']
+            cruise_info['bot'] = bot_obj
 
-                cruise_info['ctd'] = ctd_obj
+        if ctd_found:
+            ctd_obj = {}
+            ctd_obj['found'] = True
+            ctd_obj['type'] = 'ctd'
+            ctd_obj['data_path'] = file_info['ctd_path']
+            ctd_obj['filename'] = file_info['ctd_filename']
 
-        if cruise_info['bot']['found'] or cruise_info['ctd']['found']:
+            cruise_info['ctd'] = ctd_obj
+
+        if bot_found or ctd_found:
 
             all_cruises_info.append(cruise_info)
 
@@ -1060,9 +1317,20 @@ def setup_testing(bot_file, ctd_file, test_bot, test_ctd):
     return output_dir, all_cruises_info, bot_obj, ctd_obj
 
 
-def main():
+def setup_logging():
 
-    start_time = datetime.now()
+    # TODO
+    # put in a dict called logging_files and pass that to
+    # check if have ctd vars
+    remove_file('files_goship_units.txt')
+    remove_file('files_no_core_ctd_vars.txt')
+    remove_file('files_no_ctd_temp_w_ref_scale.txt')
+    remove_file('files_no_ctd_temp.txt')
+    remove_file('files_no_expocode.txt')
+    remove_file('output.log')
+
+    logging_dir = './logging'
+    os.makedirs(logging_dir, exist_ok=True)
 
     logging.root.handlers = []
     logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s',
@@ -1075,6 +1343,27 @@ def main():
     formatter = logging.Formatter('%(asctime)s : %(levelname)s : %(message)s')
     console.setFormatter(formatter)
     logging.getLogger("").addHandler(console)
+
+    return logging_dir, logging
+
+
+def main():
+
+    start_time = datetime.now()
+
+    logging_dir, logging = setup_logging()
+
+    # logging.root.handlers = []
+    # logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s',
+    #                     level=logging.INFO, filename='output.log')
+
+    # # set up logging to console
+    # console = logging.StreamHandler()
+    # console.setLevel(logging.INFO)
+    # # set a format which is simpler for console use
+    # formatter = logging.Formatter('%(asctime)s : %(levelname)s : %(message)s')
+    # console.setFormatter(formatter)
+    # logging.getLogger("").addHandler(console)
 
     session = requests.Session()
     a = requests.adapters.HTTPAdapter(max_retries=3)
@@ -1113,6 +1402,7 @@ def main():
 
             print("======================\n")
             print(f"Processing {expocode}")
+            logging.info(f"Processing {expocode}")
 
             bot_found = cruise_info['bot']['found']
             ctd_found = cruise_info['ctd']['found']
@@ -1126,7 +1416,7 @@ def main():
             print('Start processing bottle profiles')
             print('---------------------------')
 
-            if test_bot:
+            if testing:
                 bot_obj, expocode = read_file_test(bot_obj)
 
             else:
@@ -1134,7 +1424,7 @@ def main():
                 bot_obj = read_file(bot_obj)
 
             # Check if all ctd vars available: pressure and temperature
-            has_ctd_vars = check_if_all_ctd_vars(bot_obj)
+            has_ctd_vars = check_if_all_ctd_vars(bot_obj, logging, logging_dir)
 
             if not has_ctd_vars:
                 bot_found = False
@@ -1145,6 +1435,8 @@ def main():
 
                 # Only converting temperature so far
                 bot_obj = convert_goship_to_argovis_ref_scale(bot_obj)
+
+                # Add convert units function
 
                 # Rename converted temperature later.
                 # Keep 68 in name and show it maps to temp_ctd
@@ -1168,7 +1460,7 @@ def main():
             print('Start processing ctd profiles')
             print('---------------------------')
 
-            if test_ctd:
+            if testing:
                 ctd_obj, expocode = read_file_test(ctd_obj)
 
             else:
@@ -1176,14 +1468,13 @@ def main():
                 ctd_obj = read_file(ctd_obj)
 
             # Check if all ctd vars available: pressure and temperature
-            has_ctd_vars = check_if_all_ctd_vars(ctd_obj)
+            has_ctd_vars = check_if_all_ctd_vars(ctd_obj, logging, logging_dir)
 
             if not has_ctd_vars:
                 ctd_found = False
 
             else:
                 ctd_obj = gvm.create_goship_unit_mapping(ctd_obj)
-
                 ctd_obj = gvm.create_goship_ref_scale_mapping(ctd_obj)
 
                 # TODO
@@ -1195,6 +1486,8 @@ def main():
 
                 # What if other temperatures not on ITS-90 scale?
                 ctd_obj = convert_goship_to_argovis_ref_scale(ctd_obj)
+
+                # Add convert units function
 
                 # Rename converted temperature later.
                 # Keep 68 in name and show it maps to temp_ctd
@@ -1222,13 +1515,16 @@ def main():
             print('---------------------------')
 
         if bot_found and ctd_found:
-            write_profiles_json(json_directory, combined_bot_ctd_dicts)
+            write_profiles_json(
+                json_directory, combined_bot_ctd_dicts, 'bot_ctd')
 
         elif bot_found:
-            write_profiles_json(json_directory, renamed_bot_profile_dicts)
+            write_profiles_json(
+                json_directory, renamed_bot_profile_dicts, 'bot')
 
         elif ctd_found:
-            write_profiles_json(json_directory, renamed_ctd_profile_dicts)
+            write_profiles_json(
+                json_directory, renamed_ctd_profile_dicts, 'ctd')
 
         if bot_found or ctd_found:
             print('---------------------------')
