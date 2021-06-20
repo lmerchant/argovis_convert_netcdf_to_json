@@ -1074,7 +1074,7 @@ def check_if_all_ctd_vars_per_profile(profile_dict, type, logging, logging_dir):
 
     elif type == 'btl':
 
-        expocode = profile_dict['expocode']
+        expocode = profile_dict['meta']['expocode']
         measurements = profile_dict['measurements']
         argovis_ref_scale = profile_dict['argovisReferenceScale']
 
@@ -1099,7 +1099,8 @@ def check_if_all_ctd_vars_per_profile(profile_dict, type, logging, logging_dir):
             no_ctd_temp_w_qc_type = 'btl'
 
     elif type == 'ctd':
-        expocode = profile_dict['expocode']
+
+        expocode = profile_dict['meta']['expocode']
         measurements = profile_dict['measurements']
         argovis_ref_scale = profile_dict['argovisReferenceScale']
 
@@ -1604,7 +1605,7 @@ def get_cruise_information(session):
         # It isn't a Go-Ship cruise but has ctd temp on 68 scale
         # And change check for Go-Ship to True
         # expocode = cruise['expocode']
-        # if expocode != '33KA006_1':
+        # if expocode != '49K6KY9401_1':
         #     continue
 
         # TESTING
