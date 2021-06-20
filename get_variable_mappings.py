@@ -2,6 +2,10 @@ import rename_objects as rn
 
 # Objects storing core Objects
 
+#  TODO
+# consolidate into less objects and use a core
+# and expand that
+
 
 def get_goship_salniity_reference_scale():
 
@@ -29,9 +33,25 @@ def get_goship_argovis_unit_mapping():
     }
 
 
+def get_goship_argovis_measurements_mapping():
+
+    # No extension for measurements
+
+    return {
+        'pressure': 'pres',
+        'ctd_salinity': 'psal',
+        'ctd_temperature': 'temp',
+        'ctd_temperature_68': 'temp',
+        'ctd_oxygen': 'doxy',
+        'bottle_salinity': 'salinity',
+        'latitude': 'lat',
+        'longitude': 'lon'
+    }
+
+
 def get_goship_argovis_core_values_mapping(type):
 
-    if type == 'bot':
+    if type == 'btl':
 
         return {
             'pressure': 'pres',
@@ -96,7 +116,7 @@ def create_goship_ref_scale_mapping(data_obj):
 
 def create_goship_argovis_core_values_mapping(goship_names, type):
 
-    if type == 'bot':
+    if type == 'btl':
 
         core_mapping = {
             'pressure': 'pres',

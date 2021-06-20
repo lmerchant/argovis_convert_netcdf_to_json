@@ -1,4 +1,5 @@
 import copy
+from os import rename
 
 import get_variable_mappings as gvm
 
@@ -28,9 +29,9 @@ def rename_argovis_meta(obj):
 
 def rename_goship_on_key_not_meta(obj, type):
 
-    if type == 'bot':
+    if type == 'btl':
 
-        core_values_mapping = gvm.get_goship_argovis_core_values_mapping('bot')
+        core_values_mapping = gvm.get_goship_argovis_core_values_mapping('btl')
 
         core_values = [core for core in core_values_mapping]
 
@@ -82,9 +83,9 @@ def rename_bot_by_key_meta(obj):
 
 def rename_key_not_meta(obj, type):
 
-    if type == 'bot':
+    if type == 'btl':
 
-        core_values_mapping = gvm.get_goship_argovis_core_values_mapping('bot')
+        core_values_mapping = gvm.get_goship_argovis_core_values_mapping('btl')
 
         core_values = [core for core in core_values_mapping]
 
@@ -137,11 +138,35 @@ def rename_key_not_meta(obj, type):
     return new_obj
 
 
+def rename_key_not_meta_argovis_measurements(obj):
+
+    core_values_mapping = gvm.get_goship_argovis_measurements_mapping()
+
+    #core_values_mapping = gvm.get_goship_argovis_core_values_mapping(type)
+    core_values = [core for core in core_values_mapping]
+
+    new_obj = {}
+
+    for key, val in obj.items():
+
+        if key in core_values:
+            new_key = core_values_mapping[key]
+
+        else:
+            new_key = key
+
+        new_obj[new_key] = val
+
+    return new_obj
+
+
 def rename_key_not_meta_argovis(obj, type):
 
-    if type == 'bot':
+    # here
 
-        core_values_mapping = gvm.get_goship_argovis_core_values_mapping('bot')
+    if type == 'btl':
+
+        core_values_mapping = gvm.get_goship_argovis_core_values_mapping('btl')
         core_values = [core for core in core_values_mapping]
 
         new_obj = {}
@@ -188,7 +213,9 @@ def rename_key_not_meta_argovis(obj, type):
 
 def rename_output_per_profile(profile_dict, type):
 
-    if type == 'bot':
+    if type == 'btl':
+
+        profile_number = profile_dict['profile_number']
 
         # Make a new object because will be using it next if combine profiles
         # but do rename lat and lon
@@ -199,12 +226,21 @@ def rename_output_per_profile(profile_dict, type):
         meta_copy = copy.deepcopy(meta)
 
         bgc_list = profile_dict['bgc_meas']
-        renamed_bgc_list = create_renamed_list_of_objs(bgc_list, 'bot')
+        renamed_bgc_list = create_renamed_list_of_objs(bgc_list, 'btl')
 
+        # TODO
+        # Rename, remove extension
         measurements_list = profile_dict['measurements']
-        renamed_measurements_list = []
-        renamed_measurements_list = create_renamed_list_of_objs_argovis(
-            measurements_list, 'bot')
+
+        #renamed_measurements_list = []
+        # renamed_measurements_list = create_renamed_list_of_objs_argovis(
+        #     measurements_list, 'btl')
+
+        # # Rename measurements list with no extensions
+        renamed_measurements_list = create_renamed_list_of_objs_argovis_measurements(
+            measurements_list)
+
+        measurements_source_qc = {"source": 'BTL', "qc": 2}
 
         goship_names = profile_dict['goship_names']
 
@@ -222,6 +258,8 @@ def rename_output_per_profile(profile_dict, type):
 
     if type == 'ctd':
 
+        profile_number = profile_dict['profile_number']
+
         # Make a new object because will be using it next if combine profiles
         # but do rename lat and lon
         meta = profile_dict['meta']
@@ -234,8 +272,15 @@ def rename_output_per_profile(profile_dict, type):
 
         measurements_list = profile_dict['measurements']
         #renamed_measurements_list = []
-        renamed_measurements_list = create_renamed_list_of_objs_argovis(
-            measurements_list, type)
+
+        # renamed_measurements_list = create_renamed_list_of_objs_argovis(
+        #     measurements_list, 'ctd')
+
+        # Rename measurements list with no extensions
+        renamed_measurements_list = create_renamed_list_of_objs_argovis_measurements(
+            measurements_list)
+
+        measurements_source_qc = {"source": 'CTD', "qc": 2}
 
         goship_names = profile_dict['goship_names']
 
@@ -254,8 +299,10 @@ def rename_output_per_profile(profile_dict, type):
     # don't rename meta yet in case not both bot and ctd combined
 
     renamed_profile_dict = {}
+    renamed_profile_dict['profileNumber'] = profile_number
     renamed_profile_dict['meta'] = renamed_meta
     renamed_profile_dict['measurements'] = renamed_measurements_list
+    renamed_profile_dict['measurementsSourceQC'] = measurements_source_qc
     renamed_profile_dict['bgcMeas'] = renamed_bgc_list
     renamed_profile_dict['goshipUnits'] = goship_units
     renamed_profile_dict['goshipArgovisNameMapping'] = goship_argovis_name
@@ -381,6 +428,24 @@ def rename_profile_dicts_to_argovis(profile_dicts, type):
     return profile_dicts_list
 
 
+def create_renamed_list_of_objs_argovis_measurements(cur_list):
+
+    # Rename without extension
+
+    new_list = []
+
+    new_obj = {}
+
+    for obj in cur_list:
+
+        new_obj = rename_key_not_meta_argovis_measurements(obj)
+        #new_obj = rename_key_not_meta_argovis(obj, type)
+
+        new_list.append(new_obj)
+
+    return new_list
+
+
 def create_renamed_list_of_objs_argovis(cur_list, type):
 
     # Common names are pres, temp, psal, and doxy will have suffix _ctd and _ctd_qc
@@ -390,7 +455,7 @@ def create_renamed_list_of_objs_argovis(cur_list, type):
 
     # Creating list, don't modify key since already renamed as element  of list
 
-    if type == 'bot':
+    if type == 'btl':
 
         new_list = []
 
@@ -421,13 +486,13 @@ def create_renamed_list_of_objs(cur_list, type):
 
     new_list = []
 
-    if type == 'bot':
+    if type == 'btl':
 
         new_obj = {}
 
         for obj in cur_list:
 
-            new_obj = rename_key_not_meta(obj, 'bot')
+            new_obj = rename_key_not_meta(obj, 'btl')
 
             new_list.append(new_obj)
 
