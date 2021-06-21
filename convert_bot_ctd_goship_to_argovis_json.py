@@ -14,6 +14,7 @@ import fsspec
 import re
 import errno
 import copy
+import sys
 
 import get_variable_mappings as gvm
 import rename_objects as rn
@@ -523,7 +524,7 @@ def combine_output_per_profile_bot_ctd(bot_renamed_dict, ctd_renamed_dict):
 
         profile_number_btl = bot_renamed_dict['profileNumber']
 
-        print(f"profile number btl {profile_number_btl}")
+        # print(f"profile number btl {profile_number_btl}")
 
         bot_meta = bot_renamed_dict['meta']
 
@@ -541,7 +542,7 @@ def combine_output_per_profile_bot_ctd(bot_renamed_dict, ctd_renamed_dict):
 
         profile_number_ctd = ctd_renamed_dict['profileNumber']
 
-        print(f"profile number ctd {profile_number_ctd}")
+        # print(f"profile number ctd {profile_number_ctd}")
 
         ctd_meta = ctd_renamed_dict['meta']
 
@@ -1687,6 +1688,99 @@ def read_file(data_obj):
 
     return data_obj
 
+# here
+
+
+def process_ctd(ctd_obj):
+
+    print('---------------------------')
+    print('Start processing ctd profiles')
+    print('---------------------------')
+
+    # Exclude before write to JSON
+    # because may use temperature if combining
+
+    # # Check if all ctd vars available: pressure and temperature
+    # has_ctd_vars = check_if_all_ctd_vars(ctd_obj, logging, logging_dir)
+
+    # if not has_ctd_vars:
+    #     ctd_found = False
+
+    ctd_obj = gvm.create_goship_unit_mapping(ctd_obj)
+    ctd_obj = gvm.create_goship_ref_scale_mapping(ctd_obj)
+
+    # TODO
+    # Are there other variables to convert besides ctd_temperature?
+    # And if I do, would need to note in argovis ref scale mapping
+    # that this temperare is on a new scale.
+    # I'm assuming goship will always refer to original vars before
+    # values converted.
+
+    # What if other temperatures not on ITS-90 scale?
+    ctd_obj = convert_goship_to_argovis_ref_scale(ctd_obj)
+
+    # Add convert units function
+
+    # Rename converted temperature later.
+    # Keep 68 in name and show it maps to temp_ctd
+    # and ref scale show what scale it was converted to
+
+    ctd_profile_dicts = create_profile_dicts(ctd_obj)
+
+    # Rename with _ctd suffix unless it is an Argovis variable
+    # But no _ctd suffix to meta data
+    renamed_ctd_profile_dicts = rn.rename_profile_dicts_to_argovis(
+        ctd_profile_dicts, 'ctd')
+
+    print('---------------------------')
+    print('Processed ctd profiles')
+    print('---------------------------')
+
+    return renamed_ctd_profile_dicts
+
+
+def process_botle(bot_obj):
+
+    print('---------------------------')
+    print('Start processing bottle profiles')
+    print('---------------------------')
+
+    # Exclude before write to JSON
+    # because may use temperature if combining
+
+    # Check if all ctd vars available: pressure and temperature
+    # has_ctd_vars = check_if_all_ctd_vars(bot_obj, logging, logging_dir)
+
+    # if not has_ctd_vars:
+    #     bot_found = False
+
+    bot_obj = gvm.create_goship_unit_mapping(bot_obj)
+    bot_obj = gvm.create_goship_ref_scale_mapping(bot_obj)
+
+    # Only converting temperature so far
+    bot_obj = convert_goship_to_argovis_ref_scale(bot_obj)
+
+    # Add convert units function
+
+    # Rename converted temperature later.
+    # Keep 68 in name and show it maps to temp_ctd
+    # and ref scale show what scale it was converted to
+
+    # once
+    bot_profile_dicts = create_profile_dicts(bot_obj)
+
+    # Rename with _btl suffix unless it is an Argovis variable
+    # But no _btl suffix to meta data
+    # Add _btl when combine files
+    renamed_bot_profile_dicts = rn.rename_profile_dicts_to_argovis(
+        bot_profile_dicts, 'btl')
+
+    print('---------------------------')
+    print('Processed btl profiles')
+    print('---------------------------')
+
+    return renamed_bot_profile_dicts
+
 
 def find_bot_ctd_file_info(file_ids, session):
 
@@ -1738,6 +1832,16 @@ def find_bot_ctd_file_info(file_ids, session):
     return file_info
 
 
+def get_cruise_information_from_file(logging_dir):
+
+    path = os.path.join(logging_dir, 'found_cruises_to_process.txt')
+
+    # Read in file of expocodes and got corresponding cruise_id
+
+    # Still need to use all active file ids to identify
+    # file ids to use.
+
+
 def get_all_file_ids(session):
 
     # Use api query to get all active file ids
@@ -1775,7 +1879,7 @@ def get_all_cruises(session):
     return all_cruises
 
 
-def get_cruise_information(session):
+def get_cruise_information(session, logging_dir):
 
     # To get expocodes and cruise ids, Use get cruise/all to get all cruise metadata
     # and search cruises to get Go-Ship cruises expocodes and cruise ids,
@@ -1785,6 +1889,8 @@ def get_cruise_information(session):
     print('Get CCHDO cruise information')
     all_cruises = get_all_cruises(session)
     all_file_ids = get_all_file_ids(session)
+
+    # get_cruise_information_from_file(logging_dir)
 
     all_cruises_info = []
 
@@ -1841,8 +1947,6 @@ def get_cruise_information(session):
         cruise_info = {}
         cruise_info['btl'] = {'found': False}
         cruise_info['ctd'] = {'found': False}
-        cruise_info['expocode'] = cruise['expocode']
-        cruise_info['cruise_id'] = cruise['id']
 
         if bot_found:
             bot_obj = {}
@@ -1864,7 +1968,42 @@ def get_cruise_information(session):
 
         if bot_found or ctd_found:
 
+            cruise_info['expocode'] = cruise['expocode']
+            cruise_info['cruise_id'] = cruise['id']
+            cruise_info['start_date'] = cruise['startDate']
+
+            try:
+                cruise_info['start_datetime'] = datetime.strptime(
+                    cruise['startDate'], "%Y-%m-%d")
+            except ValueError:
+                print('No start date found in format yyyy-mm-dd')
+                print(f"skipping cruise {cruise['expocode']}")
+                logging.info('********************')
+                logging.info('No start date found in format yyyy-mm-dd')
+                logging.info(f"skipping cruise {cruise['expocode']}")
+                logging.info('********************')
+                continue
+
             all_cruises_info.append(cruise_info)
+
+            if bot_found and ctd_found:
+                type = 'btl and ctd'
+            elif bot_found:
+                type = 'btl'
+            elif ctd_found:
+                type = 'ctd'
+
+            # TODO
+            # Make a list of files found
+            logging.info('Cruise found with coords netCDF')
+            logging.info(f"expocode {expocode}")
+            logging.info(f"collection type: {type}")
+            filename = 'found_cruises_with_coords_netcdf.txt'
+            filepath = os.path.join(logging_dir, filename)
+            with open(filepath, 'a') as f:
+                f.write('-----------\n')
+                f.write(f"expocode {expocode}\n")
+                f.write(f"collection type {type}\n")
 
             # TESTING
             # Used to limit number of cruises processed
@@ -1953,6 +2092,7 @@ def setup_logging():
     remove_file('files_no_expocode.txt', logging_dir)
     remove_file('files_no_pressure.txt', logging_dir)
     remove_file('output.log', logging_dir)
+    remove_file('found_cruises_with_coords_netcdf.txt', logging_dir)
 
     filename = 'output.log'
     logging_path = os.path.join(logging_dir, filename)
@@ -1972,6 +2112,16 @@ def setup_logging():
 
 
 def main():
+
+    # TODO
+    # Break up how to get cruise information
+    # Need to chunk it in case something goes wrong
+    # What if read in expocode from a file and
+    # put 100 cruises in them
+    # Or read in 100 at a time somehow.
+
+    # First create a list of the cruises found
+    # with netCDF files
 
     start_time = datetime.now()
 
@@ -1993,8 +2143,24 @@ def main():
     a = requests.adapters.HTTPAdapter(max_retries=3)
     session.mount('https://', a)
 
+    # __________ Dates to process ____________
+
+    try:
+        start_year = int(sys.argv[1])
+        end_year = int(sys.argv[2])
+    except:
+        start_year = 1970
+        end_year = 2021
+
+    start_date = datetime(start_year, 1, 1)
+    end_date = datetime(end_year, 12, 31)
+
+    # ----------------------------------------
+
     # TESTING
     testing = False
+    test_bot_obj = {}
+    test_ctd_obj = {}
 
     if testing:
 
@@ -2005,16 +2171,33 @@ def main():
         bot_file = 'modified_318M20130321_bottle_no_psal.nc'
         ctd_file = 'modified_318M20130321_ctd_core_bad_flag.nc'
 
-        json_directory, all_cruises_info, bot_obj, ctd_obj = setup_testing(
+        json_directory, all_cruises_info, test_bot_obj, test_ctd_obj = setup_testing(
             bot_file, ctd_file, test_bot, test_ctd)
 
-        bot_found = bot_obj['found']
-        ctd_found = ctd_obj['found']
+        bot_found = test_bot_obj['found']
+        ctd_found = test_ctd_obj['found']
 
     else:
         # Loop through all cruises and grap NetCDF files
         # from US Go-Ship
-        all_cruises_info = get_cruise_information(session)
+        all_cruises_info = get_cruise_information(session, logging_dir)
+
+        # Sort cruises on date to process newest first
+        # all_cruises_info.sort(
+        #     key=lambda item: datetime.strptime(item['start_date'], "%Y-%m-%d"), reverse=True)
+
+        try:
+            all_cruises_info.sort(
+                key=lambda item: item['start_datetime'], reverse=True)
+        except:
+            pass
+
+        all_cruises_info = [obj for obj in all_cruises_info if obj['start_datetime']
+                            >= start_date and obj['start_datetime'] <= end_date]
+
+        if not all_cruises_info:
+            print('No cruises within dates selected')
+            exit(1)
 
         json_directory = './converted_data'
         os.makedirs(json_directory, exist_ok=True)
@@ -2031,107 +2214,27 @@ def main():
             bot_found = cruise_info['btl']['found']
             ctd_found = cruise_info['ctd']['found']
 
-        bot_profile_dicts = []
-        ctd_profile_dicts = []
-
         if bot_found:
 
-            print('---------------------------')
-            print('Start processing bottle profiles')
-            print('---------------------------')
-
             if testing:
-                bot_obj, expocode = read_file_test(bot_obj)
+                bot_obj, expocode = read_file_test(test_bot_obj)
 
             else:
                 bot_obj = cruise_info['btl']
                 bot_obj = read_file(bot_obj)
 
-            # Exclude before write to JSON
-            # because may use temperature if combining
-
-            # Check if all ctd vars available: pressure and temperature
-            # has_ctd_vars = check_if_all_ctd_vars(bot_obj, logging, logging_dir)
-
-            # if not has_ctd_vars:
-            #     bot_found = False
-
-            bot_obj = gvm.create_goship_unit_mapping(bot_obj)
-            bot_obj = gvm.create_goship_ref_scale_mapping(bot_obj)
-
-            # Only converting temperature so far
-            bot_obj = convert_goship_to_argovis_ref_scale(bot_obj)
-
-            # Add convert units function
-
-            # Rename converted temperature later.
-            # Keep 68 in name and show it maps to temp_ctd
-            # and ref scale show what scale it was converted to
-
-            # once
-            bot_profile_dicts = create_profile_dicts(bot_obj)
-
-            # Rename with _btl suffix unless it is an Argovis variable
-            # But no _btl suffix to meta data
-            # Add _btl when combine files
-            renamed_bot_profile_dicts = rn.rename_profile_dicts_to_argovis(
-                bot_profile_dicts, 'btl')
-
-            print('---------------------------')
-            print('Processed btl profiles')
-            print('---------------------------')
+            renamed_bot_profile_dicts = process_botle(bot_obj)
 
         if ctd_found:
 
-            print('---------------------------')
-            print('Start processing ctd profiles')
-            print('---------------------------')
-
             if testing:
-                ctd_obj, expocode = read_file_test(ctd_obj)
+                ctd_obj, expocode = read_file_test(test_ctd_obj)
 
             else:
                 ctd_obj = cruise_info['ctd']
                 ctd_obj = read_file(ctd_obj)
 
-            # Exclude before write to JSON
-            # because may use temperature if combining
-
-            # # Check if all ctd vars available: pressure and temperature
-            # has_ctd_vars = check_if_all_ctd_vars(ctd_obj, logging, logging_dir)
-
-            # if not has_ctd_vars:
-            #     ctd_found = False
-
-            ctd_obj = gvm.create_goship_unit_mapping(ctd_obj)
-            ctd_obj = gvm.create_goship_ref_scale_mapping(ctd_obj)
-
-            # TODO
-            # Are there other variables to convert besides ctd_temperature?
-            # And if I do, would need to note in argovis ref scale mapping
-            # that this temperare is on a new scale.
-            # I'm assuming goship will always refer to original vars before
-            # values converted.
-
-            # What if other temperatures not on ITS-90 scale?
-            ctd_obj = convert_goship_to_argovis_ref_scale(ctd_obj)
-
-            # Add convert units function
-
-            # Rename converted temperature later.
-            # Keep 68 in name and show it maps to temp_ctd
-            # and ref scale show what scale it was converted to
-
-            ctd_profile_dicts = create_profile_dicts(ctd_obj)
-
-            # Rename with _ctd suffix unless it is an Argovis variable
-            # But no _ctd suffix to meta data
-            renamed_ctd_profile_dicts = rn.rename_profile_dicts_to_argovis(
-                ctd_profile_dicts, 'ctd')
-
-            print('---------------------------')
-            print('Processed ctd profiles')
-            print('---------------------------')
+            renamed_ctd_profile_dicts = process_ctd(ctd_obj)
 
         if bot_found and ctd_found:
 
