@@ -196,8 +196,12 @@ def filter_measurements(measurements, use_elems):
                 del new_obj[key]
             if key == 'salinity' and not use_psal:
                 new_obj['psal'] = val
-                del new_obj[key]
+
         new_measurements.append(new_obj)
+
+        keys = new_obj.keys()
+        if 'salinity' in keys:
+            del new_obj['salinity']
 
     if not use_temp:
         new_measurements = []
@@ -1800,10 +1804,10 @@ def get_cruise_information(session):
         # It isn't a Go-Ship cruise but has ctd temp on 68 scale
         # And change check for Go-Ship to True
         # expocode = cruise['expocode']
-        if expocode != '31HX024_1':
-            continue
-
         # if expocode != '31HX024_1':
+        #     continue
+
+        # if expocode != '09FA0695':
         #     continue
 
         # TESTING

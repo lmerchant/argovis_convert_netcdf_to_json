@@ -300,6 +300,7 @@ def rename_output_per_profile(profile_dict, type):
 
     renamed_profile_dict = {}
     renamed_profile_dict['profileNumber'] = profile_number
+    renamed_profile_dict['contains'] = type
     renamed_profile_dict['meta'] = renamed_meta
     renamed_profile_dict['measurements'] = renamed_measurements_list
     renamed_profile_dict['measurementsSourceQC'] = measurements_source_qc
