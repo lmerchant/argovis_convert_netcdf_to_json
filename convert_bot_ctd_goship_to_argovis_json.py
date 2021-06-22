@@ -690,7 +690,7 @@ def add_extra_coords(nc, data_obj):
     filename = data_obj['filename']
     data_path = data_obj['data_path']
 
-    print(f"expocode before is {expocode}")
+    expocode = str(nc['expocode'].values)
 
     if '/' in expocode:
         expocode = expocode.replace('/', '_')
@@ -708,9 +708,6 @@ def add_extra_coords(nc, data_obj):
     padded_cast = str(cast).zfill(3)
 
     _id = f"{expocode}_{padded_station}_{padded_cast}"
-
-    print(f"id is _id and type {data_obj['type']}")
-    print(f"expocode after is {expocode}")
 
     new_coords['_id'] = _id
     new_coords['id'] = _id
@@ -1099,6 +1096,8 @@ def setup_test_obj(dir, filename, type):
 
 def setup_testing(bot_file, ctd_file, test_bot, test_ctd):
 
+    # TODO Set  up start and end date for logging
+
     input_dir = './testing_data/modify_data_for_testing'
     output_dir = './testing_output'
     os.makedirs(output_dir, exist_ok=True)
@@ -1180,16 +1179,15 @@ def get_user_input():
         start_year = 1950
         end_year = 2021
 
-    start_date = datetime(start_year, 1, 1)
-    end_date = datetime(end_year, 12, 31)
+    start_datetime = datetime(start_year, 1, 1)
+    end_datetime = datetime(end_year, 12, 31)
 
     print(f"Converting years {start_year} to {end_year}")
-    print(end_year)
 
     # overwrite or append  files
-    clear_old_logs = False
+    clear_old_logs = True
 
-    return start_date, end_date, clear_old_logs
+    return start_datetime, end_datetime, clear_old_logs
 
 
 def main():
@@ -1197,7 +1195,7 @@ def main():
     # First create a list of the cruises found
     # with netCDF files
 
-    start_date, end_date, clear_old_logs = get_user_input()
+    start_datetime, end_datetime, clear_old_logs = get_user_input()
 
     program_start_time = datetime.now()
 
@@ -1232,17 +1230,8 @@ def main():
 
     else:
         # Loop through all cruises and grap NetCDF files
-        all_cruises_info = gi.get_cruise_information(session, logging_dir)
-
-        # Sort cruises on date to process newest first
-        try:
-            all_cruises_info.sort(
-                key=lambda item: item['start_datetime'], reverse=True)
-        except:
-            pass
-
-        all_cruises_info = [obj for obj in all_cruises_info if obj['start_datetime']
-                            >= start_date and obj['start_datetime'] <= end_date]
+        all_cruises_info = gi.get_cruise_information(
+            session, logging_dir, start_datetime, end_datetime)
 
         if not all_cruises_info:
             print('No cruises within dates selected')
@@ -1253,9 +1242,7 @@ def main():
         if not testing:
             expocode = cruise_info['expocode']
 
-            print("======================\n")
-            # print(f"Processing {expocode}")
-            # logging.info(f"Processing {expocode}")
+            # print("======================\n")
 
             bot_found = cruise_info['btl']['found']
             ctd_found = cruise_info['ctd']['found']
@@ -1285,8 +1272,6 @@ def main():
                 ctd_obj)
 
         if bot_found and ctd_found:
-
-            # Combine and add _btl suffix to meta variables
 
             combined_bot_ctd_dicts, station_cast_profile_btl, station_cast_profile_ctd = combine_profile_dicts_bot_ctd(
                 renamed_bot_profile_dicts, renamed_ctd_profile_dicts)
