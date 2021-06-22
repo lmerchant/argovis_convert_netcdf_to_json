@@ -93,33 +93,44 @@ def get_all_cruises(session):
 
     all_cruises = response.json()
 
+    # Sort on cruise id for most recent first (assuming larger id is sooner creation)
+    try:
+        all_cruises.sort(
+            key=lambda item: item['id'], reverse=True)
+    except:
+        pass
+
     return all_cruises
 
 
-def get_cruise_information(session, logging_dir):
+def get_cruise_information(session, logging_dir, start_datetime, end_datetime):
 
     # To get expocodes and cruise ids, Use get cruise/all to get all cruise metadata
     # and search cruises to get Go-Ship cruises expocodes and cruise ids,
     # from attached file ids, Search file metadata from doc file id, bottle file id
 
     # Get all cruises and active files
-    print('Get CCHDO cruise information')
+    print('Get CCHDO cruise information for date range')
     all_cruises = get_all_cruises(session)
     all_file_ids = get_all_file_ids(session)
 
     all_cruises_info = []
 
-    # TESTING
-    # For Testing. Use when wanting to limit the number of cruises processed
     cruise_count = 0
 
     for cruise in all_cruises:
+
+        print(f"Looking at cruise {cruise['expocode']}")
+
+        cruise_start_date = cruise['startDate']
+
+        if not cruise_start_date:
+            continue
 
         cruise_count = cruise_count + 1
 
         programs = cruise['collections']['programs']
         programs = [x.lower() for x in programs]
-        country = cruise['country']
         expocode = cruise['expocode']
 
         # TESTING
@@ -130,7 +141,7 @@ def get_cruise_information(session, logging_dir):
         # if expocode != '31HX024_1':
         #     continue
 
-        # if expocode != '33RR20120218':
+        # if expocode != '33KI136_1':
         #     continue
 
         # TESTING
@@ -140,7 +151,7 @@ def get_cruise_information(session, logging_dir):
         # Take this if statement out, looking at all coords netcdf files
         # if 'go-ship' in programs and country == 'US':
 
-        print(f"Finding cruise information for {cruise['expocode']}")
+        # print(f"Finding cruise information for {cruise['expocode']}")
 
         # Get files attached to the cruise
         # Could be deleted ones so check if exist in all_files
@@ -185,26 +196,17 @@ def get_cruise_information(session, logging_dir):
 
         if bot_found or ctd_found:
 
+            cruise_datetime = datetime.strptime(cruise_start_date, "%Y-%m-%d")
+
+            in_date_range = cruise_datetime >= start_datetime and cruise_datetime <= end_datetime
+
+            if not in_date_range:
+                continue
+
+            cruise_info['start_datetime'] = cruise_datetime
             cruise_info['expocode'] = cruise['expocode']
             cruise_info['cruise_id'] = cruise['id']
             cruise_info['start_date'] = cruise['startDate']
-
-            # Get cast and station. Want to align
-            # profiles combination with cast
-
-            try:
-                cruise_info['start_datetime'] = datetime.strptime(
-                    cruise['startDate'], "%Y-%m-%d")
-            except ValueError:
-                print('No start date found in format yyyy-mm-dd')
-                print(f"skipping cruise {cruise['expocode']}")
-                logging.info('********************')
-                logging.info('No start date found in format yyyy-mm-dd')
-                logging.info(f"skipping cruise {cruise['expocode']}")
-                logging.info('********************')
-                continue
-
-            print(f"Cruise start date: {cruise['startDate']}")
 
             all_cruises_info.append(cruise_info)
 
@@ -215,23 +217,36 @@ def get_cruise_information(session, logging_dir):
             elif ctd_found:
                 type = 'ctd'
 
+            print('=======================================')
+            logging.info('=======================================')
+            print(f"Cruise {expocode} found with coords netCDF")
+            print(f"Cruise start date {cruise['startDate']}")
+            print(f"collection type: {type}")
             logging.info(f"Cruise {expocode} found with coords netCDF")
-            logging.info(f"start date {cruise['startDate']}")
+            logging.info(f"start date {cruise_start_date}")
             logging.info(f"collection type: {type}")
+
             filename = 'found_cruises_with_coords_netcdf.txt'
             filepath = os.path.join(logging_dir, filename)
             with open(filepath, 'a') as f:
-                f.write('-----------\n')
-                f.write(f"expocode {expocode}\n")
-                f.write(f"collection type {type}\n")
+                f.write(f"expocode {expocode} and type {type}\n")
+                f.write(f"Cruise start date {cruise_start_date}")
+
+        # TESTING
+        # Used to limit number of cruises processed
+        # if cruise_count == 1:  # at count 5 gives one bottle, count 1 gives both
+        #     break
+
+    # Sort cruises on date to process newest first
+    try:
+        all_cruises_info.sort(
+            key=lambda item: item['start_datetime'], reverse=True)
+    except:
+        pass
 
     print(f"Total number of cruises to convert {cruise_count}")
-    logging.info('=======================================')
     logging.info(f"Total number of cruises to convert {cruise_count}")
+    print('=======================================')
     logging.info('=======================================')
-    # TESTING
-    # Used to limit number of cruises processed
-    # if cruise_count == 5:  # at count 5 gives one bottle, count 1 gives both
-    #     return all_cruises_info
 
     return all_cruises_info
