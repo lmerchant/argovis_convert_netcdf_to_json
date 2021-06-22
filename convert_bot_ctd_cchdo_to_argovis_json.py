@@ -21,7 +21,7 @@ import logging
 
 import get_variable_mappings as gvm
 import rename_objects as rn
-import check_if_ctd_file as ckctd
+import check_if_has_ctd_vars as ckvar
 import filter_profiles as fp
 import get_cruise_information as gi
 
@@ -1283,7 +1283,7 @@ def main():
             station_cast_profile = {
                 **station_cast_profile_btl, **station_cast_profile_ctd}
 
-            has_ctd_vars = ckctd.check_if_all_ctd_vars(
+            has_ctd_vars = ckvar.check_if_all_ctd_vars(
                 combined_bot_ctd_dicts, station_cast_profile, logging, logging_dir, 'btl_ctd')
 
             for is_ctd in has_ctd_vars:
@@ -1303,7 +1303,7 @@ def main():
             renamed_bot_profile_dicts = fp.get_filtered_measurements(
                 renamed_bot_profile_dicts, 'btl')
 
-            has_ctd_vars = ckctd.check_if_all_ctd_vars(
+            has_ctd_vars = ckvar.check_if_all_ctd_vars(
                 renamed_bot_profile_dicts, station_cast_profile, logging, logging_dir, 'btl')
 
             for is_ctd in has_ctd_vars:
@@ -1323,7 +1323,7 @@ def main():
             renamed_ctd_profile_dicts = fp.get_filtered_measurements(
                 renamed_ctd_profile_dicts, 'ctd')
 
-            has_ctd_vars = ckctd.check_if_all_ctd_vars(
+            has_ctd_vars = ckvar.check_if_all_ctd_vars(
                 renamed_ctd_profile_dicts, station_cast_profile, logging, logging_dir, 'ctd')
 
             for is_ctd in has_ctd_vars:
