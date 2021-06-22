@@ -218,10 +218,10 @@ def rename_output_per_profile(profile_dict, profile_station_cast, type):
 
         profile_number = profile_dict['profile_number']
 
-        station_number = profile_dict['station_number']
-        cast_number = profile_dict['cast_number']
+        # station_number = profile_dict['station_number']
+        # cast_number = profile_dict['cast_number']
 
-        station_cast_tuple = profile_station_cast[profile_number]
+        station_cast = profile_station_cast[profile_number]
 
         # Make a new object because will be using it next if combine profiles
         # but do rename lat and lon
@@ -266,10 +266,10 @@ def rename_output_per_profile(profile_dict, profile_station_cast, type):
 
         profile_number = profile_dict['profile_number']
 
-        station_number = profile_dict['station_number']
-        cast_number = profile_dict['cast_number']
+        # station_number = profile_dict['station_number']
+        # cast_number = profile_dict['cast_number']
 
-        station_cast_tuple = profile_station_cast[profile_number]
+        station_cast = profile_station_cast[profile_number]
 
         # Make a new object because will be using it next if combine profiles
         # but do rename lat and lon
@@ -311,9 +311,9 @@ def rename_output_per_profile(profile_dict, profile_station_cast, type):
 
     renamed_profile_dict = {}
     renamed_profile_dict['profileNumber'] = profile_number
-    renamed_profile_dict['stationNumber'] = station_number
-    renamed_profile_dict['castNumber'] = cast_number
-    renamed_profile_dict['stationCast'] = station_cast_tuple
+    # renamed_profile_dict['stationNumber'] = station_number
+    # renamed_profile_dict['castNumber'] = cast_number
+    renamed_profile_dict['stationCast'] = station_cast
     renamed_profile_dict['contains'] = type
     renamed_profile_dict['meta'] = renamed_meta
     renamed_profile_dict['measurements'] = renamed_measurements_list
@@ -417,16 +417,6 @@ def rename_output_per_profile(profile_dict, profile_station_cast, type):
 
 
 def rename_profile_dicts_to_argovis(profile_dicts, station_cast_profile, type):
-
-    # TODO
-    # add following flags
-    # isGOSHIPctd = true
-    # isGOSHIPbottle = true
-    # core_info = 1  # is ctd
-    # core_info = 2  # is bottle (no ctd)
-    # core_info = 12  # is ctd and tgoship_argovis_name_mapping_bot is bottle too (edited)
-
-    # type = data_obj['type']
 
     num_profiles = len(profile_dicts)
 
