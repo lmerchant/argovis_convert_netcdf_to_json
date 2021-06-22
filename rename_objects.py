@@ -1,6 +1,7 @@
 import copy
 from os import rename
 
+
 import get_variable_mappings as gvm
 
 # Rename objects
@@ -142,7 +143,7 @@ def rename_key_not_meta_argovis_measurements(obj):
 
     core_values_mapping = gvm.get_goship_argovis_measurements_mapping()
 
-    #core_values_mapping = gvm.get_goship_argovis_core_values_mapping(type)
+    # core_values_mapping = gvm.get_goship_argovis_core_values_mapping(type)
     core_values = [core for core in core_values_mapping]
 
     new_obj = {}
@@ -211,11 +212,16 @@ def rename_key_not_meta_argovis(obj, type):
     return new_obj
 
 
-def rename_output_per_profile(profile_dict, type):
+def rename_output_per_profile(profile_dict, profile_station_cast, type):
 
     if type == 'btl':
 
         profile_number = profile_dict['profile_number']
+
+        station_number = profile_dict['station_number']
+        cast_number = profile_dict['cast_number']
+
+        station_cast_tuple = profile_station_cast[profile_number]
 
         # Make a new object because will be using it next if combine profiles
         # but do rename lat and lon
@@ -232,7 +238,7 @@ def rename_output_per_profile(profile_dict, type):
         # Rename, remove extension
         measurements_list = profile_dict['measurements']
 
-        #renamed_measurements_list = []
+        # renamed_measurements_list = []
         # renamed_measurements_list = create_renamed_list_of_objs_argovis(
         #     measurements_list, 'btl')
 
@@ -260,6 +266,11 @@ def rename_output_per_profile(profile_dict, type):
 
         profile_number = profile_dict['profile_number']
 
+        station_number = profile_dict['station_number']
+        cast_number = profile_dict['cast_number']
+
+        station_cast_tuple = profile_station_cast[profile_number]
+
         # Make a new object because will be using it next if combine profiles
         # but do rename lat and lon
         meta = profile_dict['meta']
@@ -271,7 +282,7 @@ def rename_output_per_profile(profile_dict, type):
         renamed_bgc_list = create_renamed_list_of_objs(bgc_list, type)
 
         measurements_list = profile_dict['measurements']
-        #renamed_measurements_list = []
+        # renamed_measurements_list = []
 
         # renamed_measurements_list = create_renamed_list_of_objs_argovis(
         #     measurements_list, 'ctd')
@@ -300,6 +311,9 @@ def rename_output_per_profile(profile_dict, type):
 
     renamed_profile_dict = {}
     renamed_profile_dict['profileNumber'] = profile_number
+    renamed_profile_dict['stationNumber'] = station_number
+    renamed_profile_dict['castNumber'] = cast_number
+    renamed_profile_dict['stationCast'] = station_cast_tuple
     renamed_profile_dict['contains'] = type
     renamed_profile_dict['meta'] = renamed_meta
     renamed_profile_dict['measurements'] = renamed_measurements_list
@@ -402,7 +416,7 @@ def rename_output_per_profile(profile_dict, type):
 #     return data_obj
 
 
-def rename_profile_dicts_to_argovis(profile_dicts, type):
+def rename_profile_dicts_to_argovis(profile_dicts, station_cast_profile, type):
 
     # TODO
     # add following flags
@@ -412,7 +426,7 @@ def rename_profile_dicts_to_argovis(profile_dicts, type):
     # core_info = 2  # is bottle (no ctd)
     # core_info = 12  # is ctd and tgoship_argovis_name_mapping_bot is bottle too (edited)
 
-    #type = data_obj['type']
+    # type = data_obj['type']
 
     num_profiles = len(profile_dicts)
 
@@ -422,7 +436,11 @@ def rename_profile_dicts_to_argovis(profile_dicts, type):
 
         profile_dict = profile_dicts[profile_number]
 
-        processed_profile_dict = rename_output_per_profile(profile_dict, type)
+        profile_station_cast = {val: key for key,
+                                val in station_cast_profile.items()}
+
+        processed_profile_dict = rename_output_per_profile(
+            profile_dict, profile_station_cast, type)
 
         profile_dicts_list.append(processed_profile_dict)
 
@@ -440,7 +458,7 @@ def create_renamed_list_of_objs_argovis_measurements(cur_list):
     for obj in cur_list:
 
         new_obj = rename_key_not_meta_argovis_measurements(obj)
-        #new_obj = rename_key_not_meta_argovis(obj, type)
+        # new_obj = rename_key_not_meta_argovis(obj, type)
 
         new_list.append(new_obj)
 
