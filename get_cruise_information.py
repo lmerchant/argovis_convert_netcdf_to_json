@@ -94,11 +94,8 @@ def get_all_cruises(session):
     all_cruises = response.json()
 
     # Sort on cruise id for most recent first (assuming larger id is sooner creation)
-    try:
-        all_cruises.sort(
-            key=lambda item: item['id'], reverse=True)
-    except:
-        pass
+    all_cruises.sort(
+        key=lambda item: item['id'], reverse=True)
 
     return all_cruises
 
@@ -110,7 +107,7 @@ def get_cruise_information(session, logging_dir, start_datetime, end_datetime):
     # from attached file ids, Search file metadata from doc file id, bottle file id
 
     # Get all cruises and active files
-    print('Get CCHDO cruise information for date range')
+    logging.info('Get CCHDO cruise information for date range')
     all_cruises = get_all_cruises(session)
     all_file_ids = get_all_file_ids(session)
 
@@ -120,10 +117,16 @@ def get_cruise_information(session, logging_dir, start_datetime, end_datetime):
 
     for cruise in all_cruises:
 
-        print(f"Looking at cruise {cruise['expocode']}")
+        # TODO
+        # Maybe run once and save to file for all cruises
+        # with a new netcdf file. Then read this in and
+        # search for date range
+
+        logging.info(f"Looking at cruise {cruise['expocode']}")
 
         cruise_start_date = cruise['startDate']
 
+        # Some cruises are placeholders and have a blank start date
         if not cruise_start_date:
             continue
 
@@ -133,10 +136,11 @@ def get_cruise_information(session, logging_dir, start_datetime, end_datetime):
 
         # TESTING
         # Find cruise 32MW9508 to check for ctd_temperature_68 case
-        # It isn't a Go-Ship cruise but has ctd temp on 68 scale
-        # And change check for Go-Ship to True
+        # It has ctd temp on 68 scale
+
+        # Check this to see if program freezes or if it was random
         # expocode = cruise['expocode']
-        # if expocode != '31HX024_1':
+        # if expocode != '316N20130914':
         #     continue
 
         # TESTING
@@ -162,10 +166,6 @@ def get_cruise_information(session, logging_dir, start_datetime, end_datetime):
 
         bot_found = file_info['bot_found']
         ctd_found = file_info['ctd_found']
-
-        # Only want cruises with both dataset btl and doc files
-        if not len(file_info):
-            continue
 
         cruise_info = {}
         cruise_info['btl'] = {'found': False}
@@ -214,12 +214,11 @@ def get_cruise_information(session, logging_dir, start_datetime, end_datetime):
             elif ctd_found:
                 type = 'ctd'
 
-            print('=======================================')
             logging.info('=======================================')
-            print(f"Cruise {expocode} found with coords netCDF")
-            print(f"Cruise ID {cruise['id']}")
-            print(f"Cruise start date {cruise['startDate']}")
-            print(f"collection type: {type}")
+            # print(f"Cruise {expocode} found with coords netCDF")
+            # print(f"Cruise ID {cruise['id']}")
+            # print(f"Cruise start date {cruise['startDate']}")
+            # print(f"collection type: {type}")
             logging.info(f"Cruise {expocode} found with coords netCDF")
             logging.info(f"start date {cruise_start_date}")
             logging.info(f"collection type: {type}")
@@ -236,15 +235,17 @@ def get_cruise_information(session, logging_dir, start_datetime, end_datetime):
             #     break
 
     # Sort cruises on date to process newest first
-    try:
-        all_cruises_info.sort(
-            key=lambda item: item['start_datetime'], reverse=True)
-    except:
-        pass
 
-    print(f"Total number of cruises to convert {cruise_count}")
+    all_cruises_info.sort(
+        key=lambda item: item['start_datetime'], reverse=True)
+
+    # TODO
+    # Write information to a file and then read in as necessary
+    # program tends to freeze randomly
+
+    #print(f"Total number of cruises to convert {cruise_count}")
     logging.info(f"Total number of cruises to convert {cruise_count}")
-    print('=======================================')
+    # print('=======================================')
     logging.info('=======================================')
 
     return all_cruises_info
