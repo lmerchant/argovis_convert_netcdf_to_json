@@ -69,15 +69,11 @@ def check_if_all_ctd_vars_per_profile(profile, type, logging, logging_dir):
         has_ctd_temp_w_ref_scale = any(
             [has_ctd_temp_w_ref_scale_btl, has_ctd_temp_w_ref_scale_ctd])
 
-        has_ctd_temp_w_ref_scale_w_type = f"bot: {has_ctd_temp_w_ref_scale_btl} ctd: {has_ctd_temp_w_ref_scale_ctd}"
-
     elif type == 'btl':
         has_ctd_temp_w_ref_scale = has_ctd_temp_w_ref_scale_btl
-        has_ctd_temp_w_ref_scale_w_type = f"bot: {has_ctd_temp_w_ref_scale_btl}"
 
     elif type == 'ctd':
         has_ctd_temp_w_ref_scale = has_ctd_temp_w_ref_scale_ctd
-        has_ctd_temp_w_ref_scale_w_type = f"ctd: {has_ctd_temp_w_ref_scale_ctd}"
 
     # Look for ctd_temperature
     has_ctd_temp_btl = False
@@ -94,26 +90,18 @@ def check_if_all_ctd_vars_per_profile(profile, type, logging, logging_dir):
         has_ctd_temp = any(
             [has_ctd_temp_btl, has_ctd_temp_ctd])
 
-        has_ctd_temp_w_type = f"btl: {has_ctd_temp_btl} ctd:  {has_ctd_temp_ctd}"
-
     elif type == 'btl':
         has_ctd_temp = any(
             [True if val == 'temp_btl' else False for key, val in goship_argovis_name_mapping_btl.items()])
-
-        has_ctd_temp_w_type = f"btl: {has_ctd_temp}"
 
     elif type == 'ctd':
         has_ctd_temp = any(
             [True if val == 'temp_ctd' else False for key, val in goship_argovis_name_mapping_ctd.items()])
 
-        has_ctd_temp_w_type = f"ctd: {has_ctd_temp}"
-
     # Look for ctd_temperature qc
     has_ctd_temp_qc_btl = False
     has_ctd_temp_qc_ctd = False
     has_ctd_temp_qc = False
-
-    has_ctd_temp_qc_w_type = False
 
     if type == 'btl_ctd':
 
@@ -125,21 +113,15 @@ def check_if_all_ctd_vars_per_profile(profile, type, logging, logging_dir):
 
         has_ctd_temp_qc = any([has_ctd_temp_qc_btl, has_ctd_temp_qc_ctd])
 
-        has_ctd_temp_qc_w_type = f"btl: {has_ctd_temp_qc_btl} ctd: {has_ctd_temp_qc_ctd}"
-
     elif type == 'btl':
 
         has_ctd_temp_qc = any(
             [True if val == 'temp_btl_qc' else False for key, val in goship_argovis_name_mapping_btl.items()])
 
-        has_ctd_temp_qc_w_type = f"btl: {has_ctd_temp_qc}"
-
     elif type == 'ctd':
 
         has_ctd_temp_qc = any(
             [True if val == 'temp_ctd_qc' else False for key, val in goship_argovis_name_mapping_ctd.items()])
-
-        has_ctd_temp_qc_w_type = f"ctd: {has_ctd_temp_qc}"
 
      # Test if have required CTD vars
     if has_pres and has_ctd_temp and has_ctd_temp_qc and has_ctd_temp_w_ref_scale:
@@ -147,18 +129,14 @@ def check_if_all_ctd_vars_per_profile(profile, type, logging, logging_dir):
         has_ctd_vars_output['has_ctd_vars'] = True
         has_ctd_vars_output['profile_checked'] = profile
 
+        logging.info(f"Found CTD variables for {station_cast}")
+
         return has_ctd_vars_output
 
-    # Logging
-
-    print('**********************')
-    print('No CTD variables found')
-    print(f"expocode {expocode}")
-    print('**********************')
+    #logging.info(f'No CTD variables found for {station_cast}')
 
     if not has_pres:
-        logging.info('No pressure')
-        logging.info(f"station cast {station_cast_str}")
+        logging.info(f'No pressure for {station_cast_str}')
         filename = 'files_no_pressure.txt'
         filepath = os.path.join(logging_dir, filename)
         with open(filepath, 'a') as f:
@@ -168,37 +146,28 @@ def check_if_all_ctd_vars_per_profile(profile, type, logging, logging_dir):
             f.write(f"station cast {station_cast_str}\n")
 
     if not has_ctd_temp:
-        logging.info('No ctd temperature')
-        logging.info(f"station cast {station_cast_str}")
-        logging.info(f"collection type {type}")
-        logging.info(f"has ctd temp {has_ctd_temp_w_type}")
+        logging.info(f'No ctd temperature for {station_cast_str}')
         filename = 'files_no_ctd_temp.txt'
         filepath = os.path.join(logging_dir, filename)
         with open(filepath, 'a') as f:
             f.write('-----------\n')
             f.write(f"expocode {expocode}\n")
             f.write(f"collection type {type}\n")
-            f.write(f"has {has_ctd_temp_w_type}\n")
             f.write(f"station cast {station_cast_str}\n")
 
     if has_ctd_temp and not has_ctd_temp_qc:
-        logging.info('CTD temperature and no qc')
-        logging.info(f"station cast {station_cast_str}")
-        logging.info(f"collection type {type}")
-        logging.info(f"has ctd temp {has_ctd_temp_qc_w_type}")
+        logging.info(f'CTD temperature and no qc for {station_cast_str}')
         filename = 'files_w_ctd_temp_no_qc.txt'
         filepath = os.path.join(logging_dir, filename)
         with open(filepath, 'a') as f:
             f.write('-----------\n')
             f.write(f"expocode {expocode}\n")
             f.write(f"collection type {type}\n")
-            f.write(f"has {has_ctd_temp_qc_w_type}\n")
             f.write(f"station cast {station_cast_str}\n")
 
     if not has_pres and not has_ctd_temp:
-        logging.info('Missing pres and ctd temperature')
-        logging.info(f"station cast {station_cast_str}")
-        logging.info(f"collection type {type}")
+        logging.info(
+            f'Missing pres and ctd temperature for {station_cast_str}')
         filename = 'files_no_core_ctd_vars.txt'
         filepath = os.path.join(logging_dir, filename)
         with open(filepath, 'a') as f:
@@ -208,22 +177,19 @@ def check_if_all_ctd_vars_per_profile(profile, type, logging, logging_dir):
             f.write(f"station cast {station_cast_str}\n")
 
     if has_ctd_temp and not has_ctd_temp_w_ref_scale:
-        logging.info('CTD temperature with no ref scale')
-        logging.info(f"station cast {station_cast_str}")
-        logging.info(f"collection type {type}")
-        logging.info(f"has {has_ctd_temp_w_ref_scale_w_type}")
+        logging.info(
+            f'CTD temperature with no ref scale for {station_cast_str}')
         filename = 'files_no_ctd_temp_w_ref_scale.txt'
         filepath = os.path.join(logging_dir, filename)
         with open(filepath, 'a') as f:
             f.write('-----------\n')
             f.write(f"expocode {expocode}\n")
             f.write(f"collection type {type}\n")
-            f.write(f"has ctd ref scale: {has_ctd_temp_w_ref_scale_w_type}\n")
             f.write(f"station cast {station_cast_str}\n")
 
     # Skip any with expocode = None
     if expocode == 'None':
-        logging.info('No expocode')
+        logging.info(f'No expocode for {station_cast_str}')
         filename = 'files_no_expocode.txt'
         filepath = os.path.join(logging_dir, filename)
         with open(filepath, 'a') as f:
@@ -235,7 +201,7 @@ def check_if_all_ctd_vars_per_profile(profile, type, logging, logging_dir):
     if not has_ctd_temp:
         # Look for ctd_temperature_unk
         # Stands for ctd_temperature with and unknown reference scale
-        logging.info('Has ctd_temperature_unk')
+        logging.info(f'Has ctd_temperature_unk for {station_cast_str}')
         filename = 'files_no_ctd_temp.txt'
         filepath = os.path.join(logging_dir, filename)
         with open(filepath, 'a') as f:

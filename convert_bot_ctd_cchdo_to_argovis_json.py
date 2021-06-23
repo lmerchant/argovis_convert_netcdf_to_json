@@ -107,7 +107,7 @@ def write_profile_goship_units(profile_dict, logging_dir):
                   sort_keys=True, default=convert)
 
 
-def write_profile_json(json_dir, profile_dict):
+def write_profile_json(cruise_expocode, json_dir, profile_dict):
 
     profile_dict.pop('stationCast', None)
     profile_dict.pop('type', None)
@@ -118,8 +118,16 @@ def write_profile_json(json_dir, profile_dict):
     # Now combine with left over profile_dict
     data_dict = {**meta_dict, **profile_dict}
 
+    # TODO
+    # ask
+    # probably use cruise expocode instead of that in file
+
     id = data_dict['id']
+
+    # TODO
+    # When create file id, ask if use cruise expocode instead
     filename = f"{id}.json"
+
     expocode = data_dict['expocode']
 
     json_str = json.dumps(data_dict)
@@ -530,6 +538,7 @@ def create_bgc_meas_df(param_json_str):
     # And then only keep those that have a value not null for each key
     param_json_dict = json.loads(param_json_str)
 
+    # Read in as a list of dicts. If only one dict, put in a list
     try:
         df = pd.DataFrame.from_dict(param_json_dict)
     except ValueError:
@@ -601,7 +610,7 @@ def create_geolocation_json_str(nc):
     return json_str
 
 
-def create_json_profiles(profile_group, names):
+def create_json_profiles(nc_profile_group, names):
 
     # Do the  following to keep precision of numbers
     # If had used pandas dataframe, it would
@@ -613,6 +622,10 @@ def create_json_profiles(profile_group, names):
 
     json_profile = {}
 
+    coords_names = nc_profile_group.coords.keys()
+    # or use list(nc_profile_group.coords)
+    data_names = nc_profile_group.data_vars.keys()
+
     for name in names:
 
         is_int = False
@@ -621,29 +634,41 @@ def create_json_profiles(profile_group, names):
         float_types = ['float64', 'float32']
         int_types = ['int8', 'int64']
 
-        try:
-            var = profile_group.coords[name]
+        if name in coords_names:
 
-            if var.dtype in float_types:
-                vals = var.astype('str').values
-                is_float = True
-            elif var.dtype in int_types:
-                vals = var.astype('str').values
-                is_int = True
-            else:
-                vals = var.astype('str').values
+            try:
+                var = nc_profile_group.coords[name]
 
-        except KeyError:
-            var = profile_group.data_vars[name]
+                if var.dtype in float_types:
+                    vals = var.astype('str').values
+                    is_float = True
+                elif var.dtype in int_types:
+                    vals = var.astype('str').values
+                    is_int = True
+                else:
+                    vals = var.astype('str').values
 
-            if var.dtype in float_types:
-                vals = var.astype('str').values
-                is_float = True
-            elif var.dtype in int_types:
-                vals = var.astype('str').values
-                is_int = True
-            else:
-                vals = var.astype('str').values
+            except Exception as e:
+                print("inside create_json_profiles for coords names")
+                print(e)
+
+        if name in data_names:
+
+            try:
+                var = nc_profile_group.data_vars[name]
+
+                if var.dtype in float_types:
+                    vals = var.astype('str').values
+                    is_float = True
+                elif var.dtype in int_types:
+                    vals = var.astype('str').values
+                    is_int = True
+                else:
+                    vals = var.astype('str').values
+
+            except Exception as e:
+                print("inside create_json_profiles for data names")
+                print(e)
 
         if vals.size == 1:
             val = vals.item(0)
@@ -780,11 +805,9 @@ def create_profile(nc_profile_group, data_obj):
 
     # don't rename variables yet
 
-    #profile_number = data_obj['profile_number']
-
     cast_number = str(nc_profile_group['cast'].values)
 
-    # The station number is a string like for 33RR20120218
+    # The station number is a string
     station = str(nc_profile_group['station'].values)
 
     station_cast = f"{station}_{cast_number}"
@@ -842,7 +865,7 @@ def create_profiles(data_obj):
 
     for nc_group in nc.groupby('N_PROF'):
 
-        print(f"Processing {type} profile {nc_group[0] + 1}")
+        logging.info(f"Processing {type} profile {nc_group[0] + 1}")
 
         profile_number = nc_group[0]
         nc_profile_group = nc_group[1]
@@ -961,25 +984,27 @@ def get_meta_param_names(nc):
 
 def read_file_test(data_obj):
 
-    data_path = data_path = data_obj['data_path']
+    data_path = data_obj['data_path']
 
     nc = xr.open_dataset(data_path)
 
     data_obj['nc'] = nc
 
-    expocode = nc.coords['expocode'].data[0]
+    file_expocode = nc.coords['expocode'].data[0]
 
     meta_names, param_names = get_meta_param_names(nc)
 
     data_obj['meta'] = meta_names
     data_obj['param'] = param_names
 
-    return data_obj, expocode
+    data_obj['file_expocode'] = file_expocode
+
+    return data_obj
 
 
 def read_file(data_obj):
 
-    data_path = data_path = data_obj['data_path']
+    data_path = data_obj['data_path']
 
     data_url = f"https://cchdo.ucsd.edu{data_path}"
 
@@ -992,6 +1017,10 @@ def read_file(data_obj):
 
     data_obj['meta'] = meta_names
     data_obj['param'] = param_names
+
+    file_expocode = nc.coords['expocode'].data[0]
+
+    data_obj['file_expocode'] = file_expocode
 
     return data_obj
 
@@ -1022,8 +1051,6 @@ def process_ctd(ctd_obj):
     # and ref scale show what scale it was converted to
 
     ctd_profiles = create_profiles(ctd_obj)
-
-    print(f"len of ctd prof = {len(ctd_profiles)}")
 
     # Rename with _ctd suffix unless it is an Argovis variable
     # But no _ctd suffix to meta data
@@ -1117,14 +1144,14 @@ def setup_testing(bot_file, ctd_file, test_bot, test_ctd):
     if test_bot:
         bot_obj = setup_test_obj(input_dir, bot_file, 'btl')
 
-        print("======================\n")
-        print(f"Processing btl test file {bot_file}")
+        logging.info("======================\n")
+        logging.info(f"Processing btl test file {bot_file}")
 
     if test_ctd:
         ctd_obj = setup_test_obj(input_dir, ctd_file, 'ctd')
 
-        print("======================\n")
-        print(f"Processing ctd test file {ctd_file}")
+        logging.info("======================\n")
+        logging.info(f"Processing ctd test file {ctd_file}")
 
     return output_dir, all_cruises_info, bot_obj, ctd_obj
 
@@ -1144,6 +1171,7 @@ def setup_logging(clear_old_logs):
         remove_file('files_no_pressure.txt', logging_dir)
         remove_file('output.log', logging_dir)
         remove_file('found_cruises_with_coords_netcdf.txt', logging_dir)
+        remove_file('cruise_and_file_expocodes.txt', logging_dir)
 
     filename = 'output.log'
     logging_path = os.path.join(logging_dir, filename)
@@ -1177,9 +1205,9 @@ def get_user_input():
     start_datetime = datetime(start_year, 1, 1)
     end_datetime = datetime(end_year, 12, 31)
 
-    print(f"Converting years {start_year} to {end_year}")
+    logging.info(f"Converting years {start_year} to {end_year}")
 
-    # overwrite or append  files
+    # overwrite logs or append them for next run
     clear_old_logs = True
 
     return start_datetime, end_datetime, clear_old_logs
@@ -1229,18 +1257,18 @@ def main():
             session, logging_dir, start_datetime, end_datetime)
 
         if not all_cruises_info:
-            print('No cruises within dates selected')
+            logging.info('No cruises within dates selected')
             exit(1)
 
     for cruise_info in all_cruises_info:
 
         if not testing:
 
-            # print("======================\n")
+            logging.info("======================\n")
 
             cruise_expocode = cruise_info['expocode']
 
-            logging.info(f"cruise expocode {cruise_expocode}")
+            logging.info(f"Start converting Cruise: {cruise_expocode}")
 
             bot_found = cruise_info['btl']['found']
             ctd_found = cruise_info['ctd']['found']
@@ -1251,7 +1279,7 @@ def main():
         if bot_found:
 
             if testing:
-                bot_obj, expocode = read_file_test(test_bot_obj)
+                bot_obj = read_file_test(test_bot_obj)
 
             else:
                 bot_obj = cruise_info['btl']
@@ -1262,7 +1290,7 @@ def main():
         if ctd_found:
 
             if testing:
-                ctd_obj, expocode = read_file_test(test_ctd_obj)
+                ctd_obj = read_file_test(test_ctd_obj)
 
             else:
                 ctd_obj = cruise_info['ctd']
@@ -1275,9 +1303,9 @@ def main():
             combined_bot_ctd_profiles = combine_bot_ctd_profiles(
                 renamed_bot_profiles, renamed_ctd_profiles)
 
-            print('---------------------------')
-            print('Processed btl and ctd combined profiles')
-            print('---------------------------')
+            logging.info('---------------------------')
+            logging.info('Processed btl and ctd combined profiles')
+            logging.info('---------------------------')
 
             output_has_ctd_vars = ckvar.check_if_all_ctd_vars(
                 combined_bot_ctd_profiles, logging, logging_dir)
@@ -1290,13 +1318,15 @@ def main():
 
                 # Write one profile goship units to
                 # keep a record of what units need to be converted
+                write_goship_units = True
                 if write_goship_units:
                     write_goship_units = False
-                    file_expocode = profile_dict['meta']['expocode']
+                    #file_expocode = profile_dict['meta']['expocode']
                     write_profile_goship_units(profile_dict, logging_dir)
 
                 if has_vars:
-                    write_profile_json(json_directory, profile_dict)
+                    write_profile_json(
+                        cruise_expocode, json_directory, profile_dict)
 
         elif bot_found:
             renamed_bot_profiles = fp.get_filtered_measurements(
@@ -1312,13 +1342,16 @@ def main():
 
                 # Write one profile goship units to
                 # keep a record of what units need to be converted
+                write_goship_units = True
                 if write_goship_units:
                     write_goship_units = False
-                    file_expocode = profile_dict['meta']['expocode']
+                    #file_expocode = profile_dict['meta']['expocode']
                     write_profile_goship_units(profile_dict, logging_dir)
 
+                # TODO, if no temp_qc, do I still write to a file?
                 if has_vars:
-                    write_profile_json(json_directory, profile_dict)
+                    write_profile_json(
+                        cruise_expocode, json_directory, profile_dict)
 
         elif ctd_found:
 
@@ -1335,26 +1368,48 @@ def main():
 
                 # Write one profile goship units to
                 # keep a record of what units need to be converted
+                write_goship_units = True
                 if write_goship_units:
                     write_goship_units = False
-                    file_expocode = profile_dict['meta']['expocode']
+                    #file_expocode = profile_dict['meta']['expocode']
                     write_profile_goship_units(profile_dict, logging_dir)
 
                 if has_vars:
-                    write_profile_json(json_directory, profile_dict)
+                    write_profile_json(
+                        cruise_expocode, json_directory, profile_dict)
 
         if bot_found or ctd_found:
-            print('---------------------------')
-            print(
-                f"All profiles written to files for cruise {cruise_expocode}")
-            print(f"Expocode inside file: {file_expocode}")
 
+            if bot_found:
+                file_expocode = bot_obj['file_expocode']
+                cruise_expocode = bot_obj['cruise_expocode']
+
+            if ctd_found:
+                file_expocode = ctd_obj['file_expocode']
+                cruise_expocode = ctd_obj['cruise_expocode']
+
+            # Write the following to a file to keep track of when
+            # the cruise expocode is different from the file expocode
+            if cruise_expocode != file_expocode:
+                filename = 'cruise_and_file_expocodes.txt'
+                filepath = os.path.join(logging_dir, filename)
+                with open(filepath, 'a') as f:
+                    f.write(
+                        f"Cruise: {cruise_expocode} File: {file_expocode}\n")
+
+            # TODO
+            # could turn info a  function and also
+            # check if file expocode exists and has
+            # different ship, country, and expocode
+            # Would need cruise id to find cruise json
+
+            logging.info('---------------------------')
             logging.info(
-                f"All profiles written to files for cruise {cruise_expocode}")
+                f"Finished for cruise {cruise_expocode}")
             logging.info(f"Expocode inside file: {file_expocode}")
-            print('---------------------------')
+            logging.info('---------------------------')
 
-            print("*****************************\n")
+            logging.info("*****************************\n")
 
     logging.info("Time to run program")
     logging.info(datetime.now() - program_start_time)
