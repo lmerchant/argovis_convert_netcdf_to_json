@@ -80,6 +80,8 @@ def filter_bot_ctd_combined(bot_measurements, ctd_measurements, use_elems):
         new_bot_measurements = []
 
     # Remove empty objects from measurements
+    # TODO
+    # Or leave inside with pres but empty temp and psal?
     new_bot_measurements = [obj for obj in new_bot_measurements if obj]
 
     new_ctd_measurements = []
@@ -245,7 +247,7 @@ def find_measurements_hierarchy_bot_ctd(bot_measurements, ctd_measurements):
     return use, use_elems
 
 
-def get_filtered_measurements_for_profile(measurements, type):
+def get_filtered_measurements_for_profile_dict(measurements, type):
 
     use_elems = find_measurements_hierarchy(measurements)
 
@@ -260,13 +262,18 @@ def get_filtered_measurements_for_profile(measurements, type):
     return measurements, flag, use_elems
 
 
-def get_filtered_measurements(profile_dicts, type):
+def get_filtered_measurements(profiles, type):
 
-    for profile_dict in profile_dicts:
+    output_profiles_list = []
+
+    for profile in profiles:
+
+        profile_dict = profile['profile_dict']
+        station_cast = profile['station_cast']
 
         measurements = profile_dict['measurements']
 
-        measurements, flag, use_elems = get_filtered_measurements_for_profile(
+        measurements, flag, use_elems = get_filtered_measurements_for_profile_dict(
             measurements, type)
 
         measurements_source_qc = profile_dict['measurementsSourceQC']
@@ -281,4 +288,10 @@ def get_filtered_measurements(profile_dicts, type):
         profile_dict['measurements'] = measurements
         profile_dict['measurementsSourceQC'] = measurements_source_qc
 
-    return profile_dicts
+        output_profile = {}
+        output_profile['profile_dict'] = profile_dict
+        output_profile['station_cast'] = station_cast
+
+        output_profiles_list.append(output_profile)
+
+    return output_profiles_list

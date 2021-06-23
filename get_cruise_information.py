@@ -127,8 +127,6 @@ def get_cruise_information(session, logging_dir, start_datetime, end_datetime):
         if not cruise_start_date:
             continue
 
-        cruise_count = cruise_count + 1
-
         programs = cruise['collections']['programs']
         programs = [x.lower() for x in programs]
         expocode = cruise['expocode']
@@ -139,9 +137,6 @@ def get_cruise_information(session, logging_dir, start_datetime, end_datetime):
         # And change check for Go-Ship to True
         # expocode = cruise['expocode']
         # if expocode != '31HX024_1':
-        #     continue
-
-        # if expocode != '33KI136_1':
         #     continue
 
         # TESTING
@@ -203,6 +198,8 @@ def get_cruise_information(session, logging_dir, start_datetime, end_datetime):
             if not in_date_range:
                 continue
 
+            cruise_count = cruise_count + 1
+
             cruise_info['start_datetime'] = cruise_datetime
             cruise_info['expocode'] = cruise['expocode']
             cruise_info['cruise_id'] = cruise['id']
@@ -220,6 +217,7 @@ def get_cruise_information(session, logging_dir, start_datetime, end_datetime):
             print('=======================================')
             logging.info('=======================================')
             print(f"Cruise {expocode} found with coords netCDF")
+            print(f"Cruise ID {cruise['id']}")
             print(f"Cruise start date {cruise['startDate']}")
             print(f"collection type: {type}")
             logging.info(f"Cruise {expocode} found with coords netCDF")
@@ -230,12 +228,12 @@ def get_cruise_information(session, logging_dir, start_datetime, end_datetime):
             filepath = os.path.join(logging_dir, filename)
             with open(filepath, 'a') as f:
                 f.write(f"expocode {expocode} and type {type}\n")
-                f.write(f"Cruise start date {cruise_start_date}")
+                # f.write(f"Cruise start date {cruise_start_date}")
 
-        # TESTING
-        # Used to limit number of cruises processed
-        # if cruise_count == 1:  # at count 5 gives one bottle, count 1 gives both
-        #     break
+            # TESTING
+            # Used to limit number of cruises processed
+            # if cruise_count == 10:
+            #     break
 
     # Sort cruises on date to process newest first
     try:

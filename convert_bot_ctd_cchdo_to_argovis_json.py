@@ -14,10 +14,7 @@ import errno
 import copy
 import os
 import sys
-
-# Do I need this here?
 import logging
-
 
 import get_variable_mappings as gvm
 import rename_objects as rn
@@ -39,7 +36,7 @@ import get_cruise_information as gi
 
 """
 
-Convert Go-Ship CTD and bottle CF netCDF files to ArgoVis JSON format
+Convert CCHDO CTD and bottle CF netCDF files to ArgoVis JSON format
 
 program by: Lynne Merchant
 date: 2021
@@ -87,55 +84,36 @@ def remove_file(filename, dir):
             raise  # re-raise exception if a different error occurred
 
 
-def write_profile_goship_units(data_dict, logging_dir, type):
+def write_profile_goship_units(profile_dict, logging_dir):
+
+    type = profile_dict['type']
 
     filename = 'files_goship_units.txt'
     filepath = os.path.join(logging_dir, filename)
 
     if type == 'btl':
-        goship_units = data_dict['goshipUnits']
-
-        with open(filepath, 'a') as f:
-            json.dump(goship_units, f, indent=4,
-                      sort_keys=True, default=convert)
+        goship_units = profile_dict['goshipUnits']
 
     if type == 'ctd':
-        goship_units = data_dict['goshipUnits']
-
-        with open(filepath, 'a') as f:
-            json.dump(goship_units, f, indent=4,
-                      sort_keys=True, default=convert)
+        goship_units = profile_dict['goshipUnits']
 
     if type == 'btl_ctd':
-        goship_units_btl = data_dict['goshipUnitsBtl']
-        goship_units_ctd = data_dict['goshipUnitsCtd']
+        goship_units_btl = profile_dict['goshipUnitsBtl']
+        goship_units_ctd = profile_dict['goshipUnitsCtd']
         goship_units = {**goship_units_btl, **goship_units_ctd}
 
-        with open(filepath, 'a') as f:
-            json.dump(goship_units_btl, f, indent=4,
-                      sort_keys=True, default=convert)
-
-        with open(filename, 'a') as f:
-            json.dump(goship_units_ctd, f, indent=4,
-                      sort_keys=True, default=convert)
+    with open(filepath, 'a') as f:
+        json.dump(goship_units, f, indent=4,
+                  sort_keys=True, default=convert)
 
 
-def write_profile_json(json_dir, profile_dict, type):
+def write_profile_json(json_dir, profile_dict):
+
+    profile_dict.pop('stationCast', None)
+    profile_dict.pop('type', None)
 
     # Pop off meta key and use as start of data_dict
     meta_dict = profile_dict.pop('meta', None)
-
-    if type == 'btl' or type == 'ctd':
-        profile_dict.pop('profileNumber', None)
-    elif type == 'btl_ctd':
-        profile_dict.pop('profileNumberBtl', None)
-        profile_dict.pop('profileNumberCtd', None)
-
-    if type == 'btl' or type == 'ctd':
-        profile_dict.pop('stationCast', None)
-    elif type == 'btl_ctd':
-        profile_dict.pop('stationCastBtl', None)
-        profile_dict.pop('stationCastCtd', None)
 
     # Now combine with left over profile_dict
     data_dict = {**meta_dict, **profile_dict}
@@ -175,13 +153,6 @@ def write_profile_json(json_dir, profile_dict, type):
 
     with open(file, 'w') as f:
         json.dump(data_dict, f, indent=4, sort_keys=True, default=convert)
-
-
-def write_profiles_json(json_dir, profile_dicts, type):
-
-    # Write profile_dict to as json to a profile file
-    for profile_dict in profile_dicts:
-        write_profile_json(json_dir, profile_dict, type)
 
 
 def combine_bot_ctd_measurements(bot_measurements, ctd_measurements):
@@ -226,9 +197,8 @@ def combine_bot_ctd_measurements(bot_measurements, ctd_measurements):
     return combined_bot_ctd_measurements, flag
 
 
-def combine_output_per_profile_bot_ctd(bot_renamed_dict, ctd_renamed_dict):
+def combine_output_per_profile_bot_ctd(bot_profile, ctd_profile):
 
-    profile_number_btl = None
     station_cast_btl = None
     bot_meta = {}
     bot_bgc_meas = []
@@ -239,7 +209,6 @@ def combine_output_per_profile_bot_ctd(bot_renamed_dict, ctd_renamed_dict):
     goship_units_btl = {}
     goship_argovis_units_bot = {}
 
-    profile_number_ctd = None
     station_cast_ctd = None
     ctd_meta = {}
     ctd_bgc_meas = []
@@ -250,57 +219,71 @@ def combine_output_per_profile_bot_ctd(bot_renamed_dict, ctd_renamed_dict):
     goship_units_ctd = {}
     goship_argovis_units_ctd = {}
 
+    station_cast = None
+
     # May have case where bot dict or ctd dict doesn't exist for same profile
+    # But they have the same station_cast
 
-    if bot_renamed_dict:
+    # All profiles have a profile and station_cast key but
+    # profile_dict may be empty
 
-        profile_number_btl = bot_renamed_dict['profileNumber']
-        station_cast_btl = bot_renamed_dict['stationCast']
+    bot_dict = bot_profile['profile_dict']
+    ctd_dict = ctd_profile['profile_dict']
 
-        bot_meta = bot_renamed_dict['meta']
+    station_cast_btl = bot_profile['station_cast']
+    station_cast_ctd = ctd_profile['station_cast']
 
-        bot_bgc_meas = bot_renamed_dict['bgcMeas']
-        bot_measurements = bot_renamed_dict['measurements']
+    station_cast = station_cast_btl
 
-        goship_argovis_name_mapping_bot = bot_renamed_dict['goshipArgovisNameMapping']
+    if bot_dict:
 
-        goship_ref_scale_mapping_bot = bot_renamed_dict['goshipReferenceScale']
-        argovis_ref_scale_bot = bot_renamed_dict['argovisReferenceScale']
-        goship_units_btl = bot_renamed_dict['goshipUnits']
-        goship_argovis_units_bot = bot_renamed_dict['goshipArgovisUnitNameMapping']
+        type = bot_dict['type']
 
-    if ctd_renamed_dict:
+        bot_meta = bot_dict['meta']
 
-        profile_number_ctd = ctd_renamed_dict['profileNumber']
-        station_cast_ctd = ctd_renamed_dict['stationCast']
+        bot_bgc_meas = bot_dict['bgcMeas']
+        bot_measurements = bot_dict['measurements']
 
-        # print(f"profile number ctd {profile_number_ctd}")
+        goship_argovis_name_mapping_bot = bot_dict['goshipArgovisNameMapping']
 
-        ctd_meta = ctd_renamed_dict['meta']
+        goship_ref_scale_mapping_bot = bot_dict['goshipReferenceScale']
+        argovis_ref_scale_bot = bot_dict['argovisReferenceScale']
+        goship_units_btl = bot_dict['goshipUnits']
+        goship_argovis_units_bot = bot_dict['goshipArgovisUnitNameMapping']
 
-        ctd_bgc_meas = ctd_renamed_dict['bgcMeas']
-        ctd_measurements = ctd_renamed_dict['measurements']
+    if ctd_dict:
 
-        goship_argovis_name_mapping_ctd = ctd_renamed_dict['goshipArgovisNameMapping']
+        type = ctd_dict['type']
 
-        goship_ref_scale_mapping_ctd = ctd_renamed_dict['goshipReferenceScale']
-        argovis_ref_scale_ctd = ctd_renamed_dict['argovisReferenceScale']
-        goship_units_ctd = ctd_renamed_dict['goshipUnits']
-        goship_argovis_units_ctd = ctd_renamed_dict['goshipArgovisUnitNameMapping']
+        ctd_meta = ctd_dict['meta']
 
-    if bot_renamed_dict and ctd_renamed_dict:
+        ctd_bgc_meas = ctd_dict['bgcMeas']
+        ctd_measurements = ctd_dict['measurements']
 
+        goship_argovis_name_mapping_ctd = ctd_dict['goshipArgovisNameMapping']
+
+        goship_ref_scale_mapping_ctd = ctd_dict['goshipReferenceScale']
+        argovis_ref_scale_ctd = ctd_dict['argovisReferenceScale']
+        goship_units_ctd = ctd_dict['goshipUnits']
+        goship_argovis_units_ctd = ctd_dict['goshipArgovisUnitNameMapping']
+
+    if bot_dict and ctd_dict:
+
+        type = 'btl_ctd'
+
+        # For a combined dict, station_cast same for btl and ctd
+        station_cast = station_cast_btl
+
+        # Put suffix of '_btl' in  bottle meta
         bot_meta = rn.rename_bot_by_key_meta(bot_meta)
 
-        # Add extension of '_btl' to lat/lon and cast in mapping
+        # Add extension of '_btl' to lat/lon and cast in name mapping
         new_obj = {}
         for key, val in goship_argovis_name_mapping_bot.items():
             if val == 'lat':
                 new_obj[key] = 'lat_btl'
             elif val == 'lon':
                 new_obj[key] = 'lon_btl'
-            elif val == ['station_cast']:
-                new_obj[key] = 'station_cast_btl'
             else:
                 new_obj[key] = val
 
@@ -331,26 +314,16 @@ def combine_output_per_profile_bot_ctd(bot_renamed_dict, ctd_renamed_dict):
 
     combined_bot_ctd_dict = {}
 
-    if profile_number_btl is not None and profile_number_ctd is not None:
-        combined_bot_ctd_dict['profileNumberBtl'] = profile_number_btl
-        combined_bot_ctd_dict['profileNumberCtd'] = profile_number_ctd
-        combined_bot_ctd_dict['contains'] = 'btl_ctd'
-
-    elif profile_number_btl is not None:
-        combined_bot_ctd_dict['profileNumber'] = profile_number_btl
-        combined_bot_ctd_dict['contains'] = 'btl'
-    elif profile_number_ctd is not None:
-        combined_bot_ctd_dict['profileNumber'] = profile_number_ctd
-        combined_bot_ctd_dict['contains'] = 'ctd'
-
-    if station_cast_btl is not None and station_cast_ctd is not None:
-        combined_bot_ctd_dict['stationCastBtl'] = station_cast_btl
-        combined_bot_ctd_dict['stationCastCtd'] = station_cast_ctd
-    elif station_cast_btl is not None:
+    if bot_dict and ctd_dict:
+        # They are the same when combining, so just save one
+        # which btl was chosen earlier
+        combined_bot_ctd_dict['stationCast'] = station_cast
+    elif bot_dict:
         combined_bot_ctd_dict['stationCast'] = station_cast_btl
-    elif station_cast_ctd is not None:
+    elif ctd_dict:
         combined_bot_ctd_dict['stationCast'] = station_cast_ctd
 
+    combined_bot_ctd_dict['type'] = type
     combined_bot_ctd_dict['meta'] = meta
     combined_bot_ctd_dict['measurements'] = measurements
     combined_bot_ctd_dict['bgcMeas'] = bgc_meas
@@ -376,87 +349,123 @@ def combine_output_per_profile_bot_ctd(bot_renamed_dict, ctd_renamed_dict):
     elif goship_units_ctd:
         combined_bot_ctd_dict['goshipUnits'] = goship_units_ctd
 
-    return combined_bot_ctd_dict
+    combined_profile = {}
+    combined_profile['profile_dict'] = combined_bot_ctd_dict
+    combined_profile['station_cast'] = station_cast
+
+    return combined_profile
 
 
-def get_same_station_cast_profile_bot_ctd(bot_profile_dicts, ctd_profile_dicts):
+def get_same_station_cast_profile_bot_ctd(bot_profiles, ctd_profiles):
 
-    bot_num_profiles = range(len(bot_profile_dicts))
-    ctd_num_profiles = range(len(ctd_profile_dicts))
+    # bot_num_profiles = range(len(bot_profiles))
+    # ctd_num_profiles = range(len(ctd_profiles))
 
-    station_cast_btl = [bot_profile['stationCast']
-                        for bot_profile in bot_profile_dicts]
+    # profile_dicts_btl = [bot_profile['profile_dict']
+    #                      for bot_profile in bot_profiles]
 
-    station_cast_ctd = [ctd_profile['stationCast']
-                        for ctd_profile in ctd_profile_dicts]
+    # profile_dicts_ctd = [ctd_profile['profile_dict']
+    #                      for ctd_profile in ctd_profiles]
+
+    station_casts_btl = [bot_profile['station_cast']
+                         for bot_profile in bot_profiles]
+
+    station_casts_ctd = [ctd_profile['station_cast']
+                         for ctd_profile in ctd_profiles]
 
     # To know which station_cast string matches to a profile
-    station_cast_profile_btl = dict(zip(station_cast_btl, bot_num_profiles))
-    station_cast_profile_ctd = dict(zip(station_cast_ctd, ctd_num_profiles))
+    # station_cast_profile_btl = dict(zip(station_cast_btl, bot_num_profiles))
+    # station_cast_profile_ctd = dict(zip(station_cast_ctd, ctd_num_profiles))
 
-    different_pairs_in_btl = set(station_cast_btl).difference(station_cast_ctd)
-    different_pairs_in_ctd = set(station_cast_ctd).difference(station_cast_btl)
+    different_pairs_in_btl = set(
+        station_casts_btl).difference(station_casts_ctd)
+    different_pairs_in_ctd = set(
+        station_casts_ctd).difference(station_casts_btl)
 
-    index = len(ctd_profile_dicts) - 1
+    # different_pairs_in_btl = set(station_casts_btl).difference(station_casts_ctd)
+    # different_pairs_in_ctd = set(station_casts_ctd).difference(station_casts_btl)
+
     for pair in different_pairs_in_btl:
         # Create matching but empty profiles for ctd
         # Create new profile number and same key
         # increment on the  last profile #
-        station_cast_profile_ctd[pair] = index + 1
-        ctd_profile_dicts.append({})
-        index = index + 1
+        #ctd_profiles[pair] = index + 1
+        new_profile = {}
+        new_profile['profile_dict'] = {}
+        new_profile['station_cast'] = pair
+        ctd_profiles.append(new_profile)
 
-    index = len(bot_profile_dicts) - 1
     for pair in different_pairs_in_ctd:
         # Create matching but empty profiles for ctd
         # Create new profile number and same key
         # increment on the  last profile #
-        station_cast_profile_btl[pair] = index+1
-        bot_profile_dicts.append({})
-        index = index + 1
+        #ctd_profiles[pair] = index + 1
+        new_profile = {}
+        new_profile['profile_dict'] = {}
+        new_profile['station_cast'] = pair
+        bot_profiles.append(new_profile)
 
-    return station_cast_profile_btl, station_cast_profile_ctd, bot_profile_dicts, ctd_profile_dicts
+    return bot_profiles, ctd_profiles
 
 
-def get_station_cast_profile(profile_dicts):
+def get_station_cast_profile(profiles):
 
-    num_profiles = range(len(profile_dicts))
+    num_profiles = range(len(profiles))
 
-    station_cast = [profile['station_cast'] for profile in profile_dicts]
+    station_casts = [profile['station_cast'] for profile in profiles]
 
     # Create a dictionary with tuple as key and profile num as value
-    station_cast_profile = dict(zip(station_cast, num_profiles))
+    station_cast_profile = dict(zip(station_casts, num_profiles))
 
     return station_cast_profile
 
 
-def combine_profile_dicts_bot_ctd(bot_profile_dicts, ctd_profile_dicts):
+def combine_bot_ctd_profiles(bot_profiles, ctd_profiles):
 
     # Get profile dicts so have the same number of profiles
     # one may be blank while the other exists at a cast
-    station_cast_profile_btl, station_cast_profile_ctd, bot_profile_dicts, ctd_profile_dicts = get_same_station_cast_profile_bot_ctd(
-        bot_profile_dicts, ctd_profile_dicts)
+    bot_profiles, ctd_profiles = get_same_station_cast_profile_bot_ctd(
+        bot_profiles, ctd_profiles)
 
     #  bottle  and ctd have same keys, but  different values
     # which are the profile numbers
 
-    profile_dicts_list_bot_ctd = []
+    profiles_list_bot_ctd = []
 
-    # for profile_number in range(num_profiles):
-    for key in station_cast_profile_btl.keys():
+    # Now number of station_casts are the same for btl and ctd
+    station_casts = [bot_profile['station_cast']
+                     for bot_profile in bot_profiles]
 
-        profile_number_btl = station_cast_profile_btl[key]
-        bot_profile_dict = bot_profile_dicts[profile_number_btl]
+    for station_cast in station_casts:
 
-        profile_number_ctd = station_cast_profile_ctd[key]
-        ctd_profile_dict = ctd_profile_dicts[profile_number_ctd]
+        try:
+            profile_dict_btl = [bot_profile['profile_dict']
+                                for bot_profile in bot_profiles if bot_profile['station_cast'] == station_cast][0]
 
-        combined_profile_dict_bot_ctd = combine_output_per_profile_bot_ctd(
-            bot_profile_dict, ctd_profile_dict)
+        except:
+            profile_dict_btl = {}
 
-        profile_dicts_list_bot_ctd.append(combined_profile_dict_bot_ctd)
+        profile_btl = {}
+        profile_btl['station_cast'] = station_cast
+        profile_btl['profile_dict'] = profile_dict_btl
 
-    return profile_dicts_list_bot_ctd, station_cast_profile_btl, station_cast_profile_ctd
+        try:
+            profile_dict_ctd = [ctd_profile['profile_dict']
+                                for ctd_profile in ctd_profiles if ctd_profile['station_cast'] == station_cast][0]
+
+        except:
+            profile_dict_ctd = {}
+
+        profile_ctd = {}
+        profile_ctd['station_cast'] = station_cast
+        profile_ctd['profile_dict'] = profile_dict_ctd
+
+        combined_profile_bot_ctd = combine_output_per_profile_bot_ctd(
+            profile_btl, profile_ctd)
+
+        profiles_list_bot_ctd.append(combined_profile_bot_ctd)
+
+    return profiles_list_bot_ctd
 
 
 def create_measurements_list(df_bgc_meas):
@@ -689,18 +698,21 @@ def add_extra_coords(nc, data_obj):
     cast = nc['cast'].values
     filename = data_obj['filename']
     data_path = data_obj['data_path']
+    cruise_expocode = data_obj['cruise_expocode']
 
     expocode = str(nc['expocode'].values)
 
+    # Use cruise expocode because file one could be different
+
     if '/' in expocode:
         expocode = expocode.replace('/', '_')
-        cruise_url = f"https://cchdo.ucsd.edu/cruise/{expocode}"
+        cruise_url = f"https://cchdo.ucsd.edu/cruise/{cruise_expocode}"
     elif expocode == 'None':
         logging.info(filename)
         logging.info('expocode is None')
         cruise_url = ''
     else:
-        cruise_url = f"https://cchdo.ucsd.edu/cruise/{expocode}"
+        cruise_url = f"https://cchdo.ucsd.edu/cruise/{cruise_expocode}"
 
     new_coords = {}
 
@@ -764,28 +776,29 @@ def create_meta_dict(profile_group, meta_names):
     return meta_dict
 
 
-def create_profile_dict(profile_group, data_obj):
+def create_profile(nc_profile_group, data_obj):
 
     # don't rename variables yet
-    profile_number = data_obj['profile_number']
 
-    cast_number = str(profile_group['cast'].values)
+    #profile_number = data_obj['profile_number']
+
+    cast_number = str(nc_profile_group['cast'].values)
 
     # The station number is a string like for 33RR20120218
-    station = str(profile_group['station'].values)
+    station = str(nc_profile_group['station'].values)
 
     station_cast = f"{station}_{cast_number}"
 
-    profile_group = add_extra_coords(profile_group, data_obj)
+    nc_profile_group = add_extra_coords(nc_profile_group, data_obj)
 
-    meta_names, param_names = get_meta_param_names(profile_group)
+    meta_names, param_names = get_meta_param_names(nc_profile_group)
 
-    meta_dict = create_meta_dict(profile_group, meta_names)
+    meta_dict = create_meta_dict(nc_profile_group, meta_names)
 
     # Remove  time from meta since it was just used to create date variable
     meta_dict.pop('time', None)
 
-    param_json = create_json_profiles(profile_group, param_names)
+    param_json = create_json_profiles(nc_profile_group, param_names)
 
     df_bgc = create_bgc_meas_df(param_json)
 
@@ -801,9 +814,9 @@ def create_profile_dict(profile_group, data_obj):
 
     # Save meta separate for renaming later
     profile_dict = {}
-    profile_dict['profile_number'] = profile_number
-    profile_dict['cast_number'] = cast_number
-    profile_dict['station'] = station
+    # profile_dict['profile_number'] = profile_number
+    # profile_dict['cast_number'] = cast_number
+    # profile_dict['station'] = station
     profile_dict['station_cast'] = station_cast
     profile_dict['meta'] = meta_dict
     profile_dict['bgc_meas'] = bgc_meas_dict_list
@@ -812,31 +825,35 @@ def create_profile_dict(profile_group, data_obj):
     profile_dict['goship_units'] = goship_units_dict
     profile_dict['goship_names'] = goship_names_list
 
-    return profile_dict
+    output_profile = {}
+    output_profile['profile_dict'] = profile_dict
+    output_profile['station_cast'] = station_cast
+
+    return output_profile
 
 
-def create_profile_dicts(data_obj):
+def create_profiles(data_obj):
 
     nc = data_obj['nc']
 
     type = data_obj['type']
 
-    all_profiles_dict_list = []
+    all_profiles_list = []
 
     for nc_group in nc.groupby('N_PROF'):
 
         print(f"Processing {type} profile {nc_group[0] + 1}")
 
         profile_number = nc_group[0]
-        profile_group = nc_group[1]
+        nc_profile_group = nc_group[1]
 
         data_obj['profile_number'] = profile_number
 
-        profile_dict = create_profile_dict(profile_group, data_obj)
+        profile_dict = create_profile(nc_profile_group, data_obj)
 
-        all_profiles_dict_list.append(profile_dict)
+        all_profiles_list.append(profile_dict)
 
-    return all_profiles_dict_list
+    return all_profiles_list
 
 
 def convert_sea_water_temp(nc, var, var_goship_ref_scale):
@@ -985,15 +1002,6 @@ def process_ctd(ctd_obj):
     print('Start processing ctd profiles')
     print('---------------------------')
 
-    # Exclude before write to JSON
-    # because may use temperature if combining
-
-    # # Check if all ctd vars available: pressure and temperature
-    # has_ctd_vars = check_if_all_ctd_vars(ctd_obj, logging, logging_dir)
-
-    # if not has_ctd_vars:
-    #     ctd_found = False
-
     ctd_obj = gvm.create_goship_unit_mapping(ctd_obj)
     ctd_obj = gvm.create_goship_ref_scale_mapping(ctd_obj)
 
@@ -1013,20 +1021,19 @@ def process_ctd(ctd_obj):
     # Keep 68 in name and show it maps to temp_ctd
     # and ref scale show what scale it was converted to
 
-    ctd_profile_dicts = create_profile_dicts(ctd_obj)
+    ctd_profiles = create_profiles(ctd_obj)
 
-    station_cast_profile_ctd = get_station_cast_profile(ctd_profile_dicts)
+    print(f"len of ctd prof = {len(ctd_profiles)}")
 
     # Rename with _ctd suffix unless it is an Argovis variable
     # But no _ctd suffix to meta data
-    renamed_ctd_profile_dicts = rn.rename_profile_dicts_to_argovis(
-        ctd_profile_dicts, station_cast_profile_ctd, 'ctd')
+    renamed_ctd_profiles = rn.rename_profiles_to_argovis(ctd_profiles, 'ctd')
 
     print('---------------------------')
     print('Processed ctd profiles')
     print('---------------------------')
 
-    return renamed_ctd_profile_dicts, station_cast_profile_ctd
+    return renamed_ctd_profiles
 
 
 def process_bottle(bot_obj):
@@ -1034,15 +1041,6 @@ def process_bottle(bot_obj):
     print('---------------------------')
     print('Start processing bottle profiles')
     print('---------------------------')
-
-    # Exclude before write to JSON
-    # because may use temperature if combining
-
-    # Check if all ctd vars available: pressure and temperature
-    # has_ctd_vars = check_if_all_ctd_vars(bot_obj, logging, logging_dir)
-
-    # if not has_ctd_vars:
-    #     bot_found = False
 
     bot_obj = gvm.create_goship_unit_mapping(bot_obj)
     bot_obj = gvm.create_goship_ref_scale_mapping(bot_obj)
@@ -1056,21 +1054,18 @@ def process_bottle(bot_obj):
     # Keep 68 in name and show it maps to temp_ctd
     # and ref scale show what scale it was converted to
 
-    bot_profile_dicts = create_profile_dicts(bot_obj)
-
-    station_cast_profile_bot = get_station_cast_profile(bot_profile_dicts)
+    bot_profiles = create_profiles(bot_obj)
 
     # Rename with _btl suffix unless it is an Argovis variable
     # But no _btl suffix to meta data
     # Add _btl when combine files
-    renamed_bot_profile_dicts = rn.rename_profile_dicts_to_argovis(
-        bot_profile_dicts, station_cast_profile_bot, 'btl')
+    renamed_bot_profiles = rn.rename_profiles_to_argovis(bot_profiles, 'btl')
 
     print('---------------------------')
     print('Processed btl profiles')
     print('---------------------------')
 
-    return renamed_bot_profile_dicts, station_cast_profile_bot
+    return renamed_bot_profiles
 
 
 def setup_test_obj(dir, filename, type):
@@ -1240,12 +1235,18 @@ def main():
     for cruise_info in all_cruises_info:
 
         if not testing:
-            expocode = cruise_info['expocode']
 
             # print("======================\n")
 
+            cruise_expocode = cruise_info['expocode']
+
+            logging.info(f"cruise expocode {cruise_expocode}")
+
             bot_found = cruise_info['btl']['found']
             ctd_found = cruise_info['ctd']['found']
+
+            cruise_info['btl']['cruise_expocode'] = cruise_expocode
+            cruise_info['ctd']['cruise_expocode'] = cruise_expocode
 
         if bot_found:
 
@@ -1256,8 +1257,7 @@ def main():
                 bot_obj = cruise_info['btl']
                 bot_obj = read_file(bot_obj)
 
-            renamed_bot_profile_dicts, station_cast_profile = process_bottle(
-                bot_obj)
+            renamed_bot_profiles = process_bottle(bot_obj)
 
         if ctd_found:
 
@@ -1268,80 +1268,90 @@ def main():
                 ctd_obj = cruise_info['ctd']
                 ctd_obj = read_file(ctd_obj)
 
-            renamed_ctd_profile_dicts, station_cast_profile = process_ctd(
-                ctd_obj)
+            renamed_ctd_profiles = process_ctd(ctd_obj)
 
         if bot_found and ctd_found:
 
-            combined_bot_ctd_dicts, station_cast_profile_btl, station_cast_profile_ctd = combine_profile_dicts_bot_ctd(
-                renamed_bot_profile_dicts, renamed_ctd_profile_dicts)
+            combined_bot_ctd_profiles = combine_bot_ctd_profiles(
+                renamed_bot_profiles, renamed_ctd_profiles)
 
             print('---------------------------')
             print('Processed btl and ctd combined profiles')
             print('---------------------------')
 
-            station_cast_profile = {
-                **station_cast_profile_btl, **station_cast_profile_ctd}
+            output_has_ctd_vars = ckvar.check_if_all_ctd_vars(
+                combined_bot_ctd_profiles, logging, logging_dir)
 
-            has_ctd_vars = ckvar.check_if_all_ctd_vars(
-                combined_bot_ctd_dicts, station_cast_profile, logging, logging_dir, 'btl_ctd')
+            write_goship_units = True
+            for has_ctd_vars in output_has_ctd_vars:
+                has_vars = has_ctd_vars['has_ctd_vars']
+                profile = has_ctd_vars['profile_checked']
+                profile_dict = profile['profile_dict']
 
-            for is_ctd in has_ctd_vars:
-                profile_number = is_ctd['profile_number']
-                has_vars = is_ctd['has_ctd_vars']
-
-                combined_profile = combined_bot_ctd_dicts[profile_number]
+                # Write one profile goship units to
+                # keep a record of what units need to be converted
+                if write_goship_units:
+                    write_goship_units = False
+                    file_expocode = profile_dict['meta']['expocode']
+                    write_profile_goship_units(profile_dict, logging_dir)
 
                 if has_vars:
-                    write_profile_json(
-                        json_directory, combined_profile, 'btl_ctd')
-
-            write_profile_goship_units(
-                combined_bot_ctd_dicts[0], logging_dir, 'btl_ctd')
+                    write_profile_json(json_directory, profile_dict)
 
         elif bot_found:
-            renamed_bot_profile_dicts = fp.get_filtered_measurements(
-                renamed_bot_profile_dicts, 'btl')
+            renamed_bot_profiles = fp.get_filtered_measurements(
+                renamed_bot_profiles, 'btl')
 
-            has_ctd_vars = ckvar.check_if_all_ctd_vars(
-                renamed_bot_profile_dicts, station_cast_profile, logging, logging_dir, 'btl')
+            output_has_ctd_vars = ckvar.check_if_all_ctd_vars(
+                renamed_bot_profiles, logging, logging_dir)
 
-            for is_ctd in has_ctd_vars:
-                profile_number = is_ctd['profile_number']
-                has_vars = is_ctd['has_ctd_vars']
+            for has_ctd_vars in output_has_ctd_vars:
+                has_vars = has_ctd_vars['has_ctd_vars']
+                profile = has_ctd_vars['profile_checked']
+                profile_dict = profile['profile_dict']
 
-                bot_profile = renamed_bot_profile_dicts[profile_number]
+                # Write one profile goship units to
+                # keep a record of what units need to be converted
+                if write_goship_units:
+                    write_goship_units = False
+                    file_expocode = profile_dict['meta']['expocode']
+                    write_profile_goship_units(profile_dict, logging_dir)
 
                 if has_vars:
-                    write_profile_json(
-                        json_directory, bot_profile, 'btl')
-
-            write_profile_goship_units(
-                renamed_bot_profile_dicts[0], logging_dir, 'btl')
+                    write_profile_json(json_directory, profile_dict)
 
         elif ctd_found:
-            renamed_ctd_profile_dicts = fp.get_filtered_measurements(
-                renamed_ctd_profile_dicts, 'ctd')
 
-            has_ctd_vars = ckvar.check_if_all_ctd_vars(
-                renamed_ctd_profile_dicts, station_cast_profile, logging, logging_dir, 'ctd')
+            renamed_ctd_profiles = fp.get_filtered_measurements(
+                renamed_ctd_profiles, 'ctd')
 
-            for is_ctd in has_ctd_vars:
-                profile_number = is_ctd['profile_number']
-                has_vars = is_ctd['has_ctd_vars']
+            output_has_ctd_vars = ckvar.check_if_all_ctd_vars(
+                renamed_ctd_profiles, logging, logging_dir)
 
-                ctd_profile = renamed_ctd_profile_dicts[profile_number]
+            for has_ctd_vars in output_has_ctd_vars:
+                has_vars = has_ctd_vars['has_ctd_vars']
+                profile = has_ctd_vars['profile_checked']
+                profile_dict = profile['profile_dict']
+
+                # Write one profile goship units to
+                # keep a record of what units need to be converted
+                if write_goship_units:
+                    write_goship_units = False
+                    file_expocode = profile_dict['meta']['expocode']
+                    write_profile_goship_units(profile_dict, logging_dir)
 
                 if has_vars:
-                    write_profile_json(
-                        json_directory, ctd_profile, 'ctd')
-
-            write_profile_goship_units(
-                renamed_ctd_profile_dicts[0], logging_dir, 'ctd')
+                    write_profile_json(json_directory, profile_dict)
 
         if bot_found or ctd_found:
             print('---------------------------')
-            print(f"All casts written to files for cruise {expocode}")
+            print(
+                f"All profiles written to files for cruise {cruise_expocode}")
+            print(f"Expocode inside file: {file_expocode}")
+
+            logging.info(
+                f"All profiles written to files for cruise {cruise_expocode}")
+            logging.info(f"Expocode inside file: {file_expocode}")
             print('---------------------------')
 
             print("*****************************\n")

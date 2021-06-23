@@ -212,24 +212,24 @@ def rename_key_not_meta_argovis(obj, type):
     return new_obj
 
 
-def rename_output_per_profile(profile_dict, profile_station_cast, type):
+def rename_output_per_profile(profile, type):
 
     if type == 'btl':
 
-        profile_number = profile_dict['profile_number']
+        #profile_number = profile_dict['profile_number']
+
+        station_cast = profile['station_cast']
+        profile_dict = profile['profile_dict']
 
         # station_number = profile_dict['station_number']
         # cast_number = profile_dict['cast_number']
 
-        station_cast = profile_station_cast[profile_number]
+        #station_cast = profile_station_cast[profile_number]
 
         # Make a new object because will be using it next if combine profiles
         # but do rename lat and lon
         meta = profile_dict['meta']
         renamed_meta = rename_argovis_meta(meta)
-
-        # TODO. Do I still need a deep copy?
-        meta_copy = copy.deepcopy(meta)
 
         bgc_list = profile_dict['bgc_meas']
         renamed_bgc_list = create_renamed_list_of_objs(bgc_list, 'btl')
@@ -264,17 +264,14 @@ def rename_output_per_profile(profile_dict, profile_station_cast, type):
 
     if type == 'ctd':
 
-        profile_number = profile_dict['profile_number']
+        station_cast = profile['station_cast']
+        profile_dict = profile['profile_dict']
 
-        # station_number = profile_dict['station_number']
-        # cast_number = profile_dict['cast_number']
-
-        station_cast = profile_station_cast[profile_number]
+        #station_cast = profile_station_cast[profile_number]
 
         # Make a new object because will be using it next if combine profiles
         # but do rename lat and lon
         meta = profile_dict['meta']
-        meta_copy = copy.deepcopy(meta)
 
         renamed_meta = rename_argovis_meta(meta)
 
@@ -310,11 +307,8 @@ def rename_output_per_profile(profile_dict, profile_station_cast, type):
     # don't rename meta yet in case not both bot and ctd combined
 
     renamed_profile_dict = {}
-    renamed_profile_dict['profileNumber'] = profile_number
-    # renamed_profile_dict['stationNumber'] = station_number
-    # renamed_profile_dict['castNumber'] = cast_number
+    renamed_profile_dict['type'] = type
     renamed_profile_dict['stationCast'] = station_cast
-    renamed_profile_dict['contains'] = type
     renamed_profile_dict['meta'] = renamed_meta
     renamed_profile_dict['measurements'] = renamed_measurements_list
     renamed_profile_dict['measurementsSourceQC'] = measurements_source_qc
@@ -325,7 +319,11 @@ def rename_output_per_profile(profile_dict, profile_station_cast, type):
     renamed_profile_dict['argovisReferenceScale'] = argovis_ref_scale
     renamed_profile_dict['goshipArgovisUnitNameMapping'] = goship_argovis_unit
 
-    return renamed_profile_dict
+    output_profile = {}
+    output_profile['profile_dict'] = renamed_profile_dict
+    output_profile['station_cast'] = station_cast
+
+    return output_profile
 
 
 # def rename_units_to_argovis(data_obj):
@@ -416,25 +414,17 @@ def rename_output_per_profile(profile_dict, profile_station_cast, type):
 #     return data_obj
 
 
-def rename_profile_dicts_to_argovis(profile_dicts, station_cast_profile, type):
+def rename_profiles_to_argovis(profiles, type):
 
-    num_profiles = len(profile_dicts)
+    profiles_list = []
 
-    profile_dicts_list = []
+    for profile in profiles:
 
-    for profile_number in range(num_profiles):
+        processed_profile = rename_output_per_profile(profile, type)
 
-        profile_dict = profile_dicts[profile_number]
+        profiles_list.append(processed_profile)
 
-        profile_station_cast = {val: key for key,
-                                val in station_cast_profile.items()}
-
-        processed_profile_dict = rename_output_per_profile(
-            profile_dict, profile_station_cast, type)
-
-        profile_dicts_list.append(processed_profile_dict)
-
-    return profile_dicts_list
+    return profiles_list
 
 
 def create_renamed_list_of_objs_argovis_measurements(cur_list):
