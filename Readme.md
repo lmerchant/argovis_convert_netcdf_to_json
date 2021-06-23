@@ -34,7 +34,7 @@ measurements contains a subset of pressure, ctd_temperature, ctd_salinity, and
 ctd_oxygen with a quality code of 2. These are the core variables.
 
     Core Variables:
-    pressure, ctd_temperature, ctd_oxygen, ctd_salinity and bottle_salinity if ctd_salinity doesn't exist.
+    pressure, ctd_temperature, ctd_salinity and bottle_salinity if ctd_salinity doesn't exist.
 
 Meta Data:
 
@@ -50,6 +50,16 @@ Parameter Data:
 Mappings and variables from the initial file before any temperature conversion:
 
     "goship_names", "goship_ref_scale", "goship_units"
+
+### Modify measurements list for source and add a measurements source key
+
+For the measurements list, only core variables are contained in each object of
+the measurements list. For bottle files, ctd files, and combined bottle and ctd
+files, the core variables have their '\_btl' or '\_ctd' suffix removed. Core
+values are pressure, ctd temperature, and ctd salinity. For a bottle file, if
+there is no ctd salinity, then bottle salinity is used if it exists.
+
+See below for order of core variables used when combining bottle and ctd files.
 
 ### Rename to ArgoVis vocabulary
 
@@ -129,10 +139,13 @@ core variables.
 
 The bottle and CTD profiles are combined into one by adding a suffix of "\_btl"
 to bottle meta data. Common variables like expocode are not given a btl suffix.
-The bgcMeas bottle and ctd objects are combined into one. Same for the
-measurements object. The unit and reference scale mappings are combined. The
-name mapping is kept separate and identified by a Btl and Ctd suffix because
-their goship names are the same.
+The bgcMeas bottle and ctd objects are combined into one. The measurements
+object is combined with a hierarchy of core variables from the bottle and ctd
+files. The unit and reference scale mappings are combined. The name mapping is
+kept separate and identified by a Btl and Ctd suffix because their goship names
+are the same.
+
+### Modify measurements list for source and add a measurements source key
 
 ## Unique identifier id
 

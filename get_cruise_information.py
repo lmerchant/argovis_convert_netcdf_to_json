@@ -215,7 +215,11 @@ def get_cruise_information(session, logging_dir, start_datetime, end_datetime):
                 type = 'ctd'
 
             logging.info('=======================================')
-            logging.info(f"Cruise {expocode}")
+            print(f"Cruise {expocode} found with coords netCDF")
+            print(f"Cruise ID {cruise['id']}")
+            print(f"Cruise start date {cruise['startDate']}")
+            print(f"collection type: {type}")
+            logging.info(f"Cruise {expocode} found with coords netCDF")
             logging.info(f"start date {cruise_start_date}")
             logging.info(f"collection type: {type}")
 
@@ -230,14 +234,19 @@ def get_cruise_information(session, logging_dir, start_datetime, end_datetime):
             #     break
 
     # Sort cruises on date to process newest first
-    all_cruises_info.sort(
-        key=lambda item: item['start_datetime'], reverse=True)
+    try:
+        all_cruises_info.sort(
+            key=lambda item: item['start_datetime'], reverse=True)
+    except:
+        pass
 
     # TODO
     # Write information to a file and then read in as necessary
     # program tends to freeze randomly
 
+    #print(f"Total number of cruises to convert {cruise_count}")
     logging.info(f"Total number of cruises to convert {cruise_count}")
+    print('=======================================')
     logging.info('=======================================')
 
     return all_cruises_info
