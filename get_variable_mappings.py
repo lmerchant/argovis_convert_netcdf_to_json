@@ -166,6 +166,42 @@ def create_goship_argovis_core_values_mapping(goship_names, type):
     return name_mapping
 
 
+def create_goship_c_format_mapping(data_obj):
+
+    nc = data_obj['nc']
+    meta = data_obj['meta']
+    params = data_obj['param']
+
+    goship_c_format = {}
+
+    # TODO
+    # What about bottom depth?
+
+    for var in meta:
+
+        # Not all vars have c_format
+        try:
+            # Get goship c_format of var
+            var_goship_format = nc.coords[var].attrs['C_format']
+            goship_c_format[var] = var_goship_format
+        except:
+            pass
+
+    for var in params:
+
+        # Not all vars have c_format
+        try:
+            # Get goship c_format of var
+            var_goship_format = nc[var].attrs['C_format']
+            goship_c_format[var] = var_goship_format
+        except:
+            pass
+
+    data_obj['goship_c_format'] = goship_c_format
+
+    return data_obj
+
+
 def create_goship_unit_mapping(data_obj):
 
     nc = data_obj['nc']
@@ -173,6 +209,9 @@ def create_goship_unit_mapping(data_obj):
     params = data_obj['param']
 
     goship_units = {}
+
+    # TODO
+    # What about bottom depth?
 
     for var in meta:
 

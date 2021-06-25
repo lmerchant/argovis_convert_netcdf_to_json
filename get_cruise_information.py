@@ -9,17 +9,17 @@ import os
 API_END_POINT = "https://cchdo.ucsd.edu/api/v1"
 
 
-def find_bot_ctd_file_info(file_ids, session):
+def find_btl_ctd_file_info(file_ids, session):
 
     # Get file meta for each file id to search for cruise doc id and bottle id
 
     file_info = {}
 
-    file_info['bot_id'] = None
-    file_info['bot_path'] = ''
+    file_info['btl_id'] = None
+    file_info['btl_path'] = ''
     file_info['ctd_id'] = None
     file_info['ctd_path'] = ''
-    file_info['bot_found'] = False
+    file_info['btl_found'] = False
     file_info['ctd_found'] = False
 
     for file_id in file_ids:
@@ -31,7 +31,7 @@ def find_bot_ctd_file_info(file_ids, session):
         response = session.get(query)
 
         if response.status_code != 200:
-            print('api not reached in function find_bot_ctd_file_info')
+            print('api not reached in function find_btl_ctd_file_info')
             print(response)
             exit(1)
 
@@ -45,10 +45,10 @@ def find_bot_ctd_file_info(file_ids, session):
         # Only returning file info if both a bottle and doc for cruise
         if file_role == "dataset":
             if data_type == "bottle" and data_format == "cf_netcdf":
-                file_info['bot_id'] = file_id
-                file_info['bot_path'] = file_path
-                file_info['bot_filename'] = file_path.split('/')[-1]
-                file_info['bot_found'] = True
+                file_info['btl_id'] = file_id
+                file_info['btl_path'] = file_path
+                file_info['btl_filename'] = file_path.split('/')[-1]
+                file_info['btl_found'] = True
 
             if data_type == "ctd" and data_format == "cf_netcdf":
                 file_info['ctd_id'] = file_id
@@ -140,17 +140,8 @@ def get_cruise_information(session, logging_dir, start_datetime, end_datetime):
 
         # Check this to see if program freezes or if it was random
         # expocode = cruise['expocode']
-        # if expocode != '316N20130914':
+        # if expocode != '096U20160426':
         #     continue
-
-        # TESTING
-        # Get non-goship cruise with True
-        # if True:
-
-        # Take this if statement out, looking at all coords netcdf files
-        # if 'go-ship' in programs and country == 'US':
-
-        # print(f"Finding cruise information for {cruise['expocode']}")
 
         # Get files attached to the cruise
         # Could be deleted ones so check if exist in all_files
@@ -162,23 +153,23 @@ def get_cruise_information(session, logging_dir, start_datetime, end_datetime):
 
         # Get file meta for each file id to search for
         # cruise doc and bottle info
-        file_info = find_bot_ctd_file_info(active_file_ids, session)
+        file_info = find_btl_ctd_file_info(active_file_ids, session)
 
-        bot_found = file_info['bot_found']
+        btl_found = file_info['btl_found']
         ctd_found = file_info['ctd_found']
 
         cruise_info = {}
         cruise_info['btl'] = {'found': False}
         cruise_info['ctd'] = {'found': False}
 
-        if bot_found:
-            bot_obj = {}
-            bot_obj['found'] = True
-            bot_obj['type'] = 'btl'
-            bot_obj['data_path'] = file_info['bot_path']
-            bot_obj['filename'] = file_info['bot_filename']
+        if btl_found:
+            btl_obj = {}
+            btl_obj['found'] = True
+            btl_obj['type'] = 'btl'
+            btl_obj['data_path'] = file_info['btl_path']
+            btl_obj['filename'] = file_info['btl_filename']
 
-            cruise_info['btl'] = bot_obj
+            cruise_info['btl'] = btl_obj
 
         if ctd_found:
             ctd_obj = {}
@@ -189,7 +180,7 @@ def get_cruise_information(session, logging_dir, start_datetime, end_datetime):
 
             cruise_info['ctd'] = ctd_obj
 
-        if bot_found or ctd_found:
+        if btl_found or ctd_found:
 
             cruise_datetime = datetime.strptime(cruise_start_date, "%Y-%m-%d")
 
@@ -207,21 +198,17 @@ def get_cruise_information(session, logging_dir, start_datetime, end_datetime):
 
             all_cruises_info.append(cruise_info)
 
-            if bot_found and ctd_found:
+            if btl_found and ctd_found:
                 type = 'btl and ctd'
-            elif bot_found:
+            elif btl_found:
                 type = 'btl'
             elif ctd_found:
                 type = 'ctd'
 
-            logging.info('=======================================')
-            print(f"Cruise {expocode} found with coords netCDF")
-            print(f"Cruise ID {cruise['id']}")
-            print(f"Cruise start date {cruise['startDate']}")
-            print(f"collection type: {type}")
-            logging.info(f"Cruise {expocode} found with coords netCDF")
+            logging.info(f"Cruise {expocode} found")
             logging.info(f"start date {cruise_start_date}")
             logging.info(f"collection type: {type}")
+            logging.info('=======================================')
 
             filename = 'found_cruises_with_coords_netcdf.txt'
             filepath = os.path.join(logging_dir, filename)
@@ -246,7 +233,6 @@ def get_cruise_information(session, logging_dir, start_datetime, end_datetime):
 
     #print(f"Total number of cruises to convert {cruise_count}")
     logging.info(f"Total number of cruises to convert {cruise_count}")
-    print('=======================================')
     logging.info('=======================================')
 
     return all_cruises_info

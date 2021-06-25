@@ -4,6 +4,20 @@ import numpy as np
 import pandas as pd
 
 
+def convert_boolean(obj):
+    if isinstance(obj, bool):
+        return str(obj).lower()
+    if isinstance(obj, (list, tuple)):
+        return [convert_boolean(item) for item in obj]
+    if isinstance(obj, dict):
+        return {convert_boolean(key): convert_boolean(value) for key, value in obj.items()}
+    return obj
+
+
+# TODO
+# use None instead of np.nan to translate to null in json and not NaN
+
+
 def filter_measurements(measurements, use_elems):
 
     # If a ctd file, filter on whether have salinity,
@@ -21,9 +35,9 @@ def filter_measurements(measurements, use_elems):
         new_obj = obj.copy()
         for key, val in obj.items():
             if key == 'temp' and not use_temp:
-                new_obj['temp'] = np.nan
+                new_obj['temp'] = None
             if key == 'psal' and not use_psal:
-                new_obj['psal'] = np.nan
+                new_obj['psal'] = None
             if key == 'salinity' and not use_salinity:
                 del new_obj[key]
             if key == 'salinity' and not use_psal:
@@ -35,13 +49,15 @@ def filter_measurements(measurements, use_elems):
         if 'salinity' in keys:
             del new_obj['salinity']
 
-    if not use_temp:
-        new_measurements = []
+    # TODO
+    # Remove if no temp or keep?
+    # if not use_temp:
+    #     new_measurements = []
 
     return new_measurements
 
 
-def filter_bot_ctd_combined(bot_measurements, ctd_measurements, use_elems):
+def filter_btl_ctd_combined(btl_measurements, ctd_measurements, use_elems, flag):
 
     use_temp_btl = use_elems['use_temp_btl']
     use_temp_ctd = use_elems['use_temp_ctd']
@@ -49,40 +65,42 @@ def filter_bot_ctd_combined(bot_measurements, ctd_measurements, use_elems):
     use_psal_ctd = use_elems['use_psal_ctd']
     use_salinity_btl = use_elems['use_salinity_btl']
 
-    new_bot_measurements = []
-    for obj in bot_measurements:
+    new_btl_measurements = []
+    for obj in btl_measurements:
         new_obj = obj.copy()
         for key, val in obj.items():
             if key == 'temp' and not use_temp_btl:
-                new_obj['temp'] = np.nan
+                new_obj['temp'] = None
             if key == 'psal' and not use_psal_btl:
-                new_obj['psal'] = np.nan
+                new_obj['psal'] = None
             if key == 'salinity' and not use_salinity_btl:
                 del new_obj[key]
             if key == 'salinity' and not use_psal_btl and use_salinity_btl:
                 new_obj['psal'] = val
 
-        has_sal = [True for key in new_obj.keys() if key == 'salinity']
+        has_sal = next((True for key in new_obj.keys()
+                       if key == 'salinity'), False)
+
         if has_sal:
             del new_obj['salinity']
 
-        has_elems = any([True if (pd.notnull(val) and key != 'pres')
-                         else False for key, val in new_obj.items()])
+        # has_elems = any([True if (pd.notnull(val) and key != 'pres')
+        #                 else False for key, val in new_obj.items()])
 
-        if not has_elems:
-            new_obj = {}
+        # if not has_elems:
+        #     new_obj = {}
 
-        new_bot_measurements.append(new_obj)
+        new_btl_measurements.append(new_obj)
 
-    is_empty = all([not elem for elem in new_bot_measurements])
+    is_empty = all([not elem for elem in new_btl_measurements])
 
     if is_empty:
-        new_bot_measurements = []
+        new_btl_measurements = []
 
     # Remove empty objects from measurements
     # TODO
     # Or leave inside with pres but empty temp and psal?
-    new_bot_measurements = [obj for obj in new_bot_measurements if obj]
+    #new_btl_measurements = [obj for obj in new_btl_measurements if obj]
 
     new_ctd_measurements = []
     for obj in ctd_measurements:
@@ -90,15 +108,17 @@ def filter_bot_ctd_combined(bot_measurements, ctd_measurements, use_elems):
         new_obj = obj.copy()
         for key in obj.keys():
             if key == 'temp' and not use_temp_ctd:
-                new_obj['temp'] = np.nan
+                new_obj['temp'] = None
             if key == 'psal' and not use_psal_ctd:
-                new_obj['psal'] = np.nan
+                new_obj['psal'] = None
 
-        has_elems = any([True if (pd.notnull(val) and key != 'pres')
-                         else False for key, val in new_obj.items()])
+        # has_elems = any([True if (pd.notnull(val) and key != 'pres')
+        #                 else False for key, val in new_obj.items()])
 
-        if not has_elems:
-            new_obj = {}
+        # TODO
+        # Remove or not empty objects that only have pressure?
+        # if not has_elems:
+        #     new_obj = {}
 
         new_ctd_measurements.append(new_obj)
 
@@ -107,14 +127,40 @@ def filter_bot_ctd_combined(bot_measurements, ctd_measurements, use_elems):
     if is_empty:
         new_ctd_measurements = []
 
-    new_ctd_measurements = [obj for obj in new_ctd_measurements if obj]
+    #new_ctd_measurements = [obj for obj in new_ctd_measurements if obj]
 
-    combined_measurements = [*new_ctd_measurements, *new_bot_measurements]
+    # If using no temp_btl, psal_btl, or salinity, btl, remove from list
+
+    # Get source information
+    # See if using btl only, ctd only or btl and ctd
+    if not use_temp_btl and not use_psal_btl and not use_salinity_btl:
+        new_btl_measurements = []
+
+    if not use_temp_ctd and not use_psal_ctd:
+        new_ctd_measurements = []
+
+    combined_measurements = [*new_ctd_measurements, *new_btl_measurements]
 
     if not use_temp_btl and not use_temp_ctd:
         combined_measurements = []
 
-    return combined_measurements
+    # TODO
+    # Also mark what is  being used for testing
+    # But remove for final product
+
+    measurements_source = {}
+    measurements_source['source'] = flag
+    measurements_source['qc'] = 2
+    measurements_source['use_temp_ctd'] = use_temp_ctd
+    measurements_source['use_psal_ctd'] = use_psal_ctd
+    measurements_source['use_temp_btl'] = use_temp_btl
+    measurements_source['use_psal_btl'] = use_psal_btl
+    if use_elems['use_salinity_btl']:
+        measurements_source['use_salinty_btl'] = use_salinity_btl
+
+    measurements_source = convert_boolean(measurements_source)
+
+    return combined_measurements, measurements_source
 
 
 def find_measurements_hierarchy(measurements):
@@ -124,7 +170,6 @@ def find_measurements_hierarchy(measurements):
     has_temp = False
 
     try:
-
         has_temp = any([True if pd.notnull(obj['temp'])
                        else False for obj in measurements])
 
@@ -164,7 +209,7 @@ def find_measurements_hierarchy(measurements):
     return use_elems
 
 
-def find_measurements_hierarchy_bot_ctd(bot_measurements, ctd_measurements):
+def find_measurements_hierarchy_btl_ctd(btl_measurements, ctd_measurements):
 
     has_psal_btl = False
     has_salinity_btl = False
@@ -175,7 +220,7 @@ def find_measurements_hierarchy_bot_ctd(bot_measurements, ctd_measurements):
 
     try:
         has_temp_btl = any([
-            True if pd.notnull(obj['temp']) else False for obj in bot_measurements])
+            True if pd.notnull(obj['temp']) else False for obj in btl_measurements])
     except KeyError:
         has_temp_btl = False
 
@@ -187,7 +232,7 @@ def find_measurements_hierarchy_bot_ctd(bot_measurements, ctd_measurements):
 
     try:
         has_psal_btl = any([
-            True if pd.notnull(obj['psal']) else False for obj in bot_measurements])
+            True if pd.notnull(obj['psal']) else False for obj in btl_measurements])
     except KeyError:
         has_psal_btl = False
 
@@ -199,7 +244,7 @@ def find_measurements_hierarchy_bot_ctd(bot_measurements, ctd_measurements):
 
     try:
         has_salinity_btl = any([
-            True if pd.notnull(obj['salinity']) else False for obj in bot_measurements])
+            True if pd.notnull(obj['salinity']) else False for obj in btl_measurements])
     except KeyError:
         has_salinity_btl = False
 
@@ -240,11 +285,17 @@ def find_measurements_hierarchy_bot_ctd(bot_measurements, ctd_measurements):
         "use_salinity_btl": use_salinity_btl,
     }
 
-    use = {}
-    use['btl'] = use_btl
-    use['ctd'] = use_ctd
+    # Get measurements flag
+    if use_btl and use_ctd:
+        flag = 'BTL_CTD'
+    elif use_btl:
+        flag = 'BTL'
+    elif use_ctd:
+        flag = 'CTD'
+    else:
+        flag = None
 
-    return use, use_elems
+    return use_elems, flag
 
 
 def get_filtered_measurements_for_profile_dict(measurements, type):
@@ -276,17 +327,21 @@ def get_filtered_measurements(profiles, type):
         measurements, flag, use_elems = get_filtered_measurements_for_profile_dict(
             measurements, type)
 
-        measurements_source_qc = profile_dict['measurementsSourceQC']
-        measurements_source_qc['source'] = flag
+        measurements_source = profile_dict['measurementsSource']
+        measurements_source['source'] = flag
 
-        if use_elems['use_psal']:
-            measurements_source_qc['psal_used'] = True
+        # if use_elems['use_psal']:
+        #     measurements_source['psal_used'] = True
+
+        # For testing, use a flag 'use_salinity' to see when
+        # bottle salinity was used in place of ctd_salinity
 
         if use_elems['use_salinity']:
-            measurements_source_qc['salinity_used'] = True
+            measurements_source['salinity_used'] = True
 
         profile_dict['measurements'] = measurements
-        profile_dict['measurementsSourceQC'] = measurements_source_qc
+        profile_dict['measurementsSource'] = convert_boolean(
+            measurements_source)
 
         output_profile = {}
         output_profile['profile_dict'] = profile_dict

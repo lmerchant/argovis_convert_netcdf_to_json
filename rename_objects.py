@@ -69,7 +69,7 @@ def rename_goship_on_key_not_meta(obj, type):
     return new_obj
 
 
-def rename_bot_by_key_meta(obj):
+def rename_btl_by_key_meta(obj):
 
     new_obj = {}
 
@@ -216,37 +216,21 @@ def rename_output_per_profile(profile, type):
 
     if type == 'btl':
 
-        #profile_number = profile_dict['profile_number']
-
         station_cast = profile['station_cast']
         profile_dict = profile['profile_dict']
 
-        # station_number = profile_dict['station_number']
-        # cast_number = profile_dict['cast_number']
-
-        #station_cast = profile_station_cast[profile_number]
-
-        # Make a new object because will be using it next if combine profiles
-        # but do rename lat and lon
         meta = profile_dict['meta']
         renamed_meta = rename_argovis_meta(meta)
 
         bgc_list = profile_dict['bgc_meas']
         renamed_bgc_list = create_renamed_list_of_objs(bgc_list, 'btl')
 
-        # TODO
-        # Rename, remove extension
         measurements_list = profile_dict['measurements']
 
-        # renamed_measurements_list = []
-        # renamed_measurements_list = create_renamed_list_of_objs_argovis(
-        #     measurements_list, 'btl')
-
-        # # Rename measurements list with no extensions
         renamed_measurements_list = create_renamed_list_of_objs_argovis_measurements(
             measurements_list)
 
-        measurements_source_qc = {"source": 'BTL', "qc": 2}
+        measurements_source = profile_dict['measurements_source']
 
         goship_names = profile_dict['goship_names']
 
@@ -267,10 +251,6 @@ def rename_output_per_profile(profile, type):
         station_cast = profile['station_cast']
         profile_dict = profile['profile_dict']
 
-        #station_cast = profile_station_cast[profile_number]
-
-        # Make a new object because will be using it next if combine profiles
-        # but do rename lat and lon
         meta = profile_dict['meta']
 
         renamed_meta = rename_argovis_meta(meta)
@@ -279,16 +259,11 @@ def rename_output_per_profile(profile, type):
         renamed_bgc_list = create_renamed_list_of_objs(bgc_list, type)
 
         measurements_list = profile_dict['measurements']
-        # renamed_measurements_list = []
 
-        # renamed_measurements_list = create_renamed_list_of_objs_argovis(
-        #     measurements_list, 'ctd')
-
-        # Rename measurements list with no extensions
         renamed_measurements_list = create_renamed_list_of_objs_argovis_measurements(
             measurements_list)
 
-        measurements_source_qc = {"source": 'CTD', "qc": 2}
+        measurements_source = profile_dict['measurements_source']
 
         goship_names = profile_dict['goship_names']
 
@@ -304,14 +279,12 @@ def rename_output_per_profile(profile, type):
 
         goship_argovis_unit = gvm.get_goship_argovis_unit_mapping()
 
-    # don't rename meta yet in case not both bot and ctd combined
-
     renamed_profile_dict = {}
     renamed_profile_dict['type'] = type
     renamed_profile_dict['stationCast'] = station_cast
     renamed_profile_dict['meta'] = renamed_meta
     renamed_profile_dict['measurements'] = renamed_measurements_list
-    renamed_profile_dict['measurementsSourceQC'] = measurements_source_qc
+    renamed_profile_dict['measurementsSource'] = measurements_source
     renamed_profile_dict['bgcMeas'] = renamed_bgc_list
     renamed_profile_dict['goshipUnits'] = goship_units
     renamed_profile_dict['goshipArgovisNameMapping'] = goship_argovis_name
@@ -390,26 +363,6 @@ def rename_output_per_profile(profile, type):
 #                 pass
 
 #     data_obj['nc'] = nc
-
-#     return data_obj
-
-
-# def rename_converted_temperature(data_obj):
-
-#     # Only renaming ctd temperatures on
-
-#     nc = data_obj['nc']
-
-#     data_vars = nc.keys()
-
-#     def rename_var(var):
-#         new_name = var.replace('_68', '')
-#         return {var: new_name}
-
-#     new_name_mapping = [rename_var(var) for var in data_vars if '_68' in var]
-
-#     for name_map in new_name_mapping:
-#         nc.rename(name_map)
 
 #     return data_obj
 
