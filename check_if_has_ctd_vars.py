@@ -199,7 +199,7 @@ def check_if_all_ctd_vars_per_profile(profile, logging, logging_dir):
         # Look for ctd_temperature_unk
         # Stands for ctd_temperature with and unknown reference scale
         logging.info(f'Has ctd_temperature_unk for BTL {station_cast_str}')
-        filename = 'files_no_ctd_temp.txt'
+        filename = 'cruises_no_ctd_temp.txt'
         filepath = os.path.join(logging_dir, filename)
         with open(filepath, 'a') as f:
             f.write(f"Has ctd_temperature_unk for BTL\n")
@@ -208,7 +208,7 @@ def check_if_all_ctd_vars_per_profile(profile, logging, logging_dir):
         # Look for ctd_temperature_unk
         # Stands for ctd_temperature with and unknown reference scale
         logging.info(f'Has ctd_temperature_unk for CTD {station_cast_str}')
-        filename = 'files_no_ctd_temp.txt'
+        filename = 'cruises_no_ctd_temp.txt'
         filepath = os.path.join(logging_dir, filename)
         with open(filepath, 'a') as f:
             f.write(f"Has ctd_temperature_unk for CTD\n")

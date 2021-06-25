@@ -893,10 +893,8 @@ def create_profile(nc_profile_group, data_obj):
 
     nc_profile_group = add_extra_coords(nc_profile_group, data_obj)
 
-    #meta_names, param_names = get_meta_param_names(nc_profile_group)
-
-    meta_names = data_obj['meta']
-    param_names = data_obj['param']
+    # Get meta names  again now that added extra coords
+    meta_names, param_names = get_meta_param_names(nc_profile_group)
 
     meta_dict = create_meta_dict(nc_profile_group, meta_names, data_obj)
 
@@ -907,7 +905,6 @@ def create_profile(nc_profile_group, data_obj):
     df_bgc = create_bgc_meas_df(param_dict)
 
     # param_json = create_json_profiles(nc_profile_group, param_names, data_obj)
-
     # df_bgc = create_bgc_meas_df(param_json)
 
     bgc_meas_dict_list = create_bgc_meas_list(df_bgc)
@@ -1096,12 +1093,19 @@ def read_file_test(data_obj):
 
 def read_file(data_obj):
 
+    flag = ''
+
     data_path = data_obj['data_path']
 
     data_url = f"https://cchdo.ucsd.edu{data_path}"
 
-    with fsspec.open(data_url) as fobj:
-        nc = xr.open_dataset(fobj)
+    try:
+        with fsspec.open(data_url) as fobj:
+            nc = xr.open_dataset(fobj)
+    except:
+        logging.warning(f"Error reading in file {data_url}")
+        flag = 'error'
+        return data_obj, flag
 
     data_obj['nc'] = nc
 
@@ -1114,7 +1118,7 @@ def read_file(data_obj):
 
     data_obj['file_expocode'] = file_expocode
 
-    return data_obj
+    return data_obj, flag
 
 
 def process_ctd(ctd_obj):
@@ -1261,6 +1265,7 @@ def setup_logging(clear_old_logs):
 
     if clear_old_logs:
         remove_file('output.log', logging_dir)
+        remove_file('file_read_errors.txt', logging_dir)
         remove_file('found_goship_units.txt', logging_dir)
         remove_file('cruises_no_core_ctd_vars.txt', logging_dir)
         remove_file('cruises_w_ctd_temp_no_qc.txt', logging_dir)
@@ -1359,6 +1364,9 @@ def main():
             logging.info('No cruises within dates selected')
             exit(1)
 
+    read_error_count = 0
+    data_file_read_errors = []
+
     for cruise_info in all_cruises_info:
 
         if not testing:
@@ -1380,7 +1388,14 @@ def main():
 
             else:
                 btl_obj = cruise_info['btl']
-                btl_obj = read_file(btl_obj)
+
+                btl_obj, flag = read_file(btl_obj)
+                if flag == 'error':
+                    print("Error reading file")
+                    read_error_count = read_error_count + 1
+                    data_url = f"https://cchdo.ucsd.edu{btl_obj['data_path']}"
+                    data_file_read_errors.append(data_url)
+                    continue
 
             renamed_btl_profiles = process_bottle(btl_obj)
 
@@ -1391,7 +1406,14 @@ def main():
 
             else:
                 ctd_obj = cruise_info['ctd']
-                ctd_obj = read_file(ctd_obj)
+
+                ctd_obj, flag = read_file(ctd_obj)
+                if flag == 'error':
+                    print("Error reading file")
+                    read_error_count = read_error_count + 1
+                    data_url = f"https://cchdo.ucsd.edu{ctd_obj['data_path']}"
+                    data_file_read_errors.append(data_url)
+                    continue
 
             renamed_ctd_profiles = process_ctd(ctd_obj)
 
@@ -1505,6 +1527,16 @@ def main():
             logging.info('---------------------------')
 
             logging.info("*****************************\n")
+
+    if read_error_count:
+        filename = 'file_read_errors.txt'
+        logging.warning(f"Errors reading in {read_error_count} files")
+        logging.warning(f"See {filename} for files")
+
+        filepath = os.path.join(logging_dir, filename)
+        with open(filepath, 'w') as f:
+            for line in data_file_read_errors:
+                f.write(f"{line}\n")
 
     logging.info("Time to run program")
     logging.info(datetime.now() - program_start_time)
