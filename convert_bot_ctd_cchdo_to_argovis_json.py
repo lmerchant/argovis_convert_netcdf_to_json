@@ -268,7 +268,7 @@ def combine_btl_ctd_measurements(btl_measurements, ctd_measurements):
     use_elems, flag = fp.find_measurements_hierarchy_btl_ctd(
         btl_measurements, ctd_measurements)
 
-    combined_btl_ctd_measurements, measurements_source = fp.filter_btl_ctd_combined(
+    combined_btl_ctd_measurements, measurements_source = fp.filter_btl_ctd_combined_measurements(
         btl_measurements, ctd_measurements, use_elems, flag)
 
     return combined_btl_ctd_measurements, measurements_source
@@ -632,23 +632,29 @@ def create_bgc_meas_df(param_dict):
     except ValueError:
         df = pd.DataFrame.from_dict([param_dict])
 
-    # objs = df.to_dict('records')
+    # An example of what to delete in bgcMeas
+    # check if values are all of type in  ['', NaN]
+    # I didn't  want to replace all '' with NaN in case
+    # it was important in a  previous measurement
+    # {'pres': None, 'sample_ctd': '', 'temp_ctd': None, 'temp_ctd_qc': None, 'psal_ctd': None, 'psal_ctd_qc': None, 'doxy_ctd': None, 'doxy_ctd_qc': None}
 
-    # new_list = []
+    objs = df.to_dict('records')
 
-    # for obj in objs:
+    new_list = []
 
-    #     obj_len = len(obj)
-    #     null_count = 0
+    for obj in objs:
 
-    #     for key, val in obj.items():
-    #         if pd.isnull(val) or val == '' or val == 'NaT':
-    #             null_count = null_count + 1
+        obj_len = len(obj)
+        null_count = 0
 
-    #     if null_count != obj_len:
-    #         new_list.append(obj)
+        for key, val in obj.items():
+            if pd.isnull(val) or val == '' or val == 'NaT':
+                null_count = null_count + 1
 
-    # df = pd.DataFrame.from_records(new_list)
+        if null_count != obj_len:
+            new_list.append(obj)
+
+    df = pd.DataFrame.from_records(new_list)
 
     df = df.dropna(how='all')
     df = df.reset_index(drop=True)
@@ -948,6 +954,10 @@ def add_extra_coords(nc, data_obj):
 
 
 def create_profile(nc_profile_group, data_obj):
+
+    # TODO
+    # Ask if for measurements, all values including pres are null,
+    # do I delete it? probably
 
     # don't rename variables yet
 
@@ -1336,13 +1346,12 @@ def setup_logging(clear_old_logs):
         remove_file('found_goship_units.txt', logging_dir)
         remove_file('cruises_no_core_ctd_vars.txt', logging_dir)
         remove_file('cruises_w_ctd_temp_no_qc.txt', logging_dir)
-        remove_file('cruises_no_ctd_temp_w_ref_scale.txt', logging_dir)
+        remove_file('cruises_w_ctd_temp_no_ref_scale.txt', logging_dir)
         remove_file('cruises_no_ctd_temp.txt', logging_dir)
         remove_file('cruises_no_expocode.txt', logging_dir)
         remove_file('cruises_no_pressure.txt', logging_dir)
         remove_file('found_cruises_with_coords_netcdf.txt', logging_dir)
         remove_file('diff_cruise_and_file_expocodes.txt', logging_dir)
-        remove_file('cruises_no_ctd_temp_w_ref_scale.txt', logging_dir)
         remove_file('cruises_not_converted.txt', logging_dir)
 
     filename = 'output.log'
@@ -1458,12 +1467,27 @@ def main():
                 btl_obj = cruise_info['btl']
 
                 btl_obj, flag = read_file(btl_obj)
+
                 if flag == 'error':
                     print("Error reading file")
                     read_error_count = read_error_count + 1
                     data_url = f"https://cchdo.ucsd.edu{btl_obj['data_path']}"
                     data_file_read_errors.append(data_url)
                     continue
+
+                # Check if file expocode is None
+                # TODO Do we want to skip these?
+
+                cruise_expocode = btl_obj['cruise_expocode']
+                file_expocode = btl_obj['file_expocode']
+                if file_expocode == 'None':
+                    logging.info(f'No file expocode for {cruise_expocode}')
+                    filename = 'files_no_expocode.txt'
+                    filepath = os.path.join(logging_dir, filename)
+                    with open(filepath, 'a') as f:
+                        f.write('-----------\n')
+                        f.write(f"expocode {cruise_expocode}\n")
+                        f.write(f"file type BTL\n")
 
             renamed_btl_profiles = process_bottle(btl_obj)
 
@@ -1483,11 +1507,26 @@ def main():
                     data_file_read_errors.append(data_url)
                     continue
 
+                # Check if file expocode is None
+                # TODO Do we want to skip these?
+                cruise_expocode = ctd_obj['cruise_expocode']
+                file_expocode = ctd_obj['file_expocode']
+                if file_expocode == 'None':
+                    logging.info(f'No file expocode for {cruise_expocode}')
+                    filename = 'files_no_expocode.txt'
+                    filepath = os.path.join(logging_dir, filename)
+                    with open(filepath, 'a') as f:
+                        f.write('-----------\n')
+                        f.write(f"expocode {cruise_expocode}\n")
+                        f.write(f"file type CTD\n")
+
             renamed_ctd_profiles = process_ctd(ctd_obj)
 
         if btl_found and ctd_found:
 
             # filter measurements when combine btl and ctd profiles
+            # filter  btl_ctd first in case need
+            # a variable from both before they are filtered out
             combined_btl_ctd_profiles = combine_btl_ctd_profiles(
                 renamed_btl_profiles, renamed_ctd_profiles)
 

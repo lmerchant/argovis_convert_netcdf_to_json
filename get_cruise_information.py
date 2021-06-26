@@ -140,7 +140,7 @@ def get_cruise_information(session, logging_dir, start_datetime, end_datetime):
 
         # Check this to see if program freezes or if it was random
         # expocode = cruise['expocode']
-        # if expocode != '325020210420':
+        # if expocode != '740H20200119':
         #     continue
 
         # Get files attached to the cruise
@@ -168,6 +168,8 @@ def get_cruise_information(session, logging_dir, start_datetime, end_datetime):
             btl_obj['type'] = 'btl'
             btl_obj['data_path'] = file_info['btl_path']
             btl_obj['filename'] = file_info['btl_filename']
+            btl_obj['file_id'] = file_info['btl_id']
+            btl_obj['cruise_expocode'] = expocode
 
             cruise_info['btl'] = btl_obj
 
@@ -177,6 +179,8 @@ def get_cruise_information(session, logging_dir, start_datetime, end_datetime):
             ctd_obj['type'] = 'ctd'
             ctd_obj['data_path'] = file_info['ctd_path']
             ctd_obj['filename'] = file_info['ctd_filename']
+            ctd_obj['file_id'] = file_info['ctd_id']
+            ctd_obj['cruise_expocode'] = expocode
 
             cruise_info['ctd'] = ctd_obj
 
@@ -191,29 +195,25 @@ def get_cruise_information(session, logging_dir, start_datetime, end_datetime):
 
             cruise_count = cruise_count + 1
 
-            cruise_info['start_datetime'] = cruise_datetime
-            cruise_info['expocode'] = cruise['expocode']
-            cruise_info['cruise_id'] = cruise['id']
-            cruise_info['start_date'] = cruise['startDate']
-
-            all_cruises_info.append(cruise_info)
-
             if btl_found and ctd_found:
-                type = 'btl and ctd'
+                type = 'btl_ctd'
             elif btl_found:
                 type = 'btl'
             elif ctd_found:
                 type = 'ctd'
 
+            cruise_info['start_datetime'] = cruise_datetime
+            cruise_info['expocode'] = cruise['expocode']
+            cruise_info['cruise_id'] = cruise['id']
+            cruise_info['start_date'] = cruise['startDate']
+            cruise_info['type'] = type
+
+            all_cruises_info.append(cruise_info)
+
             logging.info(f"Cruise {expocode} found")
             logging.info(f"start date {cruise_start_date}")
             logging.info(f"collection type: {type}")
             logging.info('=======================================')
-
-            filename = 'found_cruises_with_coords_netcdf.txt'
-            filepath = os.path.join(logging_dir, filename)
-            with open(filepath, 'a') as f:
-                f.write(f"expocode {expocode} and type {type}\n")
 
             # TESTING
             # Used to limit number of cruises processed
@@ -227,9 +227,16 @@ def get_cruise_information(session, logging_dir, start_datetime, end_datetime):
     except:
         pass
 
-    # TODO
-    # Write information to a file and then read in as necessary
-    # program tends to freeze randomly
+    # Write each cruise expocode, start date and type, to file
+
+    filename = 'found_cruises_with_coords_netcdf.txt'
+    filepath = os.path.join(logging_dir, filename)
+    with open(filepath, 'a') as f:
+        for cruise_info in all_cruises_info:
+            f.write(f"expocode {cruise_info['expocode']}\n")
+            f.write(f"collection type {cruise_info['type']}\n")
+            f.write(f"start date {cruise_info['start_date']}\n")
+            f.write(f"---------------------\n")
 
     #print(f"Total number of cruises to convert {cruise_count}")
     logging.info(f"Total number of cruises to convert {cruise_count}")

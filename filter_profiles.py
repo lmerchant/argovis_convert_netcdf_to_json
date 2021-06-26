@@ -1,6 +1,4 @@
-
 # Filter  measurements object by element hierarchy
-import numpy as np
 import pandas as pd
 
 
@@ -14,50 +12,7 @@ def convert_boolean(obj):
     return obj
 
 
-# TODO
-# use None instead of np.nan to translate to null in json and not NaN
-
-
-def filter_measurements(measurements, use_elems):
-
-    # If a ctd file, filter on whether have salinity,
-    # if not, set it to  nan
-
-    # If a bottle file, keep temp_btl and then choose psal_btl
-    # first but if doesn't exist and salinity_btl does, use that
-
-    use_temp = use_elems['use_temp']
-    use_psal = use_elems['use_psal']
-    use_salinity = use_elems['use_salinity']
-
-    new_measurements = []
-    for obj in measurements:
-        new_obj = obj.copy()
-        for key, val in obj.items():
-            if key == 'temp' and not use_temp:
-                new_obj['temp'] = None
-            if key == 'psal' and not use_psal:
-                new_obj['psal'] = None
-            if key == 'salinity' and not use_salinity:
-                del new_obj[key]
-            if key == 'salinity' and not use_psal:
-                new_obj['psal'] = val
-
-        new_measurements.append(new_obj)
-
-        keys = new_obj.keys()
-        if 'salinity' in keys:
-            del new_obj['salinity']
-
-    # TODO
-    # Remove if no temp or keep?
-    # if not use_temp:
-    #     new_measurements = []
-
-    return new_measurements
-
-
-def filter_btl_ctd_combined(btl_measurements, ctd_measurements, use_elems, flag):
+def filter_btl_ctd_combined_measurements(btl_measurements, ctd_measurements, use_elems, flag):
 
     use_temp_btl = use_elems['use_temp_btl']
     use_temp_ctd = use_elems['use_temp_ctd']
@@ -163,52 +118,6 @@ def filter_btl_ctd_combined(btl_measurements, ctd_measurements, use_elems, flag)
     return combined_measurements, measurements_source
 
 
-def find_measurements_hierarchy(measurements):
-
-    has_psal = False
-    has_salinity = False
-    has_temp = False
-
-    try:
-        has_temp = any([True if pd.notnull(obj['temp'])
-                       else False for obj in measurements])
-
-    except:
-        has_temp = False
-
-    try:
-        has_psal = any([True if pd.notnull(obj['psal'])
-                       else False for obj in measurements])
-    except:
-        has_psal = False
-
-    try:
-        has_salinity = any([True if pd.notnull(obj['salinity'])
-                            else False for obj in measurements])
-    except:
-        has_salinity = False
-
-    use_temp = False
-    use_psal = False
-    use_salinity = False
-
-    if has_temp:
-        use_temp = True
-
-    if has_psal:
-        use_psal = True
-    if not has_psal and has_salinity:
-        use_salinity = True
-
-    use_elems = {
-        'use_temp': use_temp,
-        'use_psal': use_psal,
-        'use_salinity': use_salinity
-    }
-
-    return use_elems
-
-
 def find_measurements_hierarchy_btl_ctd(btl_measurements, ctd_measurements):
 
     has_psal_btl = False
@@ -298,11 +207,91 @@ def find_measurements_hierarchy_btl_ctd(btl_measurements, ctd_measurements):
     return use_elems, flag
 
 
+def filter_measurements_one_profile(measurements, use_elems):
+
+    # If a ctd file, filter on whether have salinity,
+    # if not, set it to  nan
+
+    # If a bottle file, keep temp_btl and then choose psal_btl
+    # first but if doesn't exist and salinity_btl does, use that
+
+    use_temp = use_elems['use_temp']
+    use_psal = use_elems['use_psal']
+    use_salinity = use_elems['use_salinity']
+
+    new_measurements = []
+    for obj in measurements:
+        new_obj = obj.copy()
+        for key, val in obj.items():
+            if key == 'temp' and not use_temp:
+                new_obj['temp'] = None
+            if key == 'psal' and not use_psal:
+                new_obj['psal'] = None
+            if key == 'salinity' and not use_salinity:
+                del new_obj[key]
+            if key == 'salinity' and not use_psal:
+                new_obj['psal'] = val
+
+        new_measurements.append(new_obj)
+
+        keys = new_obj.keys()
+        if 'salinity' in keys:
+            del new_obj['salinity']
+
+    return new_measurements
+
+
+def find_measurements_hierarchy(measurements):
+
+    has_psal = False
+    has_salinity = False
+    has_temp = False
+
+    try:
+        has_temp = any([True if pd.notnull(obj['temp'])
+                       else False for obj in measurements])
+
+    except:
+        has_temp = False
+
+    try:
+        has_psal = any([True if pd.notnull(obj['psal'])
+                       else False for obj in measurements])
+    except:
+        has_psal = False
+
+    try:
+        has_salinity = any([True if pd.notnull(obj['salinity'])
+                            else False for obj in measurements])
+    except:
+        has_salinity = False
+
+    use_temp = False
+    use_psal = False
+    use_salinity = False
+
+    if has_temp:
+        use_temp = True
+
+    if has_psal:
+        use_psal = True
+    if not has_psal and has_salinity:
+        use_salinity = True
+
+    use_elems = {
+        'use_temp': use_temp,
+        'use_psal': use_psal,
+        'use_salinity': use_salinity
+    }
+
+    return use_elems
+
+
 def get_filtered_measurements_for_profile_dict(measurements, type):
 
     use_elems = find_measurements_hierarchy(measurements)
 
-    measurements = filter_measurements(measurements, use_elems)
+    measurements = filter_measurements_one_profile(measurements, use_elems)
 
     # Get measurements flag
     if type == 'btl':
