@@ -15,7 +15,6 @@ import copy
 import os
 import sys
 import logging
-import ast
 
 import get_variable_mappings as gvm
 import rename_objects as rn
@@ -173,6 +172,74 @@ def write_profile_json(cruise_expocode, json_dir, profile_dict):
     # Sort keys or not?
     with open(file, 'w') as f:
         json.dump(data_dict, f, indent=4, sort_keys=False, default=convert)
+
+
+def save_output(checked_ctd_variables, logging_dir, json_directory):
+
+    for ctd_var_check in checked_ctd_variables:
+        has_all_ctd_vars = ctd_var_check['has_all_ctd_vars']
+        type = ctd_var_check['type']
+        profile = ctd_var_check['profile_checked']
+        profile_dict = profile['profile_dict']
+        expocode = profile_dict['meta']['expocode']
+
+        # Write one profile goship units to
+        # keep a record of what units need to be converted
+        write_goship_units = True
+        if write_goship_units:
+            write_goship_units = False
+            write_profile_goship_units(profile_dict, logging_dir)
+
+        if has_all_ctd_vars[type]:
+            write_profile_json(
+                expocode, json_directory, profile_dict)
+
+        else:
+            # Write to a file the cruise not converted
+            logging.info(
+                f"Cruise not converted {expocode}")
+            filename = 'cruises_not_converted.txt'
+            filepath = os.path.join(logging_dir, filename)
+            with open(filepath, 'a') as f:
+                f.write('-----------\n')
+                f.write(f"expocode {expocode}\n")
+
+
+def save_output_btl_ctd(checked_ctd_variables, logging_dir, json_directory):
+
+    for ctd_var_check in checked_ctd_variables:
+        has_all_ctd_vars = ctd_var_check['has_all_ctd_vars']
+        has_ctd_vars_no_qc = ctd_var_check['has_ctd_vars_no_qc']
+        profile = ctd_var_check['profile_checked']
+        profile_dict = profile['profile_dict']
+        expocode = profile_dict['meta']['expocode']
+
+        # Write one profile goship units to
+        # keep a record of what units need to be converted
+        write_goship_units = True
+        if write_goship_units:
+            write_goship_units = False
+            write_profile_goship_units(profile_dict, logging_dir)
+
+        if has_all_ctd_vars['btl'] and has_all_ctd_vars['ctd']:
+            write_profile_json(
+                expocode, json_directory, profile_dict)
+
+        elif has_all_ctd_vars['btl'] and has_ctd_vars_no_qc['ctd']:
+            write_profile_json(
+                expocode, json_directory, profile_dict)
+        elif has_ctd_vars_no_qc['btl'] and has_all_ctd_vars['ctd']:
+            write_profile_json(
+                expocode, json_directory, profile_dict)
+        else:
+            # Write to a file the cruise not converted
+            logging.info(
+                f"Cruise not converted {expocode}")
+            filename = 'cruises_not_converted.txt'
+            filepath = os.path.join(logging_dir, filename)
+            with open(filepath, 'a') as f:
+                f.write('-----------\n')
+                f.write(f"expocode {expocode}\n")
 
 
 def combine_btl_ctd_measurements(btl_measurements, ctd_measurements):
@@ -1276,6 +1343,7 @@ def setup_logging(clear_old_logs):
         remove_file('found_cruises_with_coords_netcdf.txt', logging_dir)
         remove_file('diff_cruise_and_file_expocodes.txt', logging_dir)
         remove_file('cruises_no_ctd_temp_w_ref_scale.txt', logging_dir)
+        remove_file('cruises_not_converted.txt', logging_dir)
 
     filename = 'output.log'
     logging_path = os.path.join(logging_dir, filename)
@@ -1419,6 +1487,7 @@ def main():
 
         if btl_found and ctd_found:
 
+            # filter measurements when combine btl and ctd profiles
             combined_btl_ctd_profiles = combine_btl_ctd_profiles(
                 renamed_btl_profiles, renamed_ctd_profiles)
 
@@ -1426,74 +1495,29 @@ def main():
             logging.info('Processed btl and ctd combined profiles')
             logging.info('---------------------------')
 
-            output_has_ctd_vars = ckvar.check_if_all_ctd_vars(
+            checked_ctd_variables = ckvar.check_of_ctd_variables(
                 combined_btl_ctd_profiles, logging, logging_dir)
 
-            write_goship_units = True
-            for has_ctd_vars in output_has_ctd_vars:
-                has_vars = has_ctd_vars['has_ctd_vars']
-                profile = has_ctd_vars['profile_checked']
-                profile_dict = profile['profile_dict']
-
-                # Write one profile goship units to
-                # keep a record of what units need to be converted
-                write_goship_units = True
-                if write_goship_units:
-                    write_goship_units = False
-                    write_profile_goship_units(profile_dict, logging_dir)
-
-                if has_vars:
-                    write_profile_json(
-                        cruise_expocode, json_directory, profile_dict)
+            save_output_btl_ctd(checked_ctd_variables,
+                                logging_dir, json_directory)
 
         elif btl_found:
-            renamed_btl_profiles = fp.get_filtered_measurements(
+            renamed_btl_profiles = fp.filter_measurements(
                 renamed_btl_profiles, 'btl')
 
-            output_has_ctd_vars = ckvar.check_if_all_ctd_vars(
+            checked_ctd_variables = ckvar.check_of_ctd_variables(
                 renamed_btl_profiles, logging, logging_dir)
 
-            for has_ctd_vars in output_has_ctd_vars:
-                has_vars = has_ctd_vars['has_ctd_vars']
-                profile = has_ctd_vars['profile_checked']
-                profile_dict = profile['profile_dict']
-
-                # Write one profile goship units to
-                # keep a record of what units need to be converted
-                write_goship_units = True
-                if write_goship_units:
-                    write_goship_units = False
-                    #file_expocode = profile_dict['meta']['expocode']
-                    write_profile_goship_units(profile_dict, logging_dir)
-
-                # TODO, if no temp_qc, do I still write to a file?
-                if has_vars:
-                    write_profile_json(
-                        cruise_expocode, json_directory, profile_dict)
+            save_output(checked_ctd_variables, logging_dir, json_directory)
 
         elif ctd_found:
-
-            renamed_ctd_profiles = fp.get_filtered_measurements(
+            renamed_ctd_profiles = fp.filter_measurements(
                 renamed_ctd_profiles, 'ctd')
 
-            output_has_ctd_vars = ckvar.check_if_all_ctd_vars(
+            checked_ctd_variables = ckvar.check_of_ctd_variables(
                 renamed_ctd_profiles, logging, logging_dir)
 
-            for has_ctd_vars in output_has_ctd_vars:
-                has_vars = has_ctd_vars['has_ctd_vars']
-                profile = has_ctd_vars['profile_checked']
-                profile_dict = profile['profile_dict']
-
-                # Write one profile goship units to
-                # keep a record of what units need to be converted
-                write_goship_units = True
-                if write_goship_units:
-                    write_goship_units = False
-                    write_profile_goship_units(profile_dict, logging_dir)
-
-                if has_vars:
-                    write_profile_json(
-                        cruise_expocode, json_directory, profile_dict)
+            save_output(checked_ctd_variables, logging_dir, json_directory)
 
         if btl_found or ctd_found:
 

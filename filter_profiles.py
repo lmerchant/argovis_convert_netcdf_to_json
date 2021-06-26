@@ -313,7 +313,7 @@ def get_filtered_measurements_for_profile_dict(measurements, type):
     return measurements, flag, use_elems
 
 
-def get_filtered_measurements(profiles, type):
+def filter_measurements(profiles, type):
 
     output_profiles_list = []
 
@@ -329,12 +329,6 @@ def get_filtered_measurements(profiles, type):
 
         measurements_source = profile_dict['measurementsSource']
         measurements_source['source'] = flag
-
-        # if use_elems['use_psal']:
-        #     measurements_source['psal_used'] = True
-
-        # For testing, use a flag 'use_salinity' to see when
-        # bottle salinity was used in place of ctd_salinity
 
         if use_elems['use_salinity']:
             measurements_source['salinity_used'] = True
