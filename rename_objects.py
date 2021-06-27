@@ -361,7 +361,7 @@ def create_renamed_list_of_objs(cur_list, type):
     return new_list
 
 
-def rename_output_per_profile(profile):
+def rename_profile_to_argovis(profile):
 
     station_cast = profile['station_cast']
     profile_dict = profile['profile_dict']
@@ -458,7 +458,7 @@ def rename_output_per_profile(profile):
 
 #     for profile in profiles:
 
-#         processed_profile = rename_output_per_profile(profile, type)
+#         processed_profile = rename_per_profile(profile, type)
 
 #         all_profiles.append(processed_profile)
 

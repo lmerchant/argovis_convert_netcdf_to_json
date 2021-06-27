@@ -6,11 +6,22 @@ import json
 from decimal import Decimal
 import logging
 import re
+import dask.bag as db
+import dask.dataframe as dd
+# install cloudpickle to use the multiprocessing scheduler
+#import cloudpickle
+from datetime import datetime
+from dask.diagnostics import ProgressBar
+
 
 import get_variable_mappings as gvm
 import filter_profiles as fp
 import rename_objects as rn
 import get_profile_mapping_and_conversions as pm
+
+
+pbar = ProgressBar()
+pbar.register()
 
 
 class fakefloat(float):
@@ -32,6 +43,7 @@ def defaultencode(o):
 def create_measurements_list(df_bgc_meas):
 
     df_meas = pd.DataFrame()
+    #df_meas = dd.DataFrame()
 
     # core values includes '_qc' vars
     core_values = gvm.get_goship_core_values()
@@ -160,23 +172,39 @@ def create_bgc_meas_df(param_dict):
     # it was important in a  previous measurement
     # {'pres': None, 'sample_ctd': '', 'temp_ctd': None, 'temp_ctd_qc': None, 'psal_ctd': None, 'psal_ctd_qc': None, 'doxy_ctd': None, 'doxy_ctd_qc': None}
 
-    objs = df.to_dict('records')
+    # Count # of elems in each row and save to new column
+    def count_elems(row):
+        result = [False if pd.isnull(
+            cell) or cell == '' or cell == 'NaT' else True for cell in row]
 
-    new_list = []
+        # Return number of True values
+        return sum(result)
 
-    for obj in objs:
+    df['num_elems'] = df.apply(count_elems, axis=1)
 
-        obj_len = len(obj)
-        null_count = 0
+    # Then drop rows where num_elems is 0
+    df.drop(df[df['num_elems'] == 0].index, inplace=True)
 
-        for key, val in obj.items():
-            if pd.isnull(val) or val == '' or val == 'NaT':
-                null_count = null_count + 1
+    # And drop num_elems column
+    df = df.drop(columns=['num_elems'])
 
-        if null_count != obj_len:
-            new_list.append(obj)
+    # objs = df.to_dict('records')
 
-    df = pd.DataFrame.from_records(new_list)
+    # new_list = []
+
+    # for obj in objs:
+
+    #     obj_len = len(obj)
+    #     null_count = 0
+
+    #     for key, val in obj.items():
+    #         if pd.isnull(val) or val == '' or val == 'NaT':
+    #             null_count = null_count + 1
+
+    #     if null_count != obj_len:
+    #         new_list.append(obj)
+
+    # df = pd.DataFrame.from_records(new_list)
 
     df = df.dropna(how='all')
     df = df.reset_index(drop=True)
@@ -475,17 +503,85 @@ def add_extra_coords(nc, data_obj):
     return nc
 
 
-# def create_profile(nc_profile_group, data_obj):
-def create_profile(nc_group, data_obj):
+# def create_profile(nc_group, data_obj):
+
+#     type = data_obj['type']
+
+#     logging.info(f"Processing {type} profile {nc_group[0] + 1}")
+
+#     profile_number = nc_group[0]
+#     nc_profile_group = nc_group[1]
+
+#     data_obj['profile_number'] = profile_number
+
+#     # TODO
+#     # Ask if for measurements, all values including pres are null,
+#     # do I delete it? probably
+
+#     # don't rename variables yet
+
+#     cast_number = str(nc_profile_group['cast'].values)
+
+#     # The station number is a string
+#     station = str(nc_profile_group['station'].values)
+
+#     station_cast = f"{station}_{cast_number}"
+
+#     nc_profile_group = add_extra_coords(nc_profile_group, data_obj)
+
+#     # Get meta names  again now that added extra coords
+#     meta_names, param_names = pm.get_meta_param_names(nc_profile_group)
+
+#     meta_dict = create_meta_dict(nc_profile_group, meta_names, data_obj)
+
+#     goship_c_format_mapping_dict = data_obj['goship_c_format']
+
+#     param_dict = create_json_profiles(nc_profile_group, param_names, data_obj)
+
+#     df_bgc = create_bgc_meas_df(param_dict)
+
+#     # param_json = create_json_profiles(nc_profile_group, param_names, data_obj)
+#     # df_bgc = create_bgc_meas_df(param_json)
+
+#     bgc_meas_dict_list = create_bgc_meas_list(df_bgc)
+
+#     measurements_dict_list, measurements_source = create_measurements_list(
+#         df_bgc)
+
+#     goship_units_dict = data_obj['goship_units']
+
+#     goship_ref_scale_mapping_dict = data_obj['goship_ref_scale']
+
+#     goship_names_list = [*meta_names, *param_names]
+
+#     # Save meta separate for renaming later
+#     profile_dict = {}
+#     profile_dict['station_cast'] = station_cast
+#     profile_dict['type'] = type
+#     profile_dict['meta'] = meta_dict
+#     profile_dict['bgc_meas'] = bgc_meas_dict_list
+#     profile_dict['measurements'] = measurements_dict_list
+#     profile_dict['measurements_source'] = measurements_source
+#     profile_dict['goship_ref_scale'] = goship_ref_scale_mapping_dict
+#     profile_dict['goship_units'] = goship_units_dict
+#     profile_dict['goship_c_format'] = goship_c_format_mapping_dict
+#     profile_dict['goship_names'] = goship_names_list
+
+#     output_profile = {}
+#     output_profile['profile_dict'] = profile_dict
+#     output_profile['station_cast'] = station_cast
+
+#     # Rename with _type suffix unless it is an Argovis variable
+#     # But no _btl suffix to meta data
+#     # Add _btl when combine files
+#     profile_one_type = rn.rename_profile_to_argovis(output_profile)
+
+#     return profile_one_type
+
+
+def create_profile(nc_profile_group, data_obj):
 
     type = data_obj['type']
-
-    logging.info(f"Processing {type} profile {nc_group[0] + 1}")
-
-    profile_number = nc_group[0]
-    nc_profile_group = nc_group[1]
-
-    data_obj['profile_number'] = profile_number
 
     # TODO
     # Ask if for measurements, all values including pres are null,
@@ -500,6 +596,8 @@ def create_profile(nc_group, data_obj):
 
     station_cast = f"{station}_{cast_number}"
 
+    #print(f"station cast {station_cast}")
+
     nc_profile_group = add_extra_coords(nc_profile_group, data_obj)
 
     # Get meta names  again now that added extra coords
@@ -511,13 +609,9 @@ def create_profile(nc_group, data_obj):
 
     param_dict = create_json_profiles(nc_profile_group, param_names, data_obj)
 
+    # See if can speed up
     df_bgc = create_bgc_meas_df(param_dict)
-
-    # param_json = create_json_profiles(nc_profile_group, param_names, data_obj)
-    # df_bgc = create_bgc_meas_df(param_json)
-
     bgc_meas_dict_list = create_bgc_meas_list(df_bgc)
-
     measurements_dict_list, measurements_source = create_measurements_list(
         df_bgc)
 
@@ -540,16 +634,17 @@ def create_profile(nc_group, data_obj):
     profile_dict['goship_c_format'] = goship_c_format_mapping_dict
     profile_dict['goship_names'] = goship_names_list
 
-    output_profile = {}
-    output_profile['profile_dict'] = profile_dict
-    output_profile['station_cast'] = station_cast
+    profile = {}
+    profile['profile_dict'] = profile_dict
+    profile['station_cast'] = station_cast
 
     # Rename with _type suffix unless it is an Argovis variable
     # But no _btl suffix to meta data
     # Add _btl when combine files
-    profile_one_type = rn.rename_output_per_profile(output_profile)
 
-    return profile_one_type
+    renamed_profile = rn.rename_profile_to_argovis(profile)
+
+    return renamed_profile
 
 
 def create_profiles_one_type(data_obj):
@@ -566,14 +661,63 @@ def create_profiles_one_type(data_obj):
 
     all_profiles = []
 
-    for nc_group in nc.groupby('N_PROF'):
+    reduced_data_obj = {key: val for key,
+                        val in data_obj.items() if key != 'nc'}
 
-        profile = create_profile(nc_group, data_obj)
+    nc_groups = [obj[1] for obj in nc.groupby('N_PROF')]
 
-        all_profiles.append(profile)
+    logging.info(
+        f"Total number of {type} profiles to process {len(nc_groups)}")
+
+    b = db.from_sequence(nc_groups)
+
+    c = b.map(create_profile, reduced_data_obj)
+
+    # program_start_time = datetime.now()
+    all_profiles = c.compute()
+    # logging.info('Using dask bag')
+    # logging.info(datetime.now() - program_start_time)
+
+    # With a single thread
+    # program_start_time = datetime.now()
+    #all_profiles = c.compute(scheduler='single-threaded')
+    # logging.info('Using single thread')
+    # logging.info(datetime.now() - program_start_time)
+
+    # for nc_group in nc.groupby('N_PROF'):
+
+    #     profile = create_profile(nc_group, data_obj)
+
+    #     all_profiles.append(profile)
 
     print('---------------------------')
     print(f'End processing {type} profiles')
     print('---------------------------')
 
     return all_profiles
+
+# def create_profiles_one_type(data_obj):
+
+#     type = data_obj['type']
+
+#     print('---------------------------')
+#     print(f'Start processing {type} profiles')
+#     print('---------------------------')
+
+#     data_obj = pm.get_profile_mapping_and_conversions(data_obj)
+
+#     nc = data_obj['nc']
+
+#     all_profiles = []
+
+#     for nc_group in nc.groupby('N_PROF'):
+
+#         profile = create_profile(nc_group, data_obj)
+
+#         all_profiles.append(profile)
+
+#     print('---------------------------')
+#     print(f'End processing {type} profiles')
+#     print('---------------------------')
+
+#     return all_profiles

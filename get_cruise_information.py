@@ -167,8 +167,8 @@ def get_cruise_information(session, logging_dir, start_datetime, end_datetime):
 
         # Check this to see if program freezes or if it was random
         # expocode = cruise['expocode']
-        # if expocode != '320620161224':
-        #     continue
+        if expocode != '096U20160426':
+            continue
 
         # Get files attached to the cruise
         # Could be deleted ones so check if exist in all_files
@@ -197,6 +197,7 @@ def get_cruise_information(session, logging_dir, start_datetime, end_datetime):
             btl_obj['data_path'] = file_info['btl_path']
             btl_obj['filename'] = file_info['btl_filename']
             btl_obj['file_id'] = file_info['btl_id']
+            btl_obj['file_hash'] = file_info['btl_hash']
             btl_obj['cruise_expocode'] = expocode
 
             cruise_info['btl'] = btl_obj
@@ -208,6 +209,7 @@ def get_cruise_information(session, logging_dir, start_datetime, end_datetime):
             ctd_obj['data_path'] = file_info['ctd_path']
             ctd_obj['filename'] = file_info['ctd_filename']
             ctd_obj['file_id'] = file_info['ctd_id']
+            ctd_obj['file_hash'] = file_info['ctd_hash']
             ctd_obj['cruise_expocode'] = expocode
 
             cruise_info['ctd'] = ctd_obj
