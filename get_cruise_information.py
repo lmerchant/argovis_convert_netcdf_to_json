@@ -9,16 +9,22 @@ import os
 API_END_POINT = "https://cchdo.ucsd.edu/api/v1"
 
 
-def find_btl_ctd_file_info(file_ids, session):
+def find_btl_ctd_file_info(file_ids, file_id_hash_mapping, session):
 
     # Get file meta for each file id to search for cruise doc id and bottle id
 
     file_info = {}
 
     file_info['btl_id'] = None
+    file_info['btl_hash'] = None
     file_info['btl_path'] = ''
+    file_info['btl_filename'] = ''
+
     file_info['ctd_id'] = None
+    file_info['ctd_hash'] = None
     file_info['ctd_path'] = ''
+    file_info['ctd_filename'] = ''
+
     file_info['btl_found'] = False
     file_info['ctd_found'] = False
 
@@ -49,14 +55,34 @@ def find_btl_ctd_file_info(file_ids, session):
                 file_info['btl_path'] = file_path
                 file_info['btl_filename'] = file_path.split('/')[-1]
                 file_info['btl_found'] = True
+                file_info['btl_hash'] = file_id_hash_mapping[file_id]
 
             if data_type == "ctd" and data_format == "cf_netcdf":
                 file_info['ctd_id'] = file_id
                 file_info['ctd_path'] = file_path
                 file_info['ctd_filename'] = file_path.split('/')[-1]
                 file_info['ctd_found'] = True
+                file_info['ctd_hash'] = file_id_hash_mapping[file_id]
 
     return file_info
+
+
+def get_file_id_hash_mapping(session):
+
+    query = f"{API_END_POINT}/file"
+    response = session.get(query)
+
+    if response.status_code != 200:
+        print('api not reached in function get_file_id_hash_mapping')
+        print(response)
+        exit(1)
+
+    mapping = response.json()['files']
+
+    # Get into form {file_id: file_hash}
+    file_hash_mapping = {obj['id']: obj['hash'] for obj in mapping}
+
+    return file_hash_mapping
 
 
 def get_all_file_ids(session):
@@ -110,6 +136,7 @@ def get_cruise_information(session, logging_dir, start_datetime, end_datetime):
     logging.info('Get CCHDO cruise information for date range')
     all_cruises = get_all_cruises(session)
     all_file_ids = get_all_file_ids(session)
+    file_id_hash_mapping = get_file_id_hash_mapping(session)
 
     all_cruises_info = []
 
@@ -140,8 +167,8 @@ def get_cruise_information(session, logging_dir, start_datetime, end_datetime):
 
         # Check this to see if program freezes or if it was random
         # expocode = cruise['expocode']
-        # if expocode != '740H20200119':
-        #     continue
+        if expocode != '325020210316':
+            continue
 
         # Get files attached to the cruise
         # Could be deleted ones so check if exist in all_files
@@ -153,7 +180,8 @@ def get_cruise_information(session, logging_dir, start_datetime, end_datetime):
 
         # Get file meta for each file id to search for
         # cruise doc and bottle info
-        file_info = find_btl_ctd_file_info(active_file_ids, session)
+        file_info = find_btl_ctd_file_info(
+            active_file_ids, file_id_hash_mapping, session)
 
         btl_found = file_info['btl_found']
         ctd_found = file_info['ctd_found']
