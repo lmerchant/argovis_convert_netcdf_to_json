@@ -15,6 +15,7 @@ import rename_objects as rn
 import check_if_has_ctd_vars as ckvar
 import filter_profiles as fp
 import get_cruise_information as gi
+import get_profile_mapping_and_conversions as pm
 import create_profiles_one_type as op
 import create_profiles_combined_type as cbp
 import save_output as sv
@@ -66,7 +67,7 @@ def read_file_test(data_obj):
 
     file_expocode = nc.coords['expocode'].data[0]
 
-    meta_names, param_names = op.get_meta_param_names(nc)
+    meta_names, param_names = pm.get_meta_param_names(nc)
 
     data_obj['meta'] = meta_names
     data_obj['param'] = param_names
@@ -94,7 +95,7 @@ def read_file(data_obj):
 
     data_obj['nc'] = nc
 
-    meta_names, param_names = op.get_meta_param_names(nc)
+    meta_names, param_names = pm.get_meta_param_names(nc)
 
     data_obj['meta'] = meta_names
     data_obj['param'] = param_names
@@ -108,78 +109,16 @@ def read_file(data_obj):
 
 def process_ctd(ctd_obj):
 
-    print('---------------------------')
-    print('Start processing ctd profiles')
-    print('---------------------------')
+    profiles_ctd = op.create_profiles_one_type(ctd_obj)
 
-    ctd_obj = gvm.create_goship_unit_mapping(ctd_obj)
-    ctd_obj = gvm.create_goship_ref_scale_mapping(ctd_obj)
-
-    # get c-format (string representation of numbers)
-    ctd_obj = gvm.create_goship_c_format_mapping(ctd_obj)
-
-    # TODO
-    # Are there other variables to convert besides ctd_temperature?
-    # And if I do, would need to note in argovis ref scale mapping
-    # that this temperare is on a new scale.
-    # I'm assuming goship will always refer to original vars before
-    # values converted.
-
-    # What if other temperatures not on ITS-90 scale?
-    ctd_obj = op.convert_goship_to_argovis_ref_scale(ctd_obj)
-
-    # Add convert units function
-
-    # Rename converted temperature later.
-    # Keep 68 in name and show it maps to temp_ctd
-    # and ref scale show what scale it was converted to
-
-    ctd_profiles = op.create_profiles(ctd_obj)
-
-    # Rename with _ctd suffix unless it is an Argovis variable
-    # But no _ctd suffix to meta data
-    renamed_ctd_profiles = rn.rename_profiles_to_argovis(ctd_profiles, 'ctd')
-
-    print('---------------------------')
-    print('Processed ctd profiles')
-    print('---------------------------')
-
-    return renamed_ctd_profiles
+    return ctd_profiles
 
 
 def process_bottle(btl_obj):
 
-    print('---------------------------')
-    print('Start processing bottle profiles')
-    print('---------------------------')
+    btl_profiles = op.create_profiles_one_type(btl_obj)
 
-    btl_obj = gvm.create_goship_unit_mapping(btl_obj)
-    btl_obj = gvm.create_goship_ref_scale_mapping(btl_obj)
-
-    # get c-format (string representation of numbers)
-    btl_obj = gvm.create_goship_c_format_mapping(btl_obj)
-
-    # Only converting temperature so far
-    btl_obj = op.convert_goship_to_argovis_ref_scale(btl_obj)
-
-    # Add convert units function
-
-    # Rename converted temperature later.
-    # Keep 68 in name and show it maps to temp_ctd
-    # and ref scale show what scale it was converted to
-
-    btl_profiles = op.create_profiles(btl_obj)
-
-    # Rename with _btl suffix unless it is an Argovis variable
-    # But no _btl suffix to meta data
-    # Add _btl when combine files
-    renamed_btl_profiles = rn.rename_profiles_to_argovis(btl_profiles, 'btl')
-
-    print('---------------------------')
-    print('Processed btl profiles')
-    print('---------------------------')
-
-    return renamed_btl_profiles
+    return btl_profiles
 
 
 def setup_test_obj(dir, filename, type):
@@ -205,7 +144,8 @@ def setup_test_obj(dir, filename, type):
 
 def setup_testing(btl_file, ctd_file, test_btl, test_ctd):
 
-    # TODO Set  up start and end date for logging
+    # TODO
+    # Make sure included all btl and ctd keys
 
     input_dir = './testing_data/modify_data_for_testing'
     output_dir = './testing_output'
@@ -401,7 +341,7 @@ def main(start_year, end_year, clear):
                         f.write(f"expocode {cruise_expocode}\n")
                         f.write(f"file type BTL\n")
 
-            profiles_btl = process_bottle(btl_obj)
+            profiles_btl = op.create_profiles_one_type(btl_obj)
 
         if ctd_found:
 
@@ -412,6 +352,7 @@ def main(start_year, end_year, clear):
                 ctd_obj = cruise_info['ctd']
 
                 ctd_obj, flag = read_file(ctd_obj)
+
                 if flag == 'error':
                     print("Error reading file")
                     read_error_count = read_error_count + 1
@@ -432,7 +373,7 @@ def main(start_year, end_year, clear):
                         f.write(f"expocode {cruise_expocode}\n")
                         f.write(f"file type CTD\n")
 
-            profiles_ctd = process_ctd(ctd_obj)
+            profiles_ctd = op.create_profiles_one_type(ctd_obj)
 
         if btl_found and ctd_found:
 
@@ -441,10 +382,6 @@ def main(start_year, end_year, clear):
             # a variable from both before they are filtered out
             profiles_btl_ctd = cbp.combine_btl_ctd_profiles(
                 profiles_btl, profiles_ctd)
-
-            logging.info('---------------------------')
-            logging.info('Processed btl and ctd combined profiles')
-            logging.info('---------------------------')
 
         if btl_found and ctd_found:
 

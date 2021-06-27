@@ -1,31 +1,11 @@
 # Create profiles for combined type (btl_ctd)
+import logging
 
 import filter_profiles as fp
 import rename_objects as rn
 
 
 def combine_btl_ctd_measurements(btl_measurements, ctd_measurements):
-
-    # This is for one profile
-
-    # 1) If temp_ctd and psal_ctd, exclude bottle objects
-    # 2) If no temp_ctd but there is temp_btl, keep _btl objects,
-    #    put nan in  temp_ctd of ctd objs and use btl objs  with temp_btl
-    #   a) Keep _ctd object if there is  psal_ctd,
-    #   b) otherwise delete object because just pressure variable
-    # 3) If there is no psal_ctd, set to nan (keep objs), and use bottle
-    #    objects, too. If no psal_btl, use salinity_btl. Still
-    #    keep ctd objects if has temp_ctd (just missing psal_ctd)
-    # Set measurements flag to 'CTD_BTL' if use btl BTL and CTD objs
-    # If  just one  or the other, flag is CTD or BTL
-
-    # First, filter ctd objects: keep only temp_ctd and psal_ctd
-    # Question: What if some ctd objs missing psal, probably
-    # just psal to nan and keep. Don't rely on btl because diff pressure
-    # So check if min psal_ctd
-
-    # Object will always have pres, psal_ctd, temp_ctd for ctd file
-    # Object will always pres, temp_btl and psal_btl or salinity_btl in btl file
 
     use_elems, flag = fp.find_measurements_hierarchy_btl_ctd(
         btl_measurements, ctd_measurements)
@@ -85,7 +65,7 @@ def combine_output_per_profile_btl_ctd(btl_profile, ctd_profile):
         goship_ref_scale_mapping_btl = btl_dict['goshipReferenceScale']
         argovis_ref_scale_btl = btl_dict['argovisReferenceScale']
         goship_units_btl = btl_dict['goshipUnits']
-        goship_argovis_units_btl = btl_dict['goshipArgovisUnitNameMapping']
+        goship_argovis_units_btl = btl_dict['goshipArgovisUnitsMapping']
 
     if ctd_dict:
 
@@ -99,7 +79,7 @@ def combine_output_per_profile_btl_ctd(btl_profile, ctd_profile):
         goship_ref_scale_mapping_ctd = ctd_dict['goshipReferenceScale']
         argovis_ref_scale_ctd = ctd_dict['argovisReferenceScale']
         goship_units_ctd = ctd_dict['goshipUnits']
-        goship_argovis_units_ctd = ctd_dict['goshipArgovisUnitNameMapping']
+        goship_argovis_units_ctd = ctd_dict['goshipArgovisUnitsMapping']
 
     if btl_dict and ctd_dict:
 
@@ -156,7 +136,7 @@ def combine_output_per_profile_btl_ctd(btl_profile, ctd_profile):
 
     combined_btl_ctd_dict['goshipReferenceScale'] = goship_ref_scale_mapping
     combined_btl_ctd_dict['argovisReferenceScale'] = argovis_reference_scale
-    combined_btl_ctd_dict['goshipArgovisUnitNameMapping'] = goship_argovis_units_mapping
+    combined_btl_ctd_dict['goshipArgovisUnitsMapping'] = goship_argovis_units_mapping
 
     if goship_units_btl and goship_units_ctd:
         combined_btl_ctd_dict['goshipUnitsBtl'] = goship_units_btl
@@ -188,9 +168,6 @@ def get_same_station_cast_profile_btl_ctd(btl_profiles, ctd_profiles):
 
     for pair in different_pairs_in_btl:
         # Create matching but empty profiles for ctd
-        # Create new profile number and same key
-        # increment on the  last profile #
-        #ctd_profiles[pair] = index + 1
         new_profile = {}
         new_profile['profile_dict'] = {}
         new_profile['station_cast'] = pair
@@ -198,9 +175,6 @@ def get_same_station_cast_profile_btl_ctd(btl_profiles, ctd_profiles):
 
     for pair in different_pairs_in_ctd:
         # Create matching but empty profiles for ctd
-        # Create new profile number and same key
-        # increment on the  last profile #
-        #ctd_profiles[pair] = index + 1
         new_profile = {}
         new_profile['profile_dict'] = {}
         new_profile['station_cast'] = pair
@@ -253,5 +227,9 @@ def combine_btl_ctd_profiles(btl_profiles, ctd_profiles):
             profile_btl, profile_ctd)
 
         profiles_list_btl_ctd.append(combined_profile_btl_ctd)
+
+    logging.info('---------------------------')
+    logging.info('Processed btl and ctd combined profiles')
+    logging.info('---------------------------')
 
     return profiles_list_btl_ctd

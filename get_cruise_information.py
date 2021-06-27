@@ -167,8 +167,8 @@ def get_cruise_information(session, logging_dir, start_datetime, end_datetime):
 
         # Check this to see if program freezes or if it was random
         # expocode = cruise['expocode']
-        if expocode != '325020210316':
-            continue
+        # if expocode != '320620161224':
+        #     continue
 
         # Get files attached to the cruise
         # Could be deleted ones so check if exist in all_files

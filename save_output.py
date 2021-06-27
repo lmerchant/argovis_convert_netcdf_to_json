@@ -131,8 +131,6 @@ def save_output(checked_ctd_variables, logging_dir, json_directory):
         if has_all_ctd_vars[type]:
             write_profile_json(
                 expocode, json_directory, profile_dict)
-
-            print(f"Files saved for cruies {expocode} {station_cast}")
         else:
             # Write to a file the cruise not converted
             logging.info(

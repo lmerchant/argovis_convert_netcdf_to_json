@@ -212,93 +212,6 @@ def rename_key_not_meta_argovis(obj, type):
     return new_obj
 
 
-def rename_output_per_profile(profile, type):
-
-    if type == 'btl':
-
-        station_cast = profile['station_cast']
-        profile_dict = profile['profile_dict']
-
-        meta = profile_dict['meta']
-        renamed_meta = rename_argovis_meta(meta)
-
-        bgc_list = profile_dict['bgc_meas']
-        renamed_bgc_list = create_renamed_list_of_objs(bgc_list, 'btl')
-
-        measurements_list = profile_dict['measurements']
-
-        renamed_measurements_list = create_renamed_list_of_objs_argovis_measurements(
-            measurements_list)
-
-        measurements_source = profile_dict['measurements_source']
-
-        goship_names = profile_dict['goship_names']
-
-        goship_ref_scale = profile_dict['goship_ref_scale']
-
-        goship_units = profile_dict['goship_units']
-
-        goship_argovis_name = gvm.create_goship_argovis_core_values_mapping(
-            goship_names, type)
-
-        argovis_ref_scale = gvm.get_argovis_ref_scale_mapping(
-            goship_names, type)
-
-        goship_argovis_unit = gvm.get_goship_argovis_unit_mapping()
-
-    if type == 'ctd':
-
-        station_cast = profile['station_cast']
-        profile_dict = profile['profile_dict']
-
-        meta = profile_dict['meta']
-
-        renamed_meta = rename_argovis_meta(meta)
-
-        bgc_list = profile_dict['bgc_meas']
-        renamed_bgc_list = create_renamed_list_of_objs(bgc_list, type)
-
-        measurements_list = profile_dict['measurements']
-
-        renamed_measurements_list = create_renamed_list_of_objs_argovis_measurements(
-            measurements_list)
-
-        measurements_source = profile_dict['measurements_source']
-
-        goship_names = profile_dict['goship_names']
-
-        goship_ref_scale = profile_dict['goship_ref_scale']
-
-        goship_units = profile_dict['goship_units']
-
-        goship_argovis_name = gvm.create_goship_argovis_core_values_mapping(
-            goship_names, type)
-
-        argovis_ref_scale = gvm.get_argovis_ref_scale_mapping(
-            goship_names, type)
-
-        goship_argovis_unit = gvm.get_goship_argovis_unit_mapping()
-
-    renamed_profile_dict = {}
-    renamed_profile_dict['type'] = type
-    renamed_profile_dict['stationCast'] = station_cast
-    renamed_profile_dict['meta'] = renamed_meta
-    renamed_profile_dict['measurements'] = renamed_measurements_list
-    renamed_profile_dict['measurementsSource'] = measurements_source
-    renamed_profile_dict['bgcMeas'] = renamed_bgc_list
-    renamed_profile_dict['goshipUnits'] = goship_units
-    renamed_profile_dict['goshipArgovisNameMapping'] = goship_argovis_name
-    renamed_profile_dict['goshipReferenceScale'] = goship_ref_scale
-    renamed_profile_dict['argovisReferenceScale'] = argovis_ref_scale
-    renamed_profile_dict['goshipArgovisUnitNameMapping'] = goship_argovis_unit
-
-    output_profile = {}
-    output_profile['profile_dict'] = renamed_profile_dict
-    output_profile['station_cast'] = station_cast
-
-    return output_profile
-
-
 # def rename_units_to_argovis(data_obj):
 
 #     units_mapping = gvm.get_goship_argovis_unit_mapping()
@@ -365,19 +278,6 @@ def rename_output_per_profile(profile, type):
 #     data_obj['nc'] = nc
 
 #     return data_obj
-
-
-def rename_profiles_to_argovis(profiles, type):
-
-    profiles_list = []
-
-    for profile in profiles:
-
-        processed_profile = rename_output_per_profile(profile, type)
-
-        profiles_list.append(processed_profile)
-
-    return profiles_list
 
 
 def create_renamed_list_of_objs_argovis_measurements(cur_list):
@@ -459,3 +359,107 @@ def create_renamed_list_of_objs(cur_list, type):
             new_list.append(new_obj)
 
     return new_list
+
+
+def rename_output_per_profile(profile):
+
+    station_cast = profile['station_cast']
+    profile_dict = profile['profile_dict']
+
+    type = profile_dict['type']
+
+    # TODO
+    # consolidate this
+
+    if type == 'btl':
+
+        # station_cast = profile['station_cast']
+        # profile_dict = profile['profile_dict']
+
+        meta = profile_dict['meta']
+        renamed_meta = rename_argovis_meta(meta)
+
+        bgc_list = profile_dict['bgc_meas']
+
+        renamed_bgc_list = create_renamed_list_of_objs(bgc_list, 'btl')
+
+        measurements_list = profile_dict['measurements']
+
+        renamed_measurements_list = create_renamed_list_of_objs_argovis_measurements(
+            measurements_list)
+
+        measurements_source = profile_dict['measurements_source']
+        goship_names = profile_dict['goship_names']
+        goship_ref_scale = profile_dict['goship_ref_scale']
+        goship_units = profile_dict['goship_units']
+
+        goship_argovis_name = gvm.create_goship_argovis_core_values_mapping(
+            goship_names, type)
+
+        argovis_ref_scale = gvm.get_argovis_ref_scale_mapping(
+            goship_names, type)
+
+        goship_argovis_unit = gvm.get_goship_argovis_unit_mapping()
+
+    if type == 'ctd':
+
+        # station_cast = profile['station_cast']
+        # profile_dict = profile['profile_dict']
+
+        meta = profile_dict['meta']
+
+        renamed_meta = rename_argovis_meta(meta)
+
+        bgc_list = profile_dict['bgc_meas']
+        renamed_bgc_list = create_renamed_list_of_objs(bgc_list, type)
+
+        measurements_list = profile_dict['measurements']
+
+        renamed_measurements_list = create_renamed_list_of_objs_argovis_measurements(
+            measurements_list)
+
+        measurements_source = profile_dict['measurements_source']
+
+        goship_names = profile_dict['goship_names']
+        goship_ref_scale = profile_dict['goship_ref_scale']
+        goship_units = profile_dict['goship_units']
+
+        goship_argovis_name = gvm.create_goship_argovis_core_values_mapping(
+            goship_names, type)
+
+        argovis_ref_scale = gvm.get_argovis_ref_scale_mapping(
+            goship_names, type)
+
+        goship_argovis_unit = gvm.get_goship_argovis_unit_mapping()
+
+    renamed_profile_dict = {}
+    renamed_profile_dict['type'] = type
+    renamed_profile_dict['stationCast'] = station_cast
+    renamed_profile_dict['meta'] = renamed_meta
+    renamed_profile_dict['measurements'] = renamed_measurements_list
+    renamed_profile_dict['measurementsSource'] = measurements_source
+    renamed_profile_dict['bgcMeas'] = renamed_bgc_list
+    renamed_profile_dict['goshipUnits'] = goship_units
+    renamed_profile_dict['goshipArgovisNameMapping'] = goship_argovis_name
+    renamed_profile_dict['goshipReferenceScale'] = goship_ref_scale
+    renamed_profile_dict['argovisReferenceScale'] = argovis_ref_scale
+    renamed_profile_dict['goshipArgovisUnitsMapping'] = goship_argovis_unit
+
+    output_profile = {}
+    output_profile['profile_dict'] = renamed_profile_dict
+    output_profile['station_cast'] = station_cast
+
+    return output_profile
+
+
+# def rename_profiles_to_argovis(profiles, type):
+
+#     all_profiles = []
+
+#     for profile in profiles:
+
+#         processed_profile = rename_output_per_profile(profile, type)
+
+#         all_profiles.append(processed_profile)
+
+#     return all_profiles

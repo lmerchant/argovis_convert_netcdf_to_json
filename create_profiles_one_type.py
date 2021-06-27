@@ -9,6 +9,8 @@ import re
 
 import get_variable_mappings as gvm
 import filter_profiles as fp
+import rename_objects as rn
+import get_profile_mapping_and_conversions as pm
 
 
 class fakefloat(float):
@@ -473,7 +475,17 @@ def add_extra_coords(nc, data_obj):
     return nc
 
 
-def create_profile(nc_profile_group, data_obj):
+# def create_profile(nc_profile_group, data_obj):
+def create_profile(nc_group, data_obj):
+
+    type = data_obj['type']
+
+    logging.info(f"Processing {type} profile {nc_group[0] + 1}")
+
+    profile_number = nc_group[0]
+    nc_profile_group = nc_group[1]
+
+    data_obj['profile_number'] = profile_number
 
     # TODO
     # Ask if for measurements, all values including pres are null,
@@ -491,7 +503,7 @@ def create_profile(nc_profile_group, data_obj):
     nc_profile_group = add_extra_coords(nc_profile_group, data_obj)
 
     # Get meta names  again now that added extra coords
-    meta_names, param_names = get_meta_param_names(nc_profile_group)
+    meta_names, param_names = pm.get_meta_param_names(nc_profile_group)
 
     meta_dict = create_meta_dict(nc_profile_group, meta_names, data_obj)
 
@@ -518,6 +530,7 @@ def create_profile(nc_profile_group, data_obj):
     # Save meta separate for renaming later
     profile_dict = {}
     profile_dict['station_cast'] = station_cast
+    profile_dict['type'] = type
     profile_dict['meta'] = meta_dict
     profile_dict['bgc_meas'] = bgc_meas_dict_list
     profile_dict['measurements'] = measurements_dict_list
@@ -531,138 +544,36 @@ def create_profile(nc_profile_group, data_obj):
     output_profile['profile_dict'] = profile_dict
     output_profile['station_cast'] = station_cast
 
-    return output_profile
+    # Rename with _type suffix unless it is an Argovis variable
+    # But no _btl suffix to meta data
+    # Add _btl when combine files
+    profile_one_type = rn.rename_output_per_profile(output_profile)
+
+    return profile_one_type
 
 
-def create_profiles(data_obj):
-
-    nc = data_obj['nc']
+def create_profiles_one_type(data_obj):
 
     type = data_obj['type']
 
-    all_profiles_list = []
+    print('---------------------------')
+    print(f'Start processing {type} profiles')
+    print('---------------------------')
+
+    data_obj = pm.get_profile_mapping_and_conversions(data_obj)
+
+    nc = data_obj['nc']
+
+    all_profiles = []
 
     for nc_group in nc.groupby('N_PROF'):
 
-        logging.info(f"Processing {type} profile {nc_group[0] + 1}")
+        profile = create_profile(nc_group, data_obj)
 
-        profile_number = nc_group[0]
-        nc_profile_group = nc_group[1]
+        all_profiles.append(profile)
 
-        data_obj['profile_number'] = profile_number
+    print('---------------------------')
+    print(f'End processing {type} profiles')
+    print('---------------------------')
 
-        profile = create_profile(nc_profile_group, data_obj)
-
-        all_profiles_list.append(profile)
-
-    return all_profiles_list
-
-
-def convert_sea_water_temp(nc, var, var_goship_ref_scale):
-
-    # Check sea_water_temperature to be degree_Celsius and
-    # have goship_reference_scale be ITS-90
-
-    # So look for ref_scale = IPTS-68 or ITS-90
-
-    # loop through variables and look at reference scale,
-    # if it is IPTS-68 then convert
-
-    # Change this to work for all temperature names
-
-    if var_goship_ref_scale == 'IPTS-68':
-
-        # Convert to ITS-90 scal
-        temperature = nc[var].data
-
-        converted_temperature = temperature/1.00024
-
-        # Set nc var of temp to this value
-        num_decimal_places = abs(
-            Decimal(str(converted_temperature)).as_tuple().exponent)
-
-        new_temperature = round(converted_temperature, num_decimal_places)
-
-        # Set temperature value in nc because use it later to
-        # create profile dict
-        nc[var].data = new_temperature
-
-        nc[var].attrs['reference_scale'] = 'ITS-90'
-
-    return nc
-
-
-def convert_goship_to_argovis_ref_scale(data_obj):
-
-    nc = data_obj['nc']
-    meta_vars = data_obj['meta']
-    params = data_obj['param']
-
-    # If argo ref scale not equal to goship ref scale, convert
-
-    # So far, it's only the case for temperature
-
-    argovis_ref_scale_per_type = gvm.get_argovis_reference_scale_per_type()
-
-    for var in params:
-        # Not all vars have a reference scale
-        try:
-            # Get goship reference scale of var
-            var_goship_ref_scale = nc[var].attrrs['reference_scale']
-
-            if 'temperature' in var:
-                argovis_ref_scale = argovis_ref_scale_per_type['temperature']
-                is_same_scale = var_goship_ref_scale == argovis_ref_scale
-                is_IPTS68_scale = var_goship_ref_scale == 'IPTS-68'
-
-                if is_IPTS68_scale and not is_same_scale:
-                    nc = convert_sea_water_temp(nc, var, var_goship_ref_scale)
-
-        except:
-            pass
-
-    data_obj['nc'] = nc
-
-    return data_obj
-
-
-def get_meta_param_names(nc):
-
-    # Meta names have size N_PROF and no N_LEVELS
-    # Parameter names have size N_PROF AND N_LEVELS
-
-    #  TODO
-    # Why not find btm_depth? Not finding it for units mapping
-
-    # It is  N_PROF dimension only. Maybe need to look
-    # for a size  not N_LEVELS
-    # Does it find cast and station for meta names?
-
-    meta_names = []
-    param_names = []
-
-    # check coords
-    for name in list(nc.coords):
-        size = nc[name].sizes
-
-        try:
-            size['N_LEVELS']
-            param_names.append(name)
-        except KeyError:
-            meta_names.append(name)
-
-    # check params
-    for name in list(nc.keys()):
-        size = nc[name].sizes
-
-        try:
-            size['N_LEVELS']
-            param_names.append(name)
-        except KeyError:
-            meta_names.append(name)
-
-    # Remove variables not wanted
-    meta_names.remove('profile_type')
-    meta_names.remove('geometry_container')
-
-    return meta_names, param_names
+    return all_profiles
