@@ -8,7 +8,7 @@ import logging
 import re
 import dask.bag as db
 from datetime import datetime
-from dask.diagnostics import ProgressBar
+#from dask.diagnostics import ProgressBar
 
 
 import get_variable_mappings as gvm
@@ -362,19 +362,6 @@ def create_json_profiles(nc_profile_group, names, data_obj):
 
     return profiles
 
-    # json_profiles = ''
-
-    # for profile in json_profile.values():
-    #     profile = profile.lstrip('{')
-    #     bare_profile = profile.rstrip('}')
-
-    #     json_profiles = json_profiles + ', ' + bare_profile
-
-    # # Strip off starting ', ' of string
-    # json_profiles = '{' + json_profiles.strip(', ') + '}'
-
-    # return json_profiles
-
 
 def create_geolocation_json_str(nc):
 
@@ -500,82 +487,6 @@ def add_extra_coords(nc, data_obj):
     return nc
 
 
-# def create_profile(nc_group, data_obj):
-
-#     type = data_obj['type']
-
-#     logging.info(f"Processing {type} profile {nc_group[0] + 1}")
-
-#     profile_number = nc_group[0]
-#     nc_profile_group = nc_group[1]
-
-#     data_obj['profile_number'] = profile_number
-
-#     # TODO
-#     # Ask if for measurements, all values including pres are null,
-#     # do I delete it? probably
-
-#     # don't rename variables yet
-
-#     cast_number = str(nc_profile_group['cast'].values)
-
-#     # The station number is a string
-#     station = str(nc_profile_group['station'].values)
-
-#     station_cast = f"{station}_{cast_number}"
-
-#     nc_profile_group = add_extra_coords(nc_profile_group, data_obj)
-
-#     # Get meta names  again now that added extra coords
-#     meta_names, param_names = pm.get_meta_param_names(nc_profile_group)
-
-#     meta_dict = create_meta_dict(nc_profile_group, meta_names, data_obj)
-
-#     goship_c_format_mapping_dict = data_obj['goship_c_format']
-
-#     param_dict = create_json_profiles(nc_profile_group, param_names, data_obj)
-
-#     df_bgc = create_bgc_meas_df(param_dict)
-
-#     # param_json = create_json_profiles(nc_profile_group, param_names, data_obj)
-#     # df_bgc = create_bgc_meas_df(param_json)
-
-#     bgc_meas_dict_list = create_bgc_meas_list(df_bgc)
-
-#     measurements_dict_list, measurements_source = create_measurements_list(
-#         df_bgc)
-
-#     goship_units_dict = data_obj['goship_units']
-
-#     goship_ref_scale_mapping_dict = data_obj['goship_ref_scale']
-
-#     goship_names_list = [*meta_names, *param_names]
-
-#     # Save meta separate for renaming later
-#     profile_dict = {}
-#     profile_dict['station_cast'] = station_cast
-#     profile_dict['type'] = type
-#     profile_dict['meta'] = meta_dict
-#     profile_dict['bgc_meas'] = bgc_meas_dict_list
-#     profile_dict['measurements'] = measurements_dict_list
-#     profile_dict['measurements_source'] = measurements_source
-#     profile_dict['goship_ref_scale'] = goship_ref_scale_mapping_dict
-#     profile_dict['goship_units'] = goship_units_dict
-#     profile_dict['goship_c_format'] = goship_c_format_mapping_dict
-#     profile_dict['goship_names'] = goship_names_list
-
-#     output_profile = {}
-#     output_profile['profile_dict'] = profile_dict
-#     output_profile['station_cast'] = station_cast
-
-#     # Rename with _type suffix unless it is an Argovis variable
-#     # But no _btl suffix to meta data
-#     # Add _btl when combine files
-#     profile_one_type = rn.rename_profile_to_argovis(output_profile)
-
-#     return profile_one_type
-
-
 def create_profile(nc_profile_group, data_obj):
 
     type = data_obj['type']
@@ -681,40 +592,8 @@ def create_profiles_one_type(data_obj):
     # logging.info('Using single thread')
     # logging.info(datetime.now() - program_start_time)
 
-    # for nc_group in nc.groupby('N_PROF'):
-
-    #     profile = create_profile(nc_group, data_obj)
-
-    #     all_profiles.append(profile)
-
     logging.info('---------------------------')
     logging.info(f'End processing {type} profiles')
     logging.info('---------------------------')
 
     return all_profiles
-
-# def create_profiles_one_type(data_obj):
-
-#     type = data_obj['type']
-
-#     print('---------------------------')
-#     print(f'Start processing {type} profiles')
-#     print('---------------------------')
-
-#     data_obj = pm.get_profile_mapping_and_conversions(data_obj)
-
-#     nc = data_obj['nc']
-
-#     all_profiles = []
-
-#     for nc_group in nc.groupby('N_PROF'):
-
-#         profile = create_profile(nc_group, data_obj)
-
-#         all_profiles.append(profile)
-
-#     print('---------------------------')
-#     print(f'End processing {type} profiles')
-#     print('---------------------------')
-
-#     return all_profiles

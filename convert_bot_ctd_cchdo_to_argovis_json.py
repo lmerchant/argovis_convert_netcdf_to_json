@@ -1,6 +1,4 @@
 import requests
-# from requests.adapters import HTTPAdapter
-# from requests.adapters import proxy_from_url
 import fsspec
 import xarray as xr
 from datetime import datetime
@@ -9,12 +7,8 @@ import errno
 import os
 import logging
 import click
-from datetime import datetime
-import dask.bag as db
 from dask.diagnostics import ProgressBar
 
-import get_variable_mappings as gvm
-import rename_objects as rn
 import check_if_has_ctd_vars as ckvar
 import filter_profiles as fp
 import get_cruise_information as gi
@@ -38,6 +32,9 @@ pbar.register()
 # url = 'https://cchdo.ucsd.edu/data/16923/318M20130321_bottle.nc'
 # with fsspec.open(url) as fobj:
 #     ds = xr.open_dataset(fobj)
+
+# For testing with a single thread
+# c.compute(scheduler='single-threaded')
 
 
 """
@@ -113,20 +110,6 @@ def read_file(data_obj):
     data_obj['file_expocode'] = file_expocode
 
     return data_obj, flag
-
-
-def process_ctd(ctd_obj):
-
-    profiles_ctd = op.create_profiles_one_type(ctd_obj)
-
-    return ctd_profiles
-
-
-def process_bottle(btl_obj):
-
-    btl_profiles = op.create_profiles_one_type(btl_obj)
-
-    return btl_profiles
 
 
 def setup_test_obj(dir, filename, type):
@@ -403,9 +386,11 @@ def main(start_year, end_year, clear):
             sv.save_all_btl_ctd_profiles(checked_ctd_variables,
                                          logging_dir, json_directory)
 
+            sv.write_profile_goship_units(
+                checked_ctd_variables, logging_dir)
+
         elif btl_found:
-            profiles_btl = fp.filter_measurements(
-                profiles_btl, 'btl')
+            profiles_btl = fp.filter_measurements(profiles_btl, 'btl')
 
             checked_ctd_variables = ckvar.check_of_ctd_variables(
                 profiles_btl, logging, logging_dir)
@@ -417,9 +402,11 @@ def main(start_year, end_year, clear):
             sv.save_all_profiles_one_type(
                 checked_ctd_variables, logging_dir, json_directory)
 
+            sv.write_profile_goship_units(
+                checked_ctd_variables, logging_dir)
+
         elif ctd_found:
-            profiles_ctd = fp.filter_measurements(
-                profiles_ctd, 'ctd')
+            profiles_ctd = fp.filter_measurements(profiles_ctd, 'ctd')
 
             checked_ctd_variables = ckvar.check_of_ctd_variables(
                 profiles_ctd, logging, logging_dir)
@@ -430,6 +417,9 @@ def main(start_year, end_year, clear):
 
             sv.save_all_profiles_one_type(
                 checked_ctd_variables, logging_dir, json_directory)
+
+            sv.write_profile_goship_units(
+                checked_ctd_variables, logging_dir)
 
         if btl_found or ctd_found:
 

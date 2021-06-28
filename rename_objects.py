@@ -212,74 +212,6 @@ def rename_key_not_meta_argovis(obj, type):
     return new_obj
 
 
-# def rename_units_to_argovis(data_obj):
-
-#     units_mapping = gvm.get_goship_argovis_unit_mapping()
-#     goship_salinity_ref_scale = gvm.get_goship_salniity_reference_scale()
-
-#     nc = data_obj['nc']
-
-#     coords = nc.coords
-#     vars = nc.keys()
-
-#     for var in coords:
-
-#         # use try block because not all vars have a unit
-#         try:
-#             goship_unit = nc.coords[var].attrs['units']
-#         except KeyError:
-#             goship_unit = None
-
-#         try:
-#             argovis_unit = units_mapping[goship_unit]
-#         except:
-#             argovis_unit = goship_unit
-
-#         if goship_unit:
-#             try:
-#                 nc.coords[var].attrs['units'] = units_mapping[goship_unit]
-#             except:
-#                 # No unit mapping
-#                 pass
-
-#     for var in vars:
-
-#         try:
-#             goship_unit = nc[var].attrs['units']
-#         except KeyError:
-#             goship_unit = None
-
-#         # use try block because not all vars have a reference scale
-#         try:
-#             argovis_unit = units_mapping[goship_unit]
-#         except:
-#             argovis_unit = goship_unit
-
-#         # Check if salinity unit of 1
-#         if goship_unit == '1':
-#             try:
-#                 var_goship_ref_scale = nc[var].attrs['reference_scale']
-
-#                 if var_goship_ref_scale == goship_salinity_ref_scale:
-#                     argovis_unit = units_mapping[goship_unit]
-
-#                     nc[var].attrs['units'] = argovis_unit
-
-#             except KeyError:
-#                 pass
-
-#         if goship_unit:
-#             try:
-#                 nc[var].attrs['units'] = units_mapping[goship_unit]
-#             except:
-#                 # No unit mapping
-#                 pass
-
-#     data_obj['nc'] = nc
-
-#     return data_obj
-
-
 def create_renamed_list_of_objs_argovis_measurements(cur_list):
 
     # Rename without extension
@@ -450,16 +382,3 @@ def rename_profile_to_argovis(profile):
     output_profile['station_cast'] = station_cast
 
     return output_profile
-
-
-# def rename_profiles_to_argovis(profiles, type):
-
-#     all_profiles = []
-
-#     for profile in profiles:
-
-#         processed_profile = rename_per_profile(profile, type)
-
-#         all_profiles.append(processed_profile)
-
-#     return all_profiles

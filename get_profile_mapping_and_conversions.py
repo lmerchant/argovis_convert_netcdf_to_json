@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import get_variable_mappings as gvm
 
 
