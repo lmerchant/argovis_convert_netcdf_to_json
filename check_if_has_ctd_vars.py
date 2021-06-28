@@ -26,7 +26,7 @@ def check_missing_variables(profile, variables_check, logging, logging_dir):
 
     # No pressure
     if not has_pres:
-        logging.info(f'No pressure for {expocode} {station_cast}')
+        #logging.info(f'No pressure for {expocode} {station_cast}')
         filename = 'cruises_no_pressure.txt'
         filepath = os.path.join(logging_dir, filename)
         with open(filepath, 'a') as f:
@@ -38,8 +38,8 @@ def check_missing_variables(profile, variables_check, logging, logging_dir):
     # Has no ctd core variables with at least a ctd temperature
     # regardless of if it has a qc or not
     if not has_pres and not has_ctd_temp_btl and not has_ctd_temp_ctd:
-        logging.info(
-            f'Missing pres and ctd temperature for {expocode} {station_cast}')
+        # logging.info(
+        #    f'Missing pres and ctd temperature for {expocode} {station_cast}')
         filename = 'cruises_no_core_ctd_vars.txt'
         filepath = os.path.join(logging_dir, filename)
         with open(filepath, 'a') as f:
@@ -54,8 +54,8 @@ def check_missing_variables(profile, variables_check, logging, logging_dir):
         # Not looking at pressure next but whether an indivdual type has ctd temperature
         # irregardless of qc
         if not has_ctd_temp_btl:
-            logging.info(
-                f'No ctd temperature for BTL {expocode} {station_cast}')
+            # logging.info(
+            #    f'No ctd temperature for BTL {expocode} {station_cast}')
             filename = 'cruises_no_ctd_temp.txt'
             filepath = os.path.join(logging_dir, filename)
             with open(filepath, 'a') as f:
@@ -67,8 +67,8 @@ def check_missing_variables(profile, variables_check, logging, logging_dir):
         # Doesn't have a ctd temp w ref scale
         # Usually, if it doesn't have this, it has a ctd_temperature_unk
         if not has_ctd_temp_w_ref_scale_btl:
-            logging.info(
-                f'No ctd temperature w ref scale for BTL {expocode} {station_cast}')
+            # logging.info(
+            #    f'No ctd temperature w ref scale for BTL {expocode} {station_cast}')
             filename = 'cruises_no_ctd_temp_ref_scale.txt'
             filepath = os.path.join(logging_dir, filename)
             with open(filepath, 'a') as f:
@@ -79,8 +79,8 @@ def check_missing_variables(profile, variables_check, logging, logging_dir):
 
         # Look for ctd_temperature_unk
         if has_ctd_temp_unk_btl:
-            logging.info(
-                f'Has ctd_temperature_unk for BTL {expocode} {station_cast}')
+            # logging.info(
+            #    f'Has ctd_temperature_unk for BTL {expocode} {station_cast}')
             filename = 'cruises_w_ctd_temp_unk.txt'
             filepath = os.path.join(logging_dir, filename)
             with open(filepath, 'a') as f:
@@ -91,8 +91,8 @@ def check_missing_variables(profile, variables_check, logging, logging_dir):
 
         # Has a ctd temperature but no qc
         if has_ctd_temp_btl and not has_ctd_temp_qc_btl:
-            logging.info(
-                f'Found CTD temperature but no qc for BTL {expocode} {station_cast}')
+            # logging.info(
+            #    f'Found CTD temperature but no qc for BTL {expocode} {station_cast}')
             filename = 'cruises_w_ctd_temp_no_qc.txt'
             filepath = os.path.join(logging_dir, filename)
             with open(filepath, 'a') as f:
@@ -105,9 +105,9 @@ def check_missing_variables(profile, variables_check, logging, logging_dir):
         # Most likely doesn't exist
         # Because if this occurs, looks like ctd temp renamed with
         # suffix _unk
-        if has_ctd_temp_btl and not has_ctd_temp_w_ref_scale_btl:
-            logging.info(
-                f'CTD temperature with no ref scale for BTL {expocode} {station_cast}')
+        if not has_ctd_temp_w_ref_scale_btl:
+            # logging.info(
+            #    f'CTD temperature with no ref scale for BTL {expocode} {station_cast}')
             filename = 'cruises_w_ctd_temp_no_ref_scale.txt'
             filepath = os.path.join(logging_dir, filename)
             with open(filepath, 'a') as f:
@@ -123,8 +123,8 @@ def check_missing_variables(profile, variables_check, logging, logging_dir):
         # irregardless of qc
 
         if not has_ctd_temp_ctd:
-            logging.info(
-                f'No ctd temperature for CTD {expocode} {station_cast}')
+            # logging.info(
+            #    f'No ctd temperature for CTD {expocode} {station_cast}')
             filename = 'cruises_no_ctd_temp.txt'
             filepath = os.path.join(logging_dir, filename)
             with open(filepath, 'a') as f:
@@ -136,8 +136,8 @@ def check_missing_variables(profile, variables_check, logging, logging_dir):
         # Doesn't have a ctd temp w ref scale
         # Usually, if it doesn't have this, it has a ctd_temperature_unk
         if not has_ctd_temp_w_ref_scale_ctd:
-            logging.info(
-                f'No ctd temperature w ref scale for CTD {expocode} {station_cast}')
+            # logging.info(
+            #    f'No ctd temperature w ref scale for CTD {expocode} {station_cast}')
             filename = 'cruises_no_ctd_temp_ref_scale.txt'
             filepath = os.path.join(logging_dir, filename)
             with open(filepath, 'a') as f:
@@ -148,8 +148,8 @@ def check_missing_variables(profile, variables_check, logging, logging_dir):
 
         # Look for ctd_temperature_unk
         if has_ctd_temp_unk_ctd:
-            logging.info(
-                f'Has ctd_temperature_unk for CTD {expocode} {station_cast}')
+            # logging.info(
+            #    f'Has ctd_temperature_unk for CTD {expocode} {station_cast}')
             filename = 'cruises_w_ctd_temp_unk.txt'
             filepath = os.path.join(logging_dir, filename)
             with open(filepath, 'a') as f:
@@ -160,8 +160,8 @@ def check_missing_variables(profile, variables_check, logging, logging_dir):
 
         # Has a ctd temperature but no qc
         if has_ctd_temp_ctd and not has_ctd_temp_qc_ctd:
-            logging.info(
-                f'Found CTD temperature but no qc for CTD {expocode} {station_cast}')
+            # logging.info(
+            #    f'Found CTD temperature but no qc for CTD {expocode} {station_cast}')
             filename = 'cruises_w_ctd_temp_no_qc.txt'
             filepath = os.path.join(logging_dir, filename)
             with open(filepath, 'a') as f:
@@ -176,8 +176,8 @@ def check_missing_variables(profile, variables_check, logging, logging_dir):
         # suffix _unk
 
         if has_ctd_temp_ctd and not has_ctd_temp_w_ref_scale_ctd:
-            logging.info(
-                f'CTD temperature with no ref scale for CTD {expocode} {station_cast}')
+            # logging.info(
+            #    f'CTD temperature with no ref scale for CTD {expocode} {station_cast}')
             filename = 'cruises_w_ctd_temp_no_ref_scale.txt'
             filepath = os.path.join(logging_dir, filename)
             with open(filepath, 'a') as f:
@@ -206,9 +206,9 @@ def check_ctd_vars_one_profile(profile, logging, logging_dir):
     expocode = profile_dict['meta']['expocode']
     bgc_meas = profile_dict['bgcMeas']
 
-    logging.info('***********')
-    logging.info(f"station cast {station_cast}")
-    logging.info(f"collection type {type}")
+    # logging.info('***********')
+    #logging.info(f"station cast {station_cast}")
+    #logging.info(f"collection type {type}")
 
     for obj in bgc_meas:
         if 'pres' in obj.keys():
@@ -230,8 +230,8 @@ def check_ctd_vars_one_profile(profile, logging, logging_dir):
         has_ctd_temp_btl = 'temp_btl' in goship_argovis_name_mapping.values()
         has_ctd_temp_ctd = 'temp_ctd' in goship_argovis_name_mapping.values()
 
-    # logging.info(f"has_ctd_temp_btl regardless of qc {has_ctd_temp_btl}")
-    # logging.info(f"has_ctd_temp_ctd regardless of qc  {has_ctd_temp_ctd}")
+    # #logging.info(f"has_ctd_temp_btl regardless of qc {has_ctd_temp_btl}")
+    # #logging.info(f"has_ctd_temp_ctd regardless of qc  {has_ctd_temp_ctd}")
 
     # Look for ctd_temperature with qc
     try:
@@ -241,12 +241,14 @@ def check_ctd_vars_one_profile(profile, logging, logging_dir):
         has_ctd_temp_qc_btl = 'temp_btl_qc' in goship_argovis_name_mapping.values()
         has_ctd_temp_qc_ctd = 'temp_ctd_qc' in goship_argovis_name_mapping.values()
 
-    # logging.info(f"has_ctd_temp_qc_btl {has_ctd_temp_qc_btl}")
-    # logging.info(f"has_ctd_temp_qc_ctd {has_ctd_temp_qc_ctd}")
+    # #logging.info(f"has_ctd_temp_qc_btl {has_ctd_temp_qc_btl}")
+    # #logging.info(f"has_ctd_temp_qc_ctd {has_ctd_temp_qc_ctd}")
 
     # Look at ctd_temperature ref scale
     argovis_ref_scale = profile_dict['argovisReferenceScale']
 
+    # TODO
+    # fix this error
     has_ctd_temp_w_ref_scale_btl = 'temp_btl' in argovis_ref_scale.keys()
     has_ctd_temp_w_ref_scale_ctd = 'temp_ctd' in argovis_ref_scale.keys()
 
@@ -293,24 +295,24 @@ def check_ctd_vars_one_profile(profile, logging, logging_dir):
     check_of_ctd_vars['has_ctd_temp_unk']['ctd'] = False
 
     if has_pres and has_ctd_temp_btl and has_ctd_temp_qc_btl and has_ctd_temp_w_ref_scale_btl:
-        logging.info(f"Found CTD variables for BTL {expocode} {station_cast}")
+        #logging.info(f"Found CTD variables for BTL {expocode} {station_cast}")
         check_of_ctd_vars['has_all_ctd_vars']['btl'] = True
 
     if has_pres and has_ctd_temp_ctd and has_ctd_temp_qc_ctd and has_ctd_temp_w_ref_scale_ctd:
-        logging.info(f"Found CTD variables for CTD {expocode} {station_cast}")
+        #logging.info(f"Found CTD variables for CTD {expocode} {station_cast}")
         check_of_ctd_vars['has_all_ctd_vars']['ctd'] = True
 
     if has_pres and has_ctd_temp_btl and has_ctd_temp_qc_btl and has_ctd_temp_w_ref_scale_btl:
-        logging.info(f"Found CTD variables for BTL {expocode} {station_cast}")
+        #logging.info(f"Found CTD variables for BTL {expocode} {station_cast}")
         check_of_ctd_vars['has_all_ctd_vars']['btl'] = True
 
     if has_ctd_temp_btl and not has_ctd_temp_qc_btl:
-        # logging.info(
+        # #logging.info(
         #     f"Found CTD temperature and no qc for BTL {expocode} {station_cast}")
         check_of_ctd_vars['has_ctd_vars_no_qc']['btl'] = True
 
     if has_ctd_temp_ctd and not has_ctd_temp_qc_ctd:
-        # logging.info(
+        # #logging.info(
         #     f"Found CTD temperature and no qc for CTD {expocode} {station_cast}")
         check_of_ctd_vars['has_ctd_vars_no_qc']['ctd'] = True
 

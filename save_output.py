@@ -5,6 +5,7 @@ import json
 import numpy as np
 import logging
 import re
+import dask.bag as db
 
 
 def convert(o):
@@ -37,12 +38,14 @@ def write_profile_goship_units(profile_dict, logging_dir):
         except:
             goship_units = profile_dict['goshipUnits']
 
+    goship_units['expocode'] = profile_dict['meta']['expocode']
+
     with open(filepath, 'a') as f:
         json.dump(goship_units, f, indent=4,
                   sort_keys=True, default=convert)
 
 
-def write_profile_json(cruise_expocode, json_dir, profile_dict):
+def prepare_profile_json(profile_dict):
 
     station_cast = profile_dict['stationCast']
 
@@ -58,6 +61,33 @@ def write_profile_json(cruise_expocode, json_dir, profile_dict):
     # Now combine with left over profile_dict
     data_dict = {**meta_dict, **profile_dict}
 
+    # # TODO
+    # # ask
+    # # probably use cruise expocode instead of that in file
+
+    # id = data_dict['id']
+
+    # # TODO
+    # # When create file id, ask if use cruise expocode instead
+    # filename = f"{id}.json"
+
+    # expocode = data_dict['expocode']
+
+    # json_str = json.dumps(data_dict)
+
+    # # TODO
+    # # check did this earlier in program
+    # # _qc":2.0
+    # # If qc value in json_str matches '.0' at end, remove it to get an int qc
+    # json_str = re.sub(r'(_qc":\s?\d)\.0', r"\1", json_str)
+
+    return data_dict
+
+
+def write_profile_json(cruise_expocode, json_dir, profile_dict):
+
+    data_dict = prepare_profile_json(profile_dict)
+
     # TODO
     # ask
     # probably use cruise expocode instead of that in file
@@ -70,13 +100,39 @@ def write_profile_json(cruise_expocode, json_dir, profile_dict):
 
     expocode = data_dict['expocode']
 
-    json_str = json.dumps(data_dict)
+    # station_cast = profile_dict['stationCast']
 
-    # TODO
-    # check did this earlier in program
-    # _qc":2.0
-    # If qc value in json_str matches '.0' at end, remove it to get an int qc
-    json_str = re.sub(r'(_qc":\s?\d)\.0', r"\1", json_str)
+    # profile_dict.pop('stationCast', None)
+    # profile_dict.pop('type', None)
+
+    # # Remove  time from meta since it was just used to create date variable
+    # profile_dict['meta'].pop('time', None)
+
+    # # Pop off meta key and use as start of data_dict
+    # meta_dict = profile_dict.pop('meta', None)
+
+    # # Now combine with left over profile_dict
+    # data_dict = {**meta_dict, **profile_dict}
+
+    # # TODO
+    # # ask
+    # # probably use cruise expocode instead of that in file
+
+    # id = data_dict['id']
+
+    # # TODO
+    # # When create file id, ask if use cruise expocode instead
+    # filename = f"{id}.json"
+
+    # expocode = data_dict['expocode']
+
+    # json_str = json.dumps(data_dict)
+
+    # # TODO
+    # # check did this earlier in program
+    # # _qc":2.0
+    # # If qc value in json_str matches '.0' at end, remove it to get an int qc
+    # json_str = re.sub(r'(_qc":\s?\d)\.0', r"\1", json_str)
 
     if '/' in filename:
         filename = filename.replace('/', '_')
@@ -96,6 +152,7 @@ def write_profile_json(cruise_expocode, json_dir, profile_dict):
     # TESTING
     # TODO Remove formatting when final
 
+    # TODO is  the following still true?
     # use convert function to change numpy int values into python int
     # Otherwise, not serializable
 
@@ -103,75 +160,155 @@ def write_profile_json(cruise_expocode, json_dir, profile_dict):
     # Sort keys or not?
     # with open(file, 'w') as f:
     #     json.dump(data_dict, f, indent=4, sort_keys=True, default=convert)
+
     # Sort keys or not?
     with open(file, 'w') as f:
         json.dump(data_dict, f, indent=4, sort_keys=False, default=convert)
 
-    logging.info(f"Converted json saved for {expocode} {station_cast}")
+    logging.info(f"Saved profile id {id}")
 
 
-def save_output(checked_ctd_variables, logging_dir, json_directory):
+def save_profile_one_type(ctd_var_check, logging_dir, json_directory):
 
-    for ctd_var_check in checked_ctd_variables:
+    has_all_ctd_vars = ctd_var_check['has_all_ctd_vars']
+    type = ctd_var_check['type']
+    station_cast = ctd_var_check['station_cast']
+    profile = ctd_var_check['profile_checked']
+    profile_dict = profile['profile_dict']
+    expocode = profile_dict['meta']['expocode']
 
-        has_all_ctd_vars = ctd_var_check['has_all_ctd_vars']
-        type = ctd_var_check['type']
-        station_cast = ctd_var_check['station_cast']
-        profile = ctd_var_check['profile_checked']
-        profile_dict = profile['profile_dict']
-        expocode = profile_dict['meta']['expocode']
+    # Write one profile goship units to
+    # keep a record of what units need to be converted
+    write_goship_units = True
+    if write_goship_units:
+        write_goship_units = False
+        write_profile_goship_units(profile_dict, logging_dir)
 
-        # Write one profile goship units to
-        # keep a record of what units need to be converted
-        write_goship_units = True
-        if write_goship_units:
-            write_goship_units = False
-            write_profile_goship_units(profile_dict, logging_dir)
-
-        if has_all_ctd_vars[type]:
-            write_profile_json(
-                expocode, json_directory, profile_dict)
-        else:
-            # Write to a file the cruise not converted
-            logging.info(
-                f"Cruise not converted for type {type} and {expocode} {station_cast}")
-            filename = 'cruises_not_converted.txt'
-            filepath = os.path.join(logging_dir, filename)
-            with open(filepath, 'a') as f:
-                f.write('-----------\n')
-                f.write(f"expocode {expocode} {station_cast}\n")
-                f.write(f"collection type {type}")
+    if has_all_ctd_vars[type]:
+        write_profile_json(
+            expocode, json_directory, profile_dict)
+    else:
+        # Write to a file the cruise not converted
+        # logging.info(
+        #    f"Cruise not converted for type {type} and {expocode} {station_cast}")
+        filename = 'cruises_not_converted.txt'
+        filepath = os.path.join(logging_dir, filename)
+        with open(filepath, 'a') as f:
+            f.write('-----------\n')
+            f.write(f"expocode {expocode} {station_cast}\n")
+            f.write(f"collection type {type}")
 
 
-def save_output_btl_ctd(checked_ctd_variables, logging_dir, json_directory):
+def save_all_profiles_one_type(checked_ctd_variables, logging_dir, json_directory):
 
-    for ctd_var_check in checked_ctd_variables:
-        has_all_ctd_vars = ctd_var_check['has_all_ctd_vars']
-        has_ctd_vars_no_qc = ctd_var_check['has_ctd_vars_no_qc']
-        has_ctd_vars_unk_ref_scale = ctd_var_check['has_ctd_temp_unk']
+    b = db.from_sequence(checked_ctd_variables)
 
-        profile = ctd_var_check['profile_checked']
+    c = b.map(save_profile_one_type, logging_dir, json_directory)
 
-        profile_dict = profile['profile_dict']
-        station_cast = profile['station_cast']
-        expocode = profile_dict['meta']['expocode']
+    c.compute()
 
-        # Write one profile goship units to
-        # keep a record of what units need to be converted
-        write_goship_units = True
-        if write_goship_units:
-            write_goship_units = False
-            write_profile_goship_units(profile_dict, logging_dir)
+    # for ctd_var_check in checked_ctd_variables:
 
-        if has_all_ctd_vars['btl'] or has_all_ctd_vars['ctd']:
-            write_profile_json(
-                expocode, json_directory, profile_dict)
-        else:
-            # Write to a file the cruise not converted
-            logging.info(
-                f"Cruise not converted {expocode} {station_cast}")
-            filename = 'cruises_not_converted.txt'
-            filepath = os.path.join(logging_dir, filename)
-            with open(filepath, 'a') as f:
-                f.write('-----------\n')
-                f.write(f"expocode {expocode}\n")
+    # has_all_ctd_vars = ctd_var_check['has_all_ctd_vars']
+    # type = ctd_var_check['type']
+    # station_cast = ctd_var_check['station_cast']
+    # profile = ctd_var_check['profile_checked']
+    # profile_dict = profile['profile_dict']
+    # expocode = profile_dict['meta']['expocode']
+
+    # # Write one profile goship units to
+    # # keep a record of what units need to be converted
+    # write_goship_units = True
+    # if write_goship_units:
+    #     write_goship_units = False
+    #     write_profile_goship_units(profile_dict, logging_dir)
+
+    # if has_all_ctd_vars[type]:
+    #     write_profile_json(
+    #         expocode, json_directory, profile_dict)
+    # else:
+    #     # Write to a file the cruise not converted
+    #     logging.info(
+    #         f"Cruise not converted for type {type} and {expocode} {station_cast}")
+    #     filename = 'cruises_not_converted.txt'
+    #     filepath = os.path.join(logging_dir, filename)
+    #     with open(filepath, 'a') as f:
+    #         f.write('-----------\n')
+    #         f.write(f"expocode {expocode} {station_cast}\n")
+    #         f.write(f"collection type {type}")
+
+
+def save_one_btl_ctd_profile(ctd_var_check, logging_dir, json_directory):
+
+    has_all_ctd_vars = ctd_var_check['has_all_ctd_vars']
+    has_ctd_vars_no_qc = ctd_var_check['has_ctd_vars_no_qc']
+    has_ctd_vars_unk_ref_scale = ctd_var_check['has_ctd_temp_unk']
+
+    profile = ctd_var_check['profile_checked']
+
+    profile_dict = profile['profile_dict']
+    station_cast = profile['station_cast']
+    expocode = profile_dict['meta']['expocode']
+
+    # Write one profile goship units to
+    # keep a record of what units need to be converted
+    write_goship_units = True
+    if write_goship_units:
+        write_goship_units = False
+        write_profile_goship_units(profile_dict, logging_dir)
+
+    if has_all_ctd_vars['btl'] or has_all_ctd_vars['ctd']:
+        write_profile_json(
+            expocode, json_directory, profile_dict)
+    else:
+        # Write to a file the cruise not converted
+        # logging.info(
+        #     f"Cruise not converted {expocode} {station_cast}")
+        filename = 'cruises_not_converted.txt'
+        filepath = os.path.join(logging_dir, filename)
+        with open(filepath, 'a') as f:
+            f.write('-----------\n')
+            f.write(f"expocode {expocode}\n")
+
+
+def save_all_btl_ctd_profiles(checked_ctd_variables, logging_dir, json_directory):
+
+    b = db.from_sequence(checked_ctd_variables)
+
+    c = b.map(save_one_btl_ctd_profile, logging_dir, json_directory)
+
+    c.compute()
+
+    # for ctd_var_check in checked_ctd_variables:
+
+    #     save_one_btl_ctd_profile(ctd_var_check, logging_dir, json_directory)
+
+    # has_all_ctd_vars = ctd_var_check['has_all_ctd_vars']
+    # has_ctd_vars_no_qc = ctd_var_check['has_ctd_vars_no_qc']
+    # has_ctd_vars_unk_ref_scale = ctd_var_check['has_ctd_temp_unk']
+
+    # profile = ctd_var_check['profile_checked']
+
+    # profile_dict = profile['profile_dict']
+    # station_cast = profile['station_cast']
+    # expocode = profile_dict['meta']['expocode']
+
+    # # Write one profile goship units to
+    # # keep a record of what units need to be converted
+    # write_goship_units = True
+    # if write_goship_units:
+    #     write_goship_units = False
+    #     write_profile_goship_units(profile_dict, logging_dir)
+
+    # if has_all_ctd_vars['btl'] or has_all_ctd_vars['ctd']:
+    #     write_profile_json(
+    #         expocode, json_directory, profile_dict)
+    # else:
+    #     # Write to a file the cruise not converted
+    #     logging.info(
+    #         f"Cruise not converted {expocode} {station_cast}")
+    #     filename = 'cruises_not_converted.txt'
+    #     filepath = os.path.join(logging_dir, filename)
+    #     with open(filepath, 'a') as f:
+    #         f.write('-----------\n')
+    #         f.write(f"expocode {expocode}\n")

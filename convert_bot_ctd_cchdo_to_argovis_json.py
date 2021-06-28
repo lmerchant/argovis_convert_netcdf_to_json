@@ -9,6 +9,9 @@ import errno
 import os
 import logging
 import click
+from datetime import datetime
+import dask.bag as db
+from dask.diagnostics import ProgressBar
 
 import get_variable_mappings as gvm
 import rename_objects as rn
@@ -20,6 +23,11 @@ import create_profiles_one_type as op
 import create_profiles_combined_type as cbp
 import save_output as sv
 
+pbar = ProgressBar()
+pbar.register()
+
+
+# install cloudpickle to use the multiprocessing scheduler for dask
 
 # In order to use xarray open_dataset
 
@@ -388,8 +396,12 @@ def main(start_year, end_year, clear):
             checked_ctd_variables = ckvar.check_of_ctd_variables(
                 profiles_btl_ctd, logging, logging_dir)
 
-            sv.save_output_btl_ctd(checked_ctd_variables,
-                                   logging_dir, json_directory)
+            logging.info('----------------------')
+            logging.info('Saving files')
+            logging.info('----------------------')
+
+            sv.save_all_btl_ctd_profiles(checked_ctd_variables,
+                                         logging_dir, json_directory)
 
         elif btl_found:
             profiles_btl = fp.filter_measurements(
@@ -398,7 +410,12 @@ def main(start_year, end_year, clear):
             checked_ctd_variables = ckvar.check_of_ctd_variables(
                 profiles_btl, logging, logging_dir)
 
-            sv.save_output(checked_ctd_variables, logging_dir, json_directory)
+            logging.info('----------------------')
+            logging.info('Saving files')
+            logging.info('----------------------')
+
+            sv.save_all_profiles_one_type(
+                checked_ctd_variables, logging_dir, json_directory)
 
         elif ctd_found:
             profiles_ctd = fp.filter_measurements(
@@ -407,7 +424,12 @@ def main(start_year, end_year, clear):
             checked_ctd_variables = ckvar.check_of_ctd_variables(
                 profiles_ctd, logging, logging_dir)
 
-            sv.save_output(checked_ctd_variables, logging_dir, json_directory)
+            logging.info('----------------------')
+            logging.info('Saving files')
+            logging.info('----------------------')
+
+            sv.save_all_profiles_one_type(
+                checked_ctd_variables, logging_dir, json_directory)
 
         if btl_found or ctd_found:
 

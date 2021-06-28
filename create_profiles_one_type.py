@@ -7,9 +7,6 @@ from decimal import Decimal
 import logging
 import re
 import dask.bag as db
-import dask.dataframe as dd
-# install cloudpickle to use the multiprocessing scheduler
-#import cloudpickle
 from datetime import datetime
 from dask.diagnostics import ProgressBar
 
@@ -20,8 +17,8 @@ import rename_objects as rn
 import get_profile_mapping_and_conversions as pm
 
 
-pbar = ProgressBar()
-pbar.register()
+# pbar = ProgressBar()
+# pbar.register()
 
 
 class fakefloat(float):
@@ -651,9 +648,9 @@ def create_profiles_one_type(data_obj):
 
     type = data_obj['type']
 
-    print('---------------------------')
-    print(f'Start processing {type} profiles')
-    print('---------------------------')
+    logging.info('---------------------------')
+    logging.info(f'Start processing {type} profiles')
+    logging.info('---------------------------')
 
     data_obj = pm.get_profile_mapping_and_conversions(data_obj)
 
@@ -690,9 +687,9 @@ def create_profiles_one_type(data_obj):
 
     #     all_profiles.append(profile)
 
-    print('---------------------------')
-    print(f'End processing {type} profiles')
-    print('---------------------------')
+    logging.info('---------------------------')
+    logging.info(f'End processing {type} profiles')
+    logging.info('---------------------------')
 
     return all_profiles
 
