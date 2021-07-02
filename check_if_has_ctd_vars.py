@@ -201,6 +201,7 @@ def check_ctd_vars_one_profile(profile, logging, logging_dir):
 
     profile_dict = profile['profile_dict']
     station_cast = profile['station_cast']
+
     type = profile_dict['type']
 
     expocode = profile_dict['meta']['expocode']
@@ -340,15 +341,29 @@ def check_of_ctd_variables(profiles, logging, logging_dir):
 
     all_profiles_checked_ctd_vars = []
 
+    flags = []
+
     for profile in profiles:
 
         checked_ctd_vars_one_profile = check_ctd_vars_one_profile(
             profile, logging, logging_dir)
 
+        has_btl = checked_ctd_vars_one_profile['has_all_ctd_vars']['btl']
+        has_ctd = checked_ctd_vars_one_profile['has_all_ctd_vars']['ctd']
+
+        if has_btl or has_ctd:
+            flags.append(True)
+
         all_profiles_checked_ctd_vars.append(checked_ctd_vars_one_profile)
 
-    logging.info("-----------------------------------")
-    logging.info("Finished checking for CTD variables")
-    logging.info("-----------------------------------")
+    # TODO
 
-    return all_profiles_checked_ctd_vars
+    # sum(flags) gives number of True values, so if it is 0, no ctd vars
+
+    logging.info("-------------------------------------------")
+    logging.info("Finished checking for CTD variables")
+    logging.info(f"Number of profiles  {len(profiles)}")
+    logging.info(f"Found {sum(flags)} profiles with CTD vars")
+    logging.info("-------------------------------------------")
+
+    return all_profiles_checked_ctd_vars, sum(flags)

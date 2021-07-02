@@ -193,7 +193,7 @@ def combine_btl_ctd_profiles(btl_profiles, ctd_profiles):
     #  bottle  and ctd have same keys, but  different values
     # which are the profile numbers
 
-    profiles_list_btl_ctd = []
+    all_profiles = []
 
     # The number of station_casts are the same for btl and ctd
     station_casts = [btl_profile['station_cast']
@@ -222,6 +222,18 @@ def combine_btl_ctd_profiles(btl_profiles, ctd_profiles):
         profile_ctd = {}
         profile_ctd['station_cast'] = station_cast
         profile_ctd['profile_dict'] = profile_dict_ctd
+
+        profile = {}
+        profile['btl'] = profile_btl
+        profile['ctd'] = profile_ctd
+
+        all_profiles.append(profile)
+
+    profiles_list_btl_ctd = []
+
+    for profile in all_profiles:
+        profile_btl = profile['btl']
+        profile_ctd = profile['ctd']
 
         combined_profile_btl_ctd = combine_output_per_profile_btl_ctd(
             profile_btl, profile_ctd)

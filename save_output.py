@@ -100,7 +100,7 @@ def write_profile_json(cruise_expocode, json_dir, profile_dict):
     path = os.path.join(json_dir, folder)
 
     if not os.path.exists(path):
-        os.makedirs(path)
+        os.makedirs(path, exist_ok=True)
 
     file = os.path.join(json_dir, folder, filename)
 
@@ -130,28 +130,37 @@ def save_profile_one_type(ctd_var_check, logging_dir, json_directory):
     if has_all_ctd_vars[type]:
         write_profile_json(
             expocode, json_directory, profile_dict)
-    else:
-        # Write to a file the cruise not converted
-        # logging.info(
-        #    f"Cruise not converted for type {type} and {expocode} {station_cast}")
-        filename = 'cruises_not_converted.txt'
-        filepath = os.path.join(logging_dir, filename)
-        with open(filepath, 'a') as f:
-            f.write('-----------\n')
-            f.write(f"expocode {expocode} {station_cast}\n")
-            f.write(f"collection type {type}\n")
 
 
 def save_all_profiles_one_type(checked_ctd_variables, logging_dir, json_directory):
 
-    # b = db.from_sequence(checked_ctd_variables)
 
-    # c = b.map(save_profile_one_type, logging_dir, json_directory)
+<< << << < HEAD
+# b = db.from_sequence(checked_ctd_variables)
 
-    # c.compute()
+# c = b.map(save_profile_one_type, logging_dir, json_directory)
 
-    for checked_vars in checked_ctd_variables:
-        save_profile_one_type(checked_vars, logging_dir, json_directory)
+# c.compute()
+
+for checked_vars in checked_ctd_variables:
+    save_profile_one_type(checked_vars, logging_dir, json_directory)
+== == == =
+# TODO
+# Using Dask here caused Garbage collection warning.
+# See if problem if save to database
+
+for ctd_var_check in checked_ctd_variables:
+    save_profile_one_type(ctd_var_check, logging_dir, json_directory)
+
+
+# def save_all_profiles_one_type(checked_ctd_variables, logging_dir, json_directory):
+
+#     b = db.from_sequence(checked_ctd_variables)
+
+#     c = b.map(save_profile_one_type, logging_dir, json_directory)
+
+#     c.compute(scheduler='processes')
+>>>>>> > code_with_dask
 
 
 def save_one_btl_ctd_profile(ctd_var_check, logging_dir, json_directory):
@@ -159,6 +168,7 @@ def save_one_btl_ctd_profile(ctd_var_check, logging_dir, json_directory):
     has_all_ctd_vars = ctd_var_check['has_all_ctd_vars']
     has_ctd_vars_no_qc = ctd_var_check['has_ctd_vars_no_qc']
     has_ctd_vars_unk_ref_scale = ctd_var_check['has_ctd_temp_unk']
+    type = ctd_var_check['type']
 
     profile = ctd_var_check['profile_checked']
 
@@ -169,15 +179,6 @@ def save_one_btl_ctd_profile(ctd_var_check, logging_dir, json_directory):
     if has_all_ctd_vars['btl'] or has_all_ctd_vars['ctd']:
         write_profile_json(
             expocode, json_directory, profile_dict)
-    else:
-        # Write to a file the cruise not converted
-        # logging.info(
-        #     f"Cruise not converted {expocode} {station_cast}")
-        filename = 'cruises_not_converted.txt'
-        filepath = os.path.join(logging_dir, filename)
-        with open(filepath, 'a') as f:
-            f.write('-----------\n')
-            f.write(f"expocode {expocode}\n")
 
 
 def save_all_btl_ctd_profiles(checked_ctd_variables, logging_dir, json_directory):

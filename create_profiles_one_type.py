@@ -1,14 +1,23 @@
 # Create profiles for one type
 
+from os import stat
 import pandas as pd
 import numpy as np
 import json
 from decimal import Decimal
 import logging
 import re
+import dask
 import dask.bag as db
+import dask.dataframe as dd
+from dask import delayed
+from dask.diagnostics import ResourceProfiler
 from datetime import datetime
-#from dask.diagnostics import ProgressBar
+# from dask.diagnostics import ProgressBar
+import ctypes
+from collections import defaultdict
+from operator import itemgetter
+import itertools
 
 
 import get_variable_mappings as gvm
@@ -19,6 +28,8 @@ import get_profile_mapping_and_conversions as pm
 
 # pbar = ProgressBar()
 # pbar.register()
+
+rprof = ResourceProfiler(dt=1)
 
 
 class fakefloat(float):
@@ -37,47 +48,75 @@ def defaultencode(o):
     raise TypeError(repr(o) + " is not JSON serializable")
 
 
-def create_measurements_list(df_bgc_meas):
+def get_station_cast(nc_profile_group):
 
-    df_meas = pd.DataFrame()
-    #df_meas = dd.DataFrame()
+    # Error for cruise
+    # ctd file
+    # file_id = 18420
+    # expocode = '316N154_2'
+    #     cast_number = str(nc_profile_group['cast'].values)
+    # TypeError: list indices must be integers or slices, not str
 
-    # core values includes '_qc' vars
-    core_values = gvm.get_goship_core_values()
+    # cast_number is an integer
+    cast_number = str(nc_profile_group['cast'].values)
 
-    table_columns = list(df_bgc_meas.columns)
+    # The station number is a string
+    station = str(nc_profile_group['station'].values)
 
-    core_cols = [col for col in table_columns if col in core_values]
+    padded_station = str(station).zfill(3)
+    padded_cast = str(cast_number).zfill(3)
 
-    df_meas = df_bgc_meas[core_cols].copy()
+    station_cast = f"{padded_station}_{padded_cast}"
 
-    core_non_qc = [elem for elem in core_values if '_qc' not in elem]
+    return station_cast
 
-    # If qc != 2, set corresponding value to np.nan
-    for col in core_non_qc:
-        qc_key = f"{col}_qc"
 
-        if col == 'pressure' or col not in df_meas.columns:
-            continue
+def combine_profiles(meta_profiles, data_profiles, mapping_profiles, type):
 
-        if qc_key not in table_columns:
-            df_meas[col] = np.nan
-            continue
+    #  https://stackoverflow.com/questions/5501810/join-two-lists-of-dictionaries-on-a-single-key
 
-        try:
-            df_meas[col] = df_meas.apply(lambda x: x[col] if pd.notnull(
-                x[qc_key]) and int(x[qc_key]) == 2 else np.nan, axis=1)
+    profile_dict = defaultdict(dict)
+    for elem in itertools.chain(meta_profiles, data_profiles, mapping_profiles):
+        profile_dict[elem['station_cast']].update(elem)
 
-        except KeyError:
-            pass
+    all_profiles = []
+    for key, val in profile_dict.items():
+        new_obj = {}
+        new_obj['station_cast'] = key
+        val['type'] = type
+        new_obj['profile_dict'] = val
+        all_profiles.append(new_obj)
 
-    # drop qc columns now that have marked non_qc column values
-    for col in df_meas.columns:
-        if '_qc' in col:
-            df_meas = df_meas.drop([col], axis=1)
+    return all_profiles
 
-    # If all core values have nan, drop row
-    df_meas = df_meas.dropna(how='all')
+
+def apply_c_format(json_str, name, c_format):
+
+    number_dict = json.loads(json_str)
+
+    number_obj = number_dict[name]
+
+    # Now get str in C_format. e.g. "%9.1f"
+    # print(f'{val:.2f}') where val is a #
+    f_format = c_format.lstrip('%')
+
+    new_obj = {}
+
+    if isinstance(number_obj, float):
+        new_val = float(f"{number_obj:{f_format}}")
+        new_obj[name] = new_val
+        json_str = json.dumps(new_obj)
+        return json_str
+    elif isinstance(number_obj, list):
+        new_val = [float(f"{item:{f_format}}") for item in number_obj]
+        new_obj[name] = new_val
+        json_str = json.dumps(new_obj)
+        return json_str
+    else:
+        return json_str
+
+
+def create_measurements_list_one(df_meas):
 
     # See if using ctd_salinty or bottle_salinity
     # Is ctd_salinity NaN? If it is and bottle_salinity isn't NaN, use it
@@ -137,7 +176,7 @@ def create_measurements_list(df_bgc_meas):
     data_dict_list = json.loads(json_str)
 
     measurements_source = {}
-    measurements_source['flag'] = flag
+    #measurements_source['flag'] = flag
     measurements_source['qc'] = 2
     measurements_source['use_ctd_temp'] = not is_ctd_temp_empty
     measurements_source['use_ctd_salinity'] = use_ctd_salinity
@@ -149,64 +188,111 @@ def create_measurements_list(df_bgc_meas):
     return data_dict_list,  measurements_source
 
 
-def create_bgc_meas_df(param_dict):
+def process_one_profile_group(nc_profile, df_bgc_station_cast_all,
+                              measurements_list_df_all, type):
 
-    # Now split up param_json_str into multiple json dicts
-    # And then only keep those that have a value not null for each key
-    #param_json_dict = json.loads(param_json_str)
+    station_cast = get_station_cast(nc_profile)
 
-    # Read in as a list of dicts. If non null dict, put in a list
-    # TODO
-    # include everything but get rid of rows all NaN
-    try:
-        df = pd.DataFrame.from_dict(param_dict)
-    except ValueError:
-        df = pd.DataFrame.from_dict([param_dict])
+    bgc_meas_df = df_bgc_station_cast_all.loc[station_cast]
 
-    # An example of what to delete in bgcMeas
-    # check if values are all of type in  ['', NaN]
-    # I didn't  want to replace all '' with NaN in case
-    # it was important in a  previous measurement
-    # {'pres': None, 'sample_ctd': '', 'temp_ctd': None, 'temp_ctd_qc': None, 'psal_ctd': None, 'psal_ctd_qc': None, 'doxy_ctd': None, 'doxy_ctd_qc': None}
+    bgc_meas_dict_list = create_bgc_meas_list(bgc_meas_df)
+    renamed_bgc_list = rn.create_renamed_list_of_objs(
+        bgc_meas_dict_list, type)
 
-    # Count # of elems in each row and save to new column
-    def count_elems(row):
-        result = [False if pd.isnull(
-            cell) or cell == '' or cell == 'NaT' else True for cell in row]
+    measurements_df = measurements_list_df_all.loc[station_cast]
+    measurements_dict_list, measurements_source = create_measurements_list_one(
+        measurements_df)
 
-        # Return number of True values
-        return sum(result)
+    renamed_measurements_list = rn.create_renamed_list_of_objs_argovis_measurements(
+        measurements_dict_list)
 
-    df['num_elems'] = df.apply(count_elems, axis=1)
+    data_dict = {}
+    data_dict['bgcMeas'] = renamed_bgc_list
+    data_dict['measurements'] = renamed_measurements_list
+    data_dict['measurementsSource'] = measurements_source
+    data_dict['station_cast'] = station_cast
 
-    # Then drop rows where num_elems is 0
-    df.drop(df[df['num_elems'] == 0].index, inplace=True)
+    return data_dict
 
-    # And drop num_elems column
-    df = df.drop(columns=['num_elems'])
 
-    # objs = df.to_dict('records')
+def create_mapping_profile(nc_profile_group, type):
 
-    # new_list = []
+    station_cast = get_station_cast(nc_profile_group)
 
-    # for obj in objs:
+    profile_mapping = pm.get_profile_mapping(nc_profile_group, station_cast)
 
-    #     obj_len = len(obj)
-    #     null_count = 0
+    meta_names, param_names = pm.get_meta_param_names(nc_profile_group)
+    goship_names_list = [*meta_names, *param_names]
 
-    #     for key, val in obj.items():
-    #         if pd.isnull(val) or val == '' or val == 'NaT':
-    #             null_count = null_count + 1
+    mapping_dict = {}
 
-    #     if null_count != obj_len:
-    #         new_list.append(obj)
+    mapping_dict['goshipNames'] = goship_names_list
+    mapping_dict['goshipArgovisNameMapping'] = gvm.create_goship_argovis_core_values_mapping(
+        goship_names_list, type)
+    mapping_dict['argovisReferenceScale'] = gvm.get_argovis_ref_scale_mapping(
+        goship_names_list, type)
 
-    # df = pd.DataFrame.from_records(new_list)
+    mapping_dict['goshipReferenceScale'] = profile_mapping['goship_ref_scale']
+    mapping_dict['goshipUnits'] = profile_mapping['goship_units']
+    mapping_dict['goshipCformat'] = profile_mapping['goship_c_format']
+    mapping_dict['goshipArgovisUnitsMapping'] = gvm.get_goship_argovis_unit_mapping()
+    mapping_dict['stationCast'] = station_cast
+    mapping_dict['station_cast'] = station_cast
 
-    df = df.dropna(how='all')
-    df = df.reset_index(drop=True)
+    return mapping_dict
 
-    return df
+
+def create_geolocation_json_str(nc):
+
+    # "geoLocation": {
+    #     "coordinates": [
+    #         -158.2927,
+    #         21.3693
+    #     ],
+    #     "type": "Point"
+    # },
+
+    lat = nc.coords['latitude'].astype('str').values
+    lon = nc.coords['longitude'].astype('str').values
+
+    lat = Decimal(lat.item(0))
+    lon = Decimal(lon.item(0))
+
+    coordinates = [lon, lat]
+
+    geo_dict = {}
+    geo_dict['coordinates'] = coordinates
+    geo_dict['type'] = 'Point'
+
+    geolocation_dict = {}
+    geolocation_dict['geoLocation'] = geo_dict
+
+    json_str = json.dumps(geolocation_dict, default=defaultencode)
+
+    return json_str
+
+
+def create_meta_profiles(nc_profile_group, df_metas, file_info):
+
+    station_cast = get_station_cast(nc_profile_group)
+
+    # nc_profile_group = add_extra_coords(nc_profile_group, file_info)
+
+    df_meta_station_cast = df_metas.loc[station_cast]
+
+    meta_dict = df_meta_station_cast.to_dict('records')[0]
+
+    geolocation_json_str = create_geolocation_json_str(nc_profile_group)
+    geolocation_dict = json.loads(geolocation_json_str)
+    meta_dict['geolocation'] = geolocation_dict
+
+    renamed_meta = rn.rename_argovis_meta(meta_dict)
+
+    meta_profile = {}
+    meta_profile['station_cast'] = station_cast
+    meta_profile['meta'] = renamed_meta
+
+    return meta_profile
 
 
 def create_bgc_meas_list(df):
@@ -217,38 +303,82 @@ def create_bgc_meas_list(df):
     # If tgoship_argovis_name_mapping_btl is '.0' in qc value, remove it to get an int
     json_str = re.sub(r'(_qc":\s?\d)\.0', r"\1", json_str)
 
-    data_dict = json.loads(json_str)
+    data_dict_list = json.loads(json_str)
 
-    return data_dict
-
-
-def apply_c_format(json_str, name, c_format):
-
-    number_dict = json.loads(json_str)
-
-    number_obj = number_dict[name]
-
-    # Now get str in C_format. e.g. "%9.1f"
-    # print(f'{val:.2f}') where val is a #
-    f_format = c_format.lstrip('%')
-
-    new_obj = {}
-
-    if isinstance(number_obj, float):
-        new_val = float(f"{number_obj:{f_format}}")
-        new_obj[name] = new_val
-        json_str = json.dumps(new_obj)
-        return json_str
-    elif isinstance(number_obj, list):
-        new_val = [float(f"{item:{f_format}}") for item in number_obj]
-        new_obj[name] = new_val
-        json_str = json.dumps(new_obj)
-        return json_str
-    else:
-        return json_str
+    return data_dict_list
 
 
-def create_json_profiles(nc_profile_group, names, data_obj):
+def create_measurements_df_all(df_bgc_meas_all):
+
+    # core values includes '_qc' vars
+    core_values = gvm.get_goship_core_values()
+
+    table_columns = list(df_bgc_meas_all.columns)
+
+    core_cols = [col for col in table_columns if col in core_values]
+
+    df_meas_all = df_bgc_meas_all[core_cols].copy()
+
+    core_non_qc = [elem for elem in core_values if '_qc' not in elem]
+
+    # If qc != 2, set corresponding value to np.nan
+    for col in core_non_qc:
+        qc_key = f"{col}_qc"
+
+        if col == 'pressure' or col not in df_meas_all.columns:
+            continue
+
+        if qc_key not in table_columns:
+            df_meas_all[col] = np.nan
+            continue
+
+        try:
+            df_meas_all[col] = df_meas_all.apply(lambda x: x[col] if pd.notnull(
+                x[qc_key]) and int(x[qc_key]) == 2 else np.nan, axis=1)
+
+        except KeyError:
+            pass
+
+    # drop qc columns now that have marked non_qc column values
+    for col in df_meas_all.columns:
+        if '_qc' in col:
+            df_meas_all = df_meas_all.drop([col], axis=1)
+
+    # If all core values have nan, drop row
+    df_meas_all = df_meas_all.dropna(how='all')
+
+    return df_meas_all
+
+
+def clean_df_param_station_cast_all(df_param_station_cast_all):
+
+    # Count # of elems in each row and save to new column
+    def count_elems(row):
+        result = [False if pd.isnull(
+            cell) or cell == '' or cell == 'NaT' else True for cell in row]
+
+        # Return number of True values
+        return sum(result)
+
+    new_df = df_param_station_cast_all.apply(count_elems, axis=1).copy()
+
+    new_df.columns = ['num_elems']
+
+    df = pd.concat([df_param_station_cast_all, new_df], axis=1)
+
+    df.columns = [*df.columns[:-1], 'num_elems']
+
+    # Then drop rows where num_elems is 0
+    df_param_station_cast_all = df.drop(df[df['num_elems'] == 0].index)
+
+    # And drop num_elems column
+    df_param_station_cast_all = df_param_station_cast_all.drop(columns=[
+        'num_elems'])
+
+    return df_param_station_cast_all
+
+
+def create_json_profiles(nc_profile_group, names, type):
 
     # Do the  following to keep precision of numbers
     # If had used pandas dataframe, it would
@@ -258,12 +388,19 @@ def create_json_profiles(nc_profile_group, names, data_obj):
     # Will fix this later by doing a regex
     # replace to remove ".0" from qc
 
+    station_cast = get_station_cast(nc_profile_group)
+
+    goship_c_format_mapping = gvm.create_goship_c_format_mapping(
+        nc_profile_group)
+
+    nc_profile_group = pm.get_profile_conversions(nc_profile_group)
+
     coords_names = nc_profile_group.coords.keys()
     data_names = nc_profile_group.data_vars.keys()
 
-    goship_c_format_mapping = data_obj['goship_c_format']
+    df = pd.DataFrame()
 
-    profile_list = []
+    json_dict = {}
 
     for name in names:
 
@@ -353,74 +490,83 @@ def create_json_profiles(nc_profile_group, names, data_obj):
                 name_dict = {name: result}
                 json_str = json.dumps(name_dict)
 
-        #json_profile[name] = json_str
-        profile_list.append(json.loads(json_str))
+        json_dict.update(name_dict)
 
-    profiles = {}
-    for profile in profile_list:
-        profiles.update(profile)
+    json_str = json.dumps(json_dict, default=defaultencode)
 
-    return profiles
+    json_dict = json.loads(json_str)
 
+    if type == 'meta':
+        df = pd.DataFrame([json_dict])
+    elif type == 'param':
+        df = pd.DataFrame.from_dict(json_dict)
 
-def create_geolocation_json_str(nc):
+    profile = {}
+    profile['df_nc'] = df
+    profile['station_cast'] = station_cast
 
-    # "geoLocation": {
-    #     "coordinates": [
-    #         -158.2927,
-    #         21.3693
-    #     ],
-    #     "type": "Point"
-    # },
-
-    lat = nc.coords['latitude'].astype('str').values
-    lon = nc.coords['longitude'].astype('str').values
-
-    lat = Decimal(lat.item(0))
-    lon = Decimal(lon.item(0))
-
-    coordinates = [lon, lat]
-
-    geo_dict = {}
-    geo_dict['coordinates'] = coordinates
-    geo_dict['type'] = 'Point'
-
-    geolocation_dict = {}
-    geolocation_dict['geoLocation'] = geo_dict
-
-    json_str = json.dumps(geolocation_dict, default=defaultencode)
-
-    return json_str
+    return profile
 
 
-def create_meta_dict(profile_group, meta_names, data_obj):
+def create_df_profiles_one_group(nc_group, file_info, type):
 
-    meta_dict = create_json_profiles(profile_group, meta_names, data_obj)
+    if type == 'meta':
+        # add extra coords to nc_group first
+        nc_group = add_extra_coords(nc_group, file_info)
 
-    geolocation_json_str = create_geolocation_json_str(
-        profile_group)
+    meta_names, param_names = pm.get_meta_param_names(nc_group)
 
-    geolocation_dict = json.loads(geolocation_json_str)
+    if type == 'meta':
+        names = meta_names
 
-    meta_dict.update(geolocation_dict)
+    if type == 'param':
+        names = param_names
 
-    # # Include geolocation dict into meta json string
-    # meta_left_str = meta_json_str.rstrip('}')
-    # meta_geo_str = geolocation_json_str.lstrip('{')
-    # meta_json_str = f"{meta_left_str}, {meta_geo_str}"
+    nc_type_profile = create_json_profiles(nc_group, names, type)
 
-    #meta_dict = json.loads(meta_json_str)
-
-    return meta_dict
+    return nc_type_profile
 
 
-def add_extra_coords(nc, data_obj):
+# def create_meta_param_profiles_df(nc_groups):
 
-    station = nc['station'].values
-    cast = nc['cast'].values
-    filename = data_obj['filename']
-    data_path = data_obj['data_path']
-    expocode = data_obj['cruise_expocode']
+#     # b1 = db.from_sequence(nc_groups)
+#     # c1 = b1.map(create_df_profiles_one_group, 'meta')
+
+#     # b2 = db.from_sequence(nc_groups)
+#     # c2 = b2.map(create_df_profiles_one_group, 'param')
+
+#     # all_df_meta, all_df_param = dask.compute(c1, c2)
+
+#     frames_meta = [obj['df_nc'] for obj in all_df_meta]
+#     keys_meta = [obj['station_cast'] for obj in all_df_meta]
+#     df_meta = pd.concat(frames_meta, keys=keys_meta)
+
+#     frames_param = [frame['df_nc'] for frame in all_df_param]
+#     keys_param = [frame['station_cast'] for frame in all_df_param]
+#     df_param = pd.concat(frames_param, keys=keys_param)
+
+#     return df_meta, df_param
+
+def create_meta_param_profiles_df(all_df_meta, all_df_param):
+
+    frames_meta = [obj['df_nc'] for obj in all_df_meta]
+    keys_meta = [obj['station_cast'] for obj in all_df_meta]
+    df_metas = pd.concat(frames_meta, keys=keys_meta)
+
+    frames_param = [frame['df_nc'] for frame in all_df_param]
+    keys_param = [frame['station_cast'] for frame in all_df_param]
+    df_params = pd.concat(frames_param, keys=keys_param)
+
+    return df_metas, df_params
+
+
+def add_extra_coords(nc, file_info):
+
+    station_cast = get_station_cast(nc)
+
+    filename = file_info['filename']
+    data_path = file_info['data_path']
+    expocode = file_info['cruise_expocode']
 
     # Use cruise expocode because file one could be different than cruise page
     # Drop existing expocode
@@ -442,10 +588,12 @@ def add_extra_coords(nc, data_obj):
 
     new_coords = {}
 
-    padded_station = str(station).zfill(3)
-    padded_cast = str(cast).zfill(3)
+    # padded_station = str(station).zfill(3)
+    # padded_cast = str(cast).zfill(3)
 
-    _id = f"{expocode}_{padded_station}_{padded_cast}"
+    # _id = f"{expocode}_{padded_station}_{padded_cast}"
+
+    _id = f"{expocode}_{station_cast}"
 
     new_coords['_id'] = _id
     new_coords['id'] = _id
@@ -487,114 +635,78 @@ def add_extra_coords(nc, data_obj):
     return nc
 
 
-def create_profile(nc_profile_group, data_obj):
-
-    type = data_obj['type']
-
-    # TODO
-    # Ask if for measurements, all values including pres are null,
-    # do I delete it? probably
-
-    # don't rename variables yet
-
-    cast_number = str(nc_profile_group['cast'].values)
-
-    # The station number is a string
-    station = str(nc_profile_group['station'].values)
-
-    station_cast = f"{station}_{cast_number}"
-
-    #print(f"station cast {station_cast}")
-
-    nc_profile_group = add_extra_coords(nc_profile_group, data_obj)
-
-    # Get meta names  again now that added extra coords
-    meta_names, param_names = pm.get_meta_param_names(nc_profile_group)
-
-    meta_dict = create_meta_dict(nc_profile_group, meta_names, data_obj)
-
-    goship_c_format_mapping_dict = data_obj['goship_c_format']
-
-    param_dict = create_json_profiles(nc_profile_group, param_names, data_obj)
-
-    # See if can speed up
-    df_bgc = create_bgc_meas_df(param_dict)
-    bgc_meas_dict_list = create_bgc_meas_list(df_bgc)
-    measurements_dict_list, measurements_source = create_measurements_list(
-        df_bgc)
-
-    goship_units_dict = data_obj['goship_units']
-
-    goship_ref_scale_mapping_dict = data_obj['goship_ref_scale']
-
-    goship_names_list = [*meta_names, *param_names]
-
-    # Save meta separate for renaming later
-    profile_dict = {}
-    profile_dict['station_cast'] = station_cast
-    profile_dict['type'] = type
-    profile_dict['meta'] = meta_dict
-    profile_dict['bgc_meas'] = bgc_meas_dict_list
-    profile_dict['measurements'] = measurements_dict_list
-    profile_dict['measurements_source'] = measurements_source
-    profile_dict['goship_ref_scale'] = goship_ref_scale_mapping_dict
-    profile_dict['goship_units'] = goship_units_dict
-    profile_dict['goship_c_format'] = goship_c_format_mapping_dict
-    profile_dict['goship_names'] = goship_names_list
-
-    profile = {}
-    profile['profile_dict'] = profile_dict
-    profile['station_cast'] = station_cast
-
-    # Rename with _type suffix unless it is an Argovis variable
-    # But no _btl suffix to meta data
-    # Add _btl when combine files
-
-    renamed_profile = rn.rename_profile_to_argovis(profile)
-
-    return renamed_profile
-
-
 def create_profiles_one_type(data_obj):
 
+    # TODO
+    # Can I appply all this to one xarray and then apply a group?
+    # If did that, when add extra coords, would also need
+    # to append to make an array of static variables
+    # Is it better to put into a pandas or dask dataframe
+    # and then work with meta and params
+    # Meta seems harder to access
+    # How to get attributes? They are the same for each variable
+    # pull them out at the start
+    # How to do groupby with pandas/dask?
+    # Do I set N_levels and N_prof as multi-index after
+    # converting to a dataframe?
+
     type = data_obj['type']
+
+    file_info = {}
+    file_info['type'] = type
+    file_info['filename'] = data_obj['filename']
+    file_info['data_path'] = data_obj['data_path']
+    file_info['cruise_expocode'] = data_obj['cruise_expocode']
 
     logging.info('---------------------------')
     logging.info(f'Start processing {type} profiles')
     logging.info('---------------------------')
 
-    data_obj = pm.get_profile_mapping_and_conversions(data_obj)
-
     nc = data_obj['nc']
-
-    all_profiles = []
-
-    reduced_data_obj = {key: val for key,
-                        val in data_obj.items() if key != 'nc'}
 
     nc_groups = [obj[1] for obj in nc.groupby('N_PROF')]
 
-    logging.info(
-        f"Total number of {type} profiles to process {len(nc_groups)}")
+    # TODO
+    # Is it better to just put in one loop?
 
-    # b = db.from_sequence(nc_groups)
-    # c = b.map(create_profile, reduced_data_obj)
-    # all_profiles = c.compute()
+    # Get dataframes indexed by station_cast
+    b1 = db.from_sequence(nc_groups)
+    c1_meta = b1.map(create_df_profiles_one_group, file_info, 'meta')
 
-    for nc_group in nc_groups:
-        profile = create_profile(nc_group, reduced_data_obj)
-        all_profiles.append(profile)
+    b2 = db.from_sequence(nc_groups)
+    c2_param = b2.map(create_df_profiles_one_group, file_info, 'param')
 
-    # program_start_time = datetime.now()
+    all_df_meta, all_df_param = dask.compute(c1_meta, c2_param)
 
-    # logging.info('Using dask bag')
-    # logging.info(datetime.now() - program_start_time)
+    df_metas, df_params = create_meta_param_profiles_df(
+        all_df_meta, all_df_param)
 
-    # With a single thread
-    # program_start_time = datetime.now()
-    #all_profiles = c.compute(scheduler='single-threaded')
-    # logging.info('Using single thread')
-    # logging.info(datetime.now() - program_start_time)
+    df_bgc_station_cast_all = clean_df_param_station_cast_all(df_params)
+
+    measurements_list_df_all = create_measurements_df_all(
+        df_bgc_station_cast_all)
+
+    b1 = db.from_sequence(nc_groups)
+    c1 = b1.map(create_meta_profiles, df_metas, file_info)
+
+    b2 = db.from_sequence(nc_groups)
+    c2 = b2.map(create_mapping_profile, type)
+
+    b3 = db.from_sequence(nc_groups)
+    c3 = b3.map(process_one_profile_group,
+                df_bgc_station_cast_all, measurements_list_df_all, type)
+
+    meta_profiles, mappings, data_lists = dask.compute(c1, c2, c3)
+
+    all_profiles = combine_profiles(meta_profiles, data_lists, mappings, type)
+
+    # # Error tracing
+    # try:
+    #     c2.compute()
+    # except Exception as e:
+    #     import pdb
+    #     pdb.set_trace()
+    #     print(f"error {e}")
 
     logging.info('---------------------------')
     logging.info(f'End processing {type} profiles')
