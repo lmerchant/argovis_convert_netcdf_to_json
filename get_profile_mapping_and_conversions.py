@@ -41,14 +41,14 @@ def convert_oxygen(nc, var, var_goship_units, argovis_units):
 
 def convert_goship_to_argovis_units(nc):
 
-    param_names = nc.keys()
+    params = nc.keys()
 
     # If goship units aren't the same as argovis units, convert
     # So far, just converting oxygen
 
     goship_argovis_units_mapping = gvm.get_goship_argovis_unit_mapping()
 
-    for var in param_names:
+    for var in params:
         if 'oxygen' in var:
 
             try:
@@ -101,7 +101,7 @@ def convert_sea_water_temp(nc, var, var_goship_ref_scale, argovis_ref_scale):
 
 def convert_goship_to_argovis_ref_scale(nc):
 
-    param_names = nc.keys()
+    params = nc.keys()
 
     # If argo ref scale not equal to goship ref scale, convert
 
@@ -112,7 +112,7 @@ def convert_goship_to_argovis_ref_scale(nc):
 
     argovis_ref_scale_per_type = gvm.get_argovis_reference_scale_per_type()
 
-    for var in param_names:
+    for var in params:
         if 'temperature' in var:
 
             try:
