@@ -1,5 +1,7 @@
 import rename_objects as rn
 
+import get_profile_mapping_and_conversions as pm
+
 # Objects storing core Objects
 
 #  TODO
@@ -88,7 +90,7 @@ def get_goship_argovis_core_values_mapping(type):
 # measurements to check if have ctd_salinity, and
 # if now, use bottle_salinity
 def get_goship_core_values():
-    return ['pressure', 'ctd_temperature', 'ctd_temperature_qc', 'ctd_salinity', 'ctd_temperature_qc', 'ctd_salinity_qc', 'ctd_temperature_68', 'ctd_temperature_68_qc', 'ctd_oxygen_ml_l', 'ctd_oxygen_ml_l_qc', 'bottle_salinity', 'bottle_salinity_qc']
+    return ['pressure', 'ctd_temperature', 'ctd_temperature_qc', 'ctd_salinity', 'ctd_temperature_qc', 'ctd_salinity_qc', 'ctd_temperature_68', 'ctd_temperature_68_qc', 'bottle_salinity', 'bottle_salinity_qc']
 
 
 def get_argovis_meta_mapping():
@@ -96,9 +98,8 @@ def get_argovis_meta_mapping():
             'longitude': 'lon'}
 
 
-def create_goship_ref_scale_mapping(data_obj):
+def create_goship_ref_scale_mapping(nc):
 
-    nc = data_obj['nc']
     vars = nc.keys()
     ref_scale = {}
 
@@ -112,9 +113,7 @@ def create_goship_ref_scale_mapping(data_obj):
         except KeyError:
             pass
 
-    data_obj['goship_ref_scale'] = ref_scale
-
-    return data_obj
+    return ref_scale
 
 
 def create_goship_argovis_core_values_mapping(goship_names, type):
@@ -176,18 +175,16 @@ def create_goship_argovis_core_values_mapping(goship_names, type):
     return name_mapping
 
 
-def create_goship_c_format_mapping(data_obj):
+def create_goship_c_format_mapping(nc):
 
-    nc = data_obj['nc']
-    meta = data_obj['meta']
-    params = data_obj['param']
+    meta_names, param_names = pm.get_meta_param_names(nc)
 
     goship_c_format = {}
 
     # TODO
     # What about bottom depth?
 
-    for var in meta:
+    for var in meta_names:
 
         # Not all vars have c_format
         try:
@@ -197,7 +194,7 @@ def create_goship_c_format_mapping(data_obj):
         except:
             pass
 
-    for var in params:
+    for var in param_names:
 
         # Not all vars have c_format
         try:
@@ -207,23 +204,19 @@ def create_goship_c_format_mapping(data_obj):
         except:
             pass
 
-    data_obj['goship_c_format'] = goship_c_format
-
-    return data_obj
+    return goship_c_format
 
 
-def create_goship_unit_mapping(data_obj):
+def create_goship_unit_mapping(nc):
 
-    nc = data_obj['nc']
-    meta = data_obj['meta']
-    params = data_obj['param']
+    meta_names, param_names = pm.get_meta_param_names(nc)
 
     goship_units = {}
 
     # TODO
     # What about bottom depth?
 
-    for var in meta:
+    for var in meta_names:
 
         # Not all vars have units
         try:
@@ -233,7 +226,7 @@ def create_goship_unit_mapping(data_obj):
         except:
             pass
 
-    for var in params:
+    for var in param_names:
 
         # Not all vars have units
         try:
@@ -243,9 +236,7 @@ def create_goship_unit_mapping(data_obj):
         except:
             pass
 
-    data_obj['goship_units'] = goship_units
-
-    return data_obj
+    return goship_units
 
 
 def get_argovis_ref_scale_mapping(goship_names, type):

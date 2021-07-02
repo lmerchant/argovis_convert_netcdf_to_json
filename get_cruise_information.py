@@ -127,6 +127,130 @@ def get_all_cruises(session):
     return all_cruises
 
 
+def get_information_one_cruise_test(session):
+
+    # expocode =  06GA350_1, cruise_id = 865
+    # ctd file id = 17346
+    # expocode = '06GA350_1'
+    # file_id = 17346
+
+    # # ctd file
+    # file_id = 18420
+    # expocode = '316N154_2'
+
+    # # btl file
+    # expocode = '325020210420'
+    # file_id = 19429
+
+    # ctd file
+    expocode = '325020210420'
+    file_id = 19427
+
+    query = f"{API_END_POINT}/file/{file_id}"
+    response = session.get(query)
+
+    if response.status_code != 200:
+        print('api not reached in function find_btl_ctd_file_info')
+        print(response)
+        exit(1)
+
+    file_meta = response.json()
+
+    file_info = {}
+
+    file_info['btl_id'] = None
+    file_info['btl_hash'] = None
+    file_info['btl_path'] = ''
+    file_info['btl_filename'] = ''
+
+    file_info['ctd_id'] = None
+    file_info['ctd_hash'] = None
+    file_info['ctd_path'] = ''
+    file_info['ctd_filename'] = ''
+
+    file_info['btl_found'] = False
+    file_info['ctd_found'] = False
+
+    file_role = file_meta['role']
+    data_type = file_meta['data_type']
+    data_format = file_meta['data_format']
+    file_path = file_meta['file_path']
+
+    # Only returning file info if both a bottle and doc for cruise
+    if file_role == "dataset":
+        if data_type == "bottle" and data_format == "cf_netcdf":
+            file_info['btl_id'] = file_id
+            file_info['btl_path'] = file_path
+            file_info['btl_filename'] = file_path.split('/')[-1]
+            file_info['btl_found'] = True
+
+        if data_type == "ctd" and data_format == "cf_netcdf":
+            file_info['ctd_id'] = file_id
+            file_info['ctd_path'] = file_path
+            file_info['ctd_filename'] = file_path.split('/')[-1]
+            file_info['ctd_found'] = True
+
+    btl_found = file_info['btl_found']
+    ctd_found = file_info['ctd_found']
+
+    cruise_info = {}
+    cruise_info['btl'] = {'found': False}
+    cruise_info['ctd'] = {'found': False}
+
+    if btl_found:
+        btl_obj = {}
+        btl_obj['found'] = True
+        btl_obj['type'] = 'btl'
+        btl_obj['data_path'] = file_info['btl_path']
+        btl_obj['filename'] = file_info['btl_filename']
+        btl_obj['file_id'] = file_info['btl_id']
+        btl_obj['file_hash'] = file_info['btl_hash']
+        btl_obj['cruise_expocode'] = expocode
+
+        cruise_info['btl'] = btl_obj
+
+    if ctd_found:
+        ctd_obj = {}
+        ctd_obj['found'] = True
+        ctd_obj['type'] = 'ctd'
+        ctd_obj['data_path'] = file_info['ctd_path']
+        ctd_obj['filename'] = file_info['ctd_filename']
+        ctd_obj['file_id'] = file_info['ctd_id']
+        ctd_obj['file_hash'] = file_info['ctd_hash']
+        ctd_obj['cruise_expocode'] = expocode
+
+        cruise_info['ctd'] = ctd_obj
+
+    if btl_found or ctd_found:
+
+        # cruise_datetime = datetime.strptime(cruise_start_date, "%Y-%m-%d")
+
+        # in_date_range = cruise_datetime >= start_datetime and cruise_datetime <= end_datetime
+
+        # if not in_date_range:
+        #     return {}
+
+        #cruise_count = cruise_count + 1
+
+        if btl_found and ctd_found:
+            type = 'btl_ctd'
+        elif btl_found:
+            type = 'btl'
+        elif ctd_found:
+            type = 'ctd'
+
+        # cruise_info['start_datetime'] = cruise_datetime
+        cruise_info['expocode'] = expocode
+        # cruise_info['cruise_id'] = cruise['id']
+        # cruise_info['start_date'] = cruise['startDate']
+        cruise_info['type'] = type
+
+        return cruise_info
+
+    else:
+        return {}
+
+
 def get_information_one_cruise(cruise, all_file_ids, file_id_hash_mapping, start_datetime, end_datetime, session):
 
     # TODO
@@ -152,7 +276,9 @@ def get_information_one_cruise(cruise, all_file_ids, file_id_hash_mapping, start
 
     # Check this to see if program freezes or if it was random
     # expocode = cruise['expocode']
-    # if expocode != '318M20130321':
+    # expocode =  06GA350_1, cruise_id = 865
+    #  ctd file id = 17346
+    # if expocode != '06GA350_1':
     #     return {}
 
     # Get files attached to the cruise
