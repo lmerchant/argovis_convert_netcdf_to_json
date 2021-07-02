@@ -4,7 +4,7 @@ import os
 import json
 import numpy as np
 import logging
-import dask.bag as db
+#import dask.bag as db
 
 
 def convert(o):
@@ -144,11 +144,14 @@ def save_profile_one_type(ctd_var_check, logging_dir, json_directory):
 
 def save_all_profiles_one_type(checked_ctd_variables, logging_dir, json_directory):
 
-    b = db.from_sequence(checked_ctd_variables)
+    # b = db.from_sequence(checked_ctd_variables)
 
-    c = b.map(save_profile_one_type, logging_dir, json_directory)
+    # c = b.map(save_profile_one_type, logging_dir, json_directory)
 
-    c.compute()
+    # c.compute()
+
+    for checked_vars in checked_ctd_variables:
+        save_profile_one_type(checked_vars, logging_dir, json_directory)
 
 
 def save_one_btl_ctd_profile(ctd_var_check, logging_dir, json_directory):
@@ -179,8 +182,11 @@ def save_one_btl_ctd_profile(ctd_var_check, logging_dir, json_directory):
 
 def save_all_btl_ctd_profiles(checked_ctd_variables, logging_dir, json_directory):
 
-    b = db.from_sequence(checked_ctd_variables)
+    # b = db.from_sequence(checked_ctd_variables)
 
-    c = b.map(save_one_btl_ctd_profile, logging_dir, json_directory)
+    # c = b.map(save_one_btl_ctd_profile, logging_dir, json_directory)
 
-    c.compute()
+    # c.compute()
+
+    for checked_vars in checked_ctd_variables:
+        save_one_btl_ctd_profile(checked_vars, logging_dir, json_directory)

@@ -577,12 +577,16 @@ def create_profiles_one_type(data_obj):
     logging.info(
         f"Total number of {type} profiles to process {len(nc_groups)}")
 
-    b = db.from_sequence(nc_groups)
+    # b = db.from_sequence(nc_groups)
+    # c = b.map(create_profile, reduced_data_obj)
+    # all_profiles = c.compute()
 
-    c = b.map(create_profile, reduced_data_obj)
+    for nc_group in nc_groups:
+        profile = create_profile(nc_group, reduced_data_obj)
+        all_profiles.append(profile)
 
     # program_start_time = datetime.now()
-    all_profiles = c.compute()
+
     # logging.info('Using dask bag')
     # logging.info(datetime.now() - program_start_time)
 
