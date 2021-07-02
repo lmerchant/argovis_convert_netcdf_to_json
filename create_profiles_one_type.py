@@ -15,18 +15,16 @@ from dask import delayed
 from dask.diagnostics import ResourceProfiler
 from datetime import datetime
 # from dask.diagnostics import ProgressBar
-import ctypes
 from collections import defaultdict
 from operator import itemgetter
 import itertools
 from decimal import Decimal
-from numba import njit
 
 
 import get_variable_mappings as gvm
 import filter_profiles as fp
 import rename_objects as rn
-import get_profile_mapping_and_conversions_ver2 as pm
+import get_profile_mapping_and_conversions as pm
 
 
 # pbar = ProgressBar()
@@ -1525,7 +1523,7 @@ def to_int_qc(obj):
     return obj
 
 
-def create_profiles_one_type_ver2(data_obj):
+def create_profiles_one_type(data_obj):
 
     start_time = datetime.now()
 

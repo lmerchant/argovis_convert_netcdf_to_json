@@ -20,7 +20,6 @@ import filter_profiles as fp
 import get_cruise_information as gi
 import get_profile_mapping_and_conversions as pm
 import create_profiles_one_type as op
-import create_profiles_one_type_ver2 as op2
 import create_profiles_combined_type as cbp
 import save_output as sv
 
@@ -297,11 +296,11 @@ def main(start_year, end_year, append):
 
     else:
         # Loop through all cruises and grap NetCDF files
-        # all_cruises_info = gi.get_cruise_information(
-        #     session, logging_dir, start_datetime, end_datetime)
+        all_cruises_info = gi.get_cruise_information(
+            session, logging_dir, start_datetime, end_datetime)
 
-        cruise_info = gi.get_information_one_cruise_test(session)
-        all_cruises_info = [cruise_info]
+        # cruise_info = gi.get_information_one_cruise_test(session)
+        # all_cruises_info = [cruise_info]
 
         if not all_cruises_info:
             logging.info('No cruises within dates selected')
@@ -358,8 +357,7 @@ def main(start_year, end_year, append):
                         f.write(f"expocode {cruise_expocode}\n")
                         f.write(f"file type BTL\n")
 
-                #profiles_ctd = op.create_profiles_one_type(ctd_obj)
-                profiles_btl = op2.create_profiles_one_type_ver2(btl_obj)
+                profiles_ctd = op.create_profiles_one_type(ctd_obj)
 
         if ctd_found:
 
@@ -391,8 +389,7 @@ def main(start_year, end_year, append):
                         f.write(f"expocode {cruise_expocode}\n")
                         f.write(f"file type CTD\n")
 
-                #profiles_ctd = op.create_profiles_one_type(ctd_obj)
-                profiles_ctd = op2.create_profiles_one_type_ver2(ctd_obj)
+                profiles_ctd = op.create_profiles_one_type(ctd_obj)
 
         if btl_found and ctd_found:
 

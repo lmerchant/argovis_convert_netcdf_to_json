@@ -134,33 +134,8 @@ def save_profile_one_type(ctd_var_check, logging_dir, json_directory):
 
 def save_all_profiles_one_type(checked_ctd_variables, logging_dir, json_directory):
 
-
-<< << << < HEAD
-# b = db.from_sequence(checked_ctd_variables)
-
-# c = b.map(save_profile_one_type, logging_dir, json_directory)
-
-# c.compute()
-
-for checked_vars in checked_ctd_variables:
-    save_profile_one_type(checked_vars, logging_dir, json_directory)
-== == == =
-# TODO
-# Using Dask here caused Garbage collection warning.
-# See if problem if save to database
-
-for ctd_var_check in checked_ctd_variables:
-    save_profile_one_type(ctd_var_check, logging_dir, json_directory)
-
-
-# def save_all_profiles_one_type(checked_ctd_variables, logging_dir, json_directory):
-
-#     b = db.from_sequence(checked_ctd_variables)
-
-#     c = b.map(save_profile_one_type, logging_dir, json_directory)
-
-#     c.compute(scheduler='processes')
->>>>>> > code_with_dask
+    for checked_vars in checked_ctd_variables:
+        save_profile_one_type(checked_vars, logging_dir, json_directory)
 
 
 def save_one_btl_ctd_profile(ctd_var_check, logging_dir, json_directory):
