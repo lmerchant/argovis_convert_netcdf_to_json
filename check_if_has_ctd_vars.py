@@ -26,7 +26,7 @@ def check_missing_variables(profile, variables_check, logging, logging_dir):
 
     # No pressure
     if not has_pres:
-        #logging.info(f'No pressure for {expocode} {station_cast}')
+        # logging.info(f'No pressure for {expocode} {station_cast}')
         filename = 'cruises_no_pressure.txt'
         filepath = os.path.join(logging_dir, filename)
         with open(filepath, 'a') as f:
@@ -83,9 +83,11 @@ def check_missing_variables(profile, variables_check, logging, logging_dir):
             #    f'Has ctd_temperature_unk for BTL {expocode} {station_cast}')
             filename = 'cruises_w_ctd_temp_unk.txt'
             filepath = os.path.join(logging_dir, filename)
+            cruise_date = profile_dict['meta']['date_formatted']
             with open(filepath, 'a') as f:
                 f.write('-----------\n')
                 f.write(f"expocode {expocode}\n")
+                f.write(f"cruise date {cruise_date}\n")
                 f.write(f"collection type {type} and indiv type BTL\n")
                 f.write(f"station cast {station_cast}\n")
 
@@ -208,8 +210,8 @@ def check_ctd_vars_one_profile(profile, logging, logging_dir):
     bgc_meas = profile_dict['bgcMeas']
 
     # logging.info('***********')
-    #logging.info(f"station cast {station_cast}")
-    #logging.info(f"collection type {type}")
+    # logging.info(f"station cast {station_cast}")
+    # logging.info(f"collection type {type}")
 
     for obj in bgc_meas:
         if 'pres' in obj.keys():
@@ -296,15 +298,15 @@ def check_ctd_vars_one_profile(profile, logging, logging_dir):
     check_of_ctd_vars['has_ctd_temp_unk']['ctd'] = False
 
     if has_pres and has_ctd_temp_btl and has_ctd_temp_qc_btl and has_ctd_temp_w_ref_scale_btl:
-        #logging.info(f"Found CTD variables for BTL {expocode} {station_cast}")
+        # logging.info(f"Found CTD variables for BTL {expocode} {station_cast}")
         check_of_ctd_vars['has_all_ctd_vars']['btl'] = True
 
     if has_pres and has_ctd_temp_ctd and has_ctd_temp_qc_ctd and has_ctd_temp_w_ref_scale_ctd:
-        #logging.info(f"Found CTD variables for CTD {expocode} {station_cast}")
+        # logging.info(f"Found CTD variables for CTD {expocode} {station_cast}")
         check_of_ctd_vars['has_all_ctd_vars']['ctd'] = True
 
     if has_pres and has_ctd_temp_btl and has_ctd_temp_qc_btl and has_ctd_temp_w_ref_scale_btl:
-        #logging.info(f"Found CTD variables for BTL {expocode} {station_cast}")
+        # logging.info(f"Found CTD variables for BTL {expocode} {station_cast}")
         check_of_ctd_vars['has_all_ctd_vars']['btl'] = True
 
     if has_ctd_temp_btl and not has_ctd_temp_qc_btl:

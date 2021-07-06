@@ -138,13 +138,13 @@ def get_information_one_cruise_test(session):
     # file_id = 18420
     # expocode = '316N154_2'
 
-    # # btl file
-    # expocode = '325020210420'
-    # file_id = 19429
-
-    # ctd file
+    # btl file
     expocode = '325020210420'
-    file_id = 19427
+    file_id = 19429
+
+    # # ctd file
+    # expocode = '325020210420'
+    # file_id = 19427
 
     query = f"{API_END_POINT}/file/{file_id}"
     response = session.get(query)

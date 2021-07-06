@@ -100,22 +100,25 @@ def filter_btl_ctd_combined_measurements(btl_measurements, ctd_measurements, use
         combined_measurements = []
 
     # TODO
-    # Also mark what is  being used for testing
+    # mark what is  being used for testing
     # But remove for final product
 
-    measurements_source = {}
-    measurements_source['source'] = flag
-    measurements_source['qc'] = 2
-    measurements_source['use_temp_ctd'] = use_temp_ctd
-    measurements_source['use_psal_ctd'] = use_psal_ctd
-    measurements_source['use_temp_btl'] = use_temp_btl
-    measurements_source['use_psal_btl'] = use_psal_btl
+    measurements_sources = {}
+    #measurements_source['source'] = flag
+    measurements_source = flag
+
+    measurements_sources['qc'] = 2
+    measurements_sources['use_temp_ctd'] = use_temp_ctd
+    measurements_sources['use_psal_ctd'] = use_psal_ctd
+    measurements_sources['use_temp_btl'] = use_temp_btl
+    measurements_sources['use_psal_btl'] = use_psal_btl
     if use_elems['use_salinity_btl']:
-        measurements_source['use_salinty_btl'] = use_salinity_btl
+        measurements_sources['use_salinty_btl'] = use_salinity_btl
 
-    measurements_source = convert_boolean(measurements_source)
+    measurements_sources = convert_boolean(measurements_sources)
 
-    return combined_measurements, measurements_source
+    measurements_source = flag
+    return combined_measurements, measurements_source, measurements_sources
 
 
 def find_measurements_hierarchy_btl_ctd(btl_measurements, ctd_measurements):
@@ -316,15 +319,22 @@ def filter_measurements(profiles, type):
         measurements, flag, use_elems = get_filtered_measurements_for_profile_dict(
             measurements, type)
 
-        measurements_source = profile_dict['measurementsSource']
-        measurements_source['source'] = flag
+        # TODO
+        # check if this flag overrules starting source flag
+        source = profile_dict['measurementsSource']
+        sources = profile_dict['measurementsSourceQC']
+        #measurements_source['source'] = flag
 
         if use_elems['use_salinity']:
-            measurements_source['salinity_used'] = True
+            sources['salinity_used'] = True
 
         profile_dict['measurements'] = measurements
-        profile_dict['measurementsSource'] = convert_boolean(
-            measurements_source)
+        #profile_dict['measurementsSource'] = source
+
+        # TODO
+        # check if already did check
+        # profile_dict['measurementsSourceQC'] = convert_boolean(
+        #     sources)
 
         output_profile = {}
         output_profile['profile_dict'] = profile_dict

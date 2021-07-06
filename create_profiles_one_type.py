@@ -1,6 +1,9 @@
 # Create profiles for one type
 
 from os import stat
+from dask.core import keys_in_tasks
+
+from pandas.core.arrays import boolean
 import xarray as xr
 import pandas as pd
 import numpy as np
@@ -19,6 +22,7 @@ from collections import defaultdict
 from operator import itemgetter
 import itertools
 from decimal import Decimal
+import operator
 
 
 import get_variable_mappings as gvm
@@ -164,6 +168,66 @@ def create_df_profiles_one_group(nc_group, type):
 #     return nc
 
 
+def remove_rows(nc):
+
+    # Once remove variables like profile that exist
+    # in all array values, can create array that
+    # holds Boolean values of whether all array
+    # values at a Level are empty
+    # And then remove these in Pandas
+    # Can I use np.where?
+
+    # Want to compare arrays for null values
+    # Since arrays could be of different
+    # length, create one padded with False and length N_LEVELS
+
+    nc_length = nc.dims['N_LEVELS']
+
+    # padded_array = np.pad(array, (0, width), mode='constant', constant_values=False)
+    # where array is the boolean array and width is nc_length - boolean_length
+
+    vars = nc.keys()
+
+    first_array = True
+
+    print(nc.sizes)
+
+    all_vars = []
+
+    for var in vars:
+
+        print(var)
+
+        is_null = np.isnan(nc[var])
+
+        is_empty_str = operator.eq(nc[var], '')
+
+        is_nat = operator.eq(nc[var], 'NaT')
+
+        is_empty_array = np.logical_or.reduce(
+            (is_null, is_empty_str, is_nat))
+
+        # padded_array = np.pad(array, (0, width), mode='constant', constant_values=False)
+        # where array is the boolean array and width is nc_length - boolean_length
+        padded_length = nc_length - np.size(is_empty_array)
+
+        padded_array = np.pad(
+            is_empty_array, (0, padded_length), mode='constant', constant_values=True)
+
+        all_vars.append(padded_array)
+
+    not_empty_arr = np.logical_not(np.logical_and.reduce(all_vars))
+
+    nc['not_empty'] = (['N_LEVELS'], not_empty_arr)
+
+    # Now trim each array where boolean True
+    nc = nc.where(nc['not_empty'], drop=True)
+
+    nc = nc.drop('not_empty')
+
+    return nc
+
+
 def combine_profiles(meta_profiles, bgc_profiles, meas_profiles, meas_source_profiles, mapping_dict, type):
 
     #  https://stackoverflow.com/questions/5501810/join-two-lists-of-dictionaries-on-a-single-key
@@ -185,6 +249,32 @@ def combine_profiles(meta_profiles, bgc_profiles, meas_profiles, meas_source_pro
         all_profiles.append(new_obj)
 
     return all_profiles
+
+# second
+
+
+def apply_c_format_to_num(name, num, dtype_mapping, c_format_mapping):
+
+    # Now get str in C_format. e.g. "%9.1f"
+    # dtype = mapping['dtype'][name]
+    # c_format = mapping['c_format'][name]
+
+    float_types = ['float64', 'float32']
+
+    try:
+
+        dtype = dtype_mapping[name]
+        c_format = c_format_mapping[name]
+
+        if dtype in float_types and c_format:
+            f_format = c_format.lstrip('%')
+            return float(f"{num:{f_format}}")
+
+        else:
+            return num
+
+    except:
+        return num
 
 
 def apply_c_format(json_str, name, c_format):
@@ -213,103 +303,103 @@ def apply_c_format(json_str, name, c_format):
         return json_str
 
 
-def create_measurements_list_one(df_meas):
+# def create_measurements_list_one(df_meas):
 
-    # See if using ctd_salinty or bottle_salinity
-    # Is ctd_salinity NaN? If it is and bottle_salinity isn't NaN, use it
-    # See if all ctd_salinity are NaN, if not, use it and
-    # drop bottle salinity column
-    is_ctd_sal_empty = True
-    is_ctd_sal_column = 'ctd_salinity' in df_meas.columns
-    if is_ctd_sal_column:
-        is_ctd_sal_empty = df_meas['ctd_salinity'].isnull().all()
+#     # See if using ctd_salinty or bottle_salinity
+#     # Is ctd_salinity NaN? If it is and bottle_salinity isn't NaN, use it
+#     # See if all ctd_salinity are NaN, if not, use it and
+#     # drop bottle salinity column
+#     is_ctd_sal_empty = True
+#     is_ctd_sal_column = 'ctd_salinity' in df_meas.columns
+#     if is_ctd_sal_column:
+#         is_ctd_sal_empty = df_meas['ctd_salinity'].isnull().all()
 
-    is_bottle_sal_empty = True
-    is_bottle_sal_column = 'bottle_salinity' in df_meas.columns
-    if is_bottle_sal_column:
-        # Check if not all NaN
-        is_bottle_sal_empty = df_meas['bottle_salinity'].isnull().all()
+#     is_bottle_sal_empty = True
+#     is_bottle_sal_column = 'bottle_salinity' in df_meas.columns
+#     if is_bottle_sal_column:
+#         # Check if not all NaN
+#         is_bottle_sal_empty = df_meas['bottle_salinity'].isnull().all()
 
-    if is_ctd_sal_column and not is_ctd_sal_empty and is_bottle_sal_column:
-        use_ctd_salinity = True
-        use_bottle_salinity = False
-        df_meas = df_meas.drop(['bottle_salinity'], axis=1)
-    elif is_ctd_sal_column and not is_ctd_sal_empty and not is_bottle_sal_column:
-        use_ctd_salinity = True
-        use_bottle_salinity = False
-    elif is_ctd_sal_column and is_ctd_sal_empty and is_bottle_sal_column and not is_bottle_sal_empty:
-        use_ctd_salinity = False
-        use_bottle_salinity = True
-        df_meas = df_meas.drop(['ctd_salinity'], axis=1)
-    elif not is_ctd_sal_column and is_bottle_sal_column and not is_bottle_sal_empty:
-        use_ctd_salinity = False
-        use_bottle_salinity = True
-    else:
-        use_ctd_salinity = False
-        use_bottle_salinity = False
+#     if is_ctd_sal_column and not is_ctd_sal_empty and is_bottle_sal_column:
+#         use_ctd_salinity = True
+#         use_bottle_salinity = False
+#         df_meas = df_meas.drop(['bottle_salinity'], axis=1)
+#     elif is_ctd_sal_column and not is_ctd_sal_empty and not is_bottle_sal_column:
+#         use_ctd_salinity = True
+#         use_bottle_salinity = False
+#     elif is_ctd_sal_column and is_ctd_sal_empty and is_bottle_sal_column and not is_bottle_sal_empty:
+#         use_ctd_salinity = False
+#         use_bottle_salinity = True
+#         df_meas = df_meas.drop(['ctd_salinity'], axis=1)
+#     elif not is_ctd_sal_column and is_bottle_sal_column and not is_bottle_sal_empty:
+#         use_ctd_salinity = False
+#         use_bottle_salinity = True
+#     else:
+#         use_ctd_salinity = False
+#         use_bottle_salinity = False
 
-    ctd_temp_cols = ['ctd_temperature', 'ctd_temperature_68']
-    is_ctd_temp_col = any(
-        [True if col in df_meas.columns else False for col in ctd_temp_cols])
+#     ctd_temp_cols = ['ctd_temperature', 'ctd_temperature_68']
+#     is_ctd_temp_col = any(
+#         [True if col in df_meas.columns else False for col in ctd_temp_cols])
 
-    is_ctd_temp_empty = True
-    if is_ctd_temp_col:
-        is_ctd_temp_empty = bool(
-            next(df_meas[col].isnull().all() for col in df_meas.columns))
+#     is_ctd_temp_empty = True
+#     if is_ctd_temp_col:
+#         is_ctd_temp_empty = bool(
+#             next(df_meas[col].isnull().all() for col in df_meas.columns))
 
-    if is_ctd_temp_empty:
-        flag = None
-    elif not is_ctd_temp_empty and use_ctd_salinity and not use_bottle_salinity:
-        flag = 'CTD'
-    elif not is_ctd_temp_empty and not use_ctd_salinity and use_bottle_salinity:
-        flag = 'BTL'
-    elif not is_ctd_temp_empty and not use_ctd_salinity and not use_bottle_salinity:
-        flag = 'CTD'
-    else:
-        flag = None
+#     if is_ctd_temp_empty:
+#         flag = None
+#     elif not is_ctd_temp_empty and use_ctd_salinity and not use_bottle_salinity:
+#         flag = 'CTD'
+#     elif not is_ctd_temp_empty and not use_ctd_salinity and use_bottle_salinity:
+#         flag = 'BTL'
+#     elif not is_ctd_temp_empty and not use_ctd_salinity and not use_bottle_salinity:
+#         flag = 'CTD'
+#     else:
+#         flag = None
 
-    json_str = df_meas.to_json(orient='records')
+#     json_str = df_meas.to_json(orient='records')
 
-    data_dict_list = json.loads(json_str)
+#     data_dict_list = json.loads(json_str)
 
-    measurements_source = {}
-    # measurements_source['flag'] = flag
-    measurements_source['qc'] = 2
-    measurements_source['use_ctd_temp'] = not is_ctd_temp_empty
-    measurements_source['use_ctd_salinity'] = use_ctd_salinity
-    if use_bottle_salinity:
-        measurements_source['use_bottle_salinity'] = use_bottle_salinity
+#     measurements_source = {}
+#     # measurements_source['flag'] = flag
+#     measurements_source['qc'] = 2
+#     measurements_source['use_ctd_temp'] = not is_ctd_temp_empty
+#     measurements_source['use_ctd_salinity'] = use_ctd_salinity
+#     if use_bottle_salinity:
+#         measurements_source['use_bottle_salinity'] = use_bottle_salinity
 
-    measurements_source = fp.convert_boolean(measurements_source)
+#     measurements_source = fp.convert_boolean(measurements_source)
 
-    return data_dict_list,  measurements_source
+#     return data_dict_list,  measurements_source
 
 
-def process_one_profile_group(nc_profile, df_bgc_station_cast_all,
-                              measurements_list_df_all, type):
+# def process_one_profile_group(nc_profile, df_bgc_station_cast_all,
+#                               measurements_list_df_all, type):
 
-    station_cast = get_station_cast(nc_profile)
+#     station_cast = get_station_cast(nc_profile)
 
-    bgc_meas_df = df_bgc_station_cast_all.loc[station_cast]
+#     bgc_meas_df = df_bgc_station_cast_all.loc[station_cast]
 
-    bgc_meas_dict_list = create_bgc_meas_list(bgc_meas_df)
-    renamed_bgc_list = rn.create_renamed_list_of_objs(
-        bgc_meas_dict_list, type)
+#     bgc_meas_dict_list = create_bgc_meas_list(bgc_meas_df)
+#     renamed_bgc_list = rn.create_renamed_list_of_objs(
+#         bgc_meas_dict_list, type)
 
-    measurements_df = measurements_list_df_all.loc[station_cast]
-    measurements_dict_list, measurements_source = create_measurements_list_one(
-        measurements_df)
+#     measurements_df = measurements_list_df_all.loc[station_cast]
+#     measurements_dict_list, measurements_source = create_measurements_list_one(
+#         measurements_df)
 
-    renamed_measurements_list = rn.create_renamed_list_of_objs_argovis_measurements(
-        measurements_dict_list)
+#     renamed_measurements_list = rn.create_renamed_list_of_objs_argovis_measurements(
+#         measurements_dict_list)
 
-    data_dict = {}
-    data_dict['bgcMeas'] = renamed_bgc_list
-    data_dict['measurements'] = renamed_measurements_list
-    data_dict['measurementsSource'] = measurements_source
-    data_dict['station_cast'] = station_cast
+#     data_dict = {}
+#     data_dict['bgcMeas'] = renamed_bgc_list
+#     data_dict['measurements'] = renamed_measurements_list
+#     data_dict['measurementsSource'] = measurements_source
+#     data_dict['station_cast'] = station_cast
 
-    return data_dict
+#     return data_dict
 
 
 # def create_mapping_profile(nc_profile_group, type):
@@ -405,48 +495,101 @@ def create_bgc_meas_list(df):
     return data_dict_list
 
 
-def create_measurements_df_all(df_bgc_meas_all):
+def create_measurements_df_all2(df,  type):
 
     # core values includes '_qc' vars
-    core_values = gvm.get_goship_core_values()
-
-    table_columns = list(df_bgc_meas_all.columns)
-
+    core_values = gvm.get_argovis_core_values_per_type(type)
+    table_columns = list(df.columns)
     core_cols = [col for col in table_columns if col in core_values]
 
-    # Add station_cast col to list
-    core_cols.append('station_cast')
-    df_meas_all = df_bgc_meas_all[core_cols].copy()
+    core_non_qc = [elem for elem in core_cols if '_qc' not in elem]
 
-    core_non_qc = [elem for elem in core_values if '_qc' not in elem]
+    df_meas = df[core_cols].copy()
+
+    # here
+
+    def check_qc(row):
+        if pd.notnull(row[1]) and int(row[1]) == 0:
+            return row[0]
+        elif pd.notnull(row[1]) and int(row[1]) == 2:
+            return row[0]
+        else:
+            return np.nan
 
     # If qc != 2, set corresponding value to np.nan
     for col in core_non_qc:
+
         qc_key = f"{col}_qc"
 
-        if col == 'pressure' or col == 'station_cast' or col not in df_meas_all.columns:
-            continue
-
-        if qc_key not in table_columns:
-            df_meas_all[col] = np.nan
-            continue
-
         try:
-            df_meas_all[col] = df_meas_all.apply(lambda x: x[col] if pd.notnull(
-                x[qc_key]) and int(x[qc_key]) == 2 else np.nan, axis=1)
-
-        except KeyError:
+            df_meas[col] = df_meas[[col, qc_key]].apply(
+                check_qc, axis=1)
+        except:
             pass
 
     # drop qc columns now that have marked non_qc column values
-    for col in df_meas_all.columns:
+    for col in df_meas.columns:
         if '_qc' in col:
-            df_meas_all = df_meas_all.drop([col], axis=1)
+            df_meas = df_meas.drop([col], axis=1)
 
     # If all core values have nan, drop row
-    df_meas_all = df_meas_all.dropna(how='all')
+    # This won't work since
+    df_meas = df_meas.dropna(how='all')
 
-    return df_meas_all
+    df_meas = df_meas.sort_values(by=['pres'])
+
+    # Remove type ('btl', 'ctd') from  variable names
+    column_mapping = {}
+    column_mapping[f"psal_{type}"] = 'psal'
+    column_mapping[f"temp_{type}"] = 'temp'
+    column_mapping[f"salinity_btl"] = 'salinity'
+
+    df_meas = df_meas.rename(columns=column_mapping)
+
+    return df_meas
+
+
+def create_measurements_df_all(df):
+
+    # core values includes '_qc' vars
+    core_values = gvm.get_goship_core_values()
+    table_columns = list(df.columns)
+    core_cols = [col for col in table_columns if col in core_values]
+    core_non_qc = [elem for elem in core_cols if '_qc' not in elem]
+
+    df_meas = df[core_cols].copy()
+
+    def check_qc(row):
+
+        if pd.notnull(row[1]) and int(row[1]) == 0:
+            return row[0]
+        elif pd.notnull(row[1]) and int(row[1]) == 2:
+            return row[0]
+        else:
+            return np.nan
+
+    # If qc != 2, set corresponding value to np.nan
+    for col in core_non_qc:
+
+        qc_key = f"{col}_qc"
+
+        meta_dask = df_meas[col].dtype
+        try:
+            df_meas[col] = df_meas[[col, qc_key]].apply(
+                check_qc, axis=1, meta=meta_dask)
+        except:
+            pass
+
+    # drop qc columns now that have marked non_qc column values
+    for col in df_meas.columns:
+        if '_qc' in col:
+            df_meas = df_meas.drop([col], axis=1)
+
+    # If all core values have nan, drop row
+    # This won't work since
+    df_meas = df_meas.dropna(how='all')
+
+    return df_meas
 
 
 # def clean_df_param_station_cast_all(df_param_station_cast_all):
@@ -640,15 +783,6 @@ def create_meta_param_profiles_df(all_df_meta, all_df_param):
     return df_metas, df_params
 
 
-def add_str_lat_lon():
-    # str_lat = list(map(lambda x: f"{x} N", latitude))
-    # str_lon = list(map(lambda x: f"{x} E", longitude))
-
-    # nc = nc.assign_coords(strLat=('N_PROF', str_lat))
-    # nc = nc.assign_coords(strLon=('N_PROF', str_lon))
-    pass
-
-
 def remove_empty_rows5(df):
 
     # TODO
@@ -682,6 +816,9 @@ def remove_empty_rows5(df):
 
    # Remove station cast for now since
     # it is filled
+    # Need original order for dask compute  meta
+    df = orig_cols = df.columns
+
     station_cast_col = df['station_cast']
     df = df.drop(['station_cast'], axis=1)
 
@@ -704,6 +841,8 @@ def remove_empty_rows5(df):
 
     # # And drop num_elems column
     df = df.drop(columns=['null', 'string', 'time_check', 'num_elems'])
+
+    df = df[orig_cols]
 
     return df
 
@@ -749,44 +888,41 @@ def remove_empty_rows5(df):
 
 def remove_empty_rows(df):
 
-    # Count # of elems in each row and save to new column
+    # Count # of non empty elems in each row and save to new column
     def count_elems(row):
-        result = [False if pd.isnull(
-            cell) or cell == '' or cell == 'NaT' else True for cell in row]
 
-        # Return number of True values
+        result = [0 if pd.isnull(
+            cell) or cell == '' or cell == 'NaT' else 1 for cell in row]
+
         return sum(result)
 
-    station_cast_col = df['station_cast']
+    orig_cols = df.columns
 
-    df = df.drop(['station_cast'], axis=1)
+    df_columns = list(df.columns)
+    df_columns.remove('N_PROF')
+    df_columns.remove('station_cast')
+    df_columns.remove('index')
+    df_subset = df[df_columns]
 
-    new_df = df.apply(count_elems, axis=1).copy()
+    new_df = df_subset.apply(count_elems, axis=1)
 
     new_df.columns = ['num_elems']
 
-    df = pd.concat([df, new_df], axis=1)
+    df_end = pd.concat([df, new_df], axis=1)
 
-    df.columns = [*df.columns[:-1], 'num_elems']
-
-    df = df.join(station_cast_col)
+    # name last column so know what to delete
+    df_end.columns = [*df_end.columns[:-1], 'num_elems']
 
     # Then drop rows where num_elems is 0
-    df = df.drop(df[df['num_elems'] == 0].index)
+    df_end = df_end.drop(df_end[df_end['num_elems'] == 0].index)
 
-    # And drop num_elems column
-    df = df.drop(columns=[
-        'num_elems'])
+    df_end = df_end[orig_cols]
 
-    # for col in df.columns:
-    #     print(df[col].tail())
-
-    return df
-
-# The  worst
+    return df_end
 
 
 def remove_empty_rows4(df):
+    # The  worst
 
     # Remove station cast for now since
     # it is filled
@@ -848,7 +984,7 @@ def remove_empty_rows3(df_orig):
 
     # print(df3)
 
-    #df3 = df_new[cols].sum(axis=1)
+    # df3 = df_new[cols].sum(axis=1)
 
     # print(df_new)
 
@@ -878,7 +1014,7 @@ def remove_empty_rows2(df):
     choices = [False]
     df["time"] = np.select(conditions, choices, default=True)
 
-    #df["num_elems"] = df[['null', 'string', 'time']].sum(axis=1)
+    # df["num_elems"] = df[['null', 'string', 'time']].sum(axis=1)
     df["num_elems"] = df[['string', 'time']].sum(axis=1)
 
     df = df.join(station_cast_col)
@@ -910,8 +1046,6 @@ def apply_c_format_to_nc(nc_val, c_format):
 
     func_vec = np.vectorize(apply_c_format_per_elem)
     result = func_vec(nc_val, f_format)
-
-    return result
 
     # print(new_val)
 
@@ -956,67 +1090,74 @@ def modify_floats(nc):
 def get_goship_mappings_per(nc):
 
     meta_mapping = {}
+
+    meta_units = {}
+    meta_ref_scale = {}
+    meta_c_format = {}
+    meta_dtype = {}
+
     param_mapping = {}
 
-    meta_mapping
+    param_units = {}
+    param_ref_scale = {}
+    param_c_format = {}
+    param_dtype = {}
 
-    # Save units, ref_scale, and c_format
-    meta_units = {}
+    # Meta: Save units, ref_scale, c_format, dtype
     for var in nc.coords:
         try:
             meta_units[var] = nc[var].attrs['units']
         except:
             meta_units[var] = None
 
-    # Save units, ref_scale, and c_format
-    param_units = {}
+        try:
+            meta_ref_scale[var] = nc[var].attrs['reference_scale']
+        except:
+            meta_ref_scale[var] = None
+
+        try:
+            meta_c_format[var] = nc[var].attrs['C_format']
+        except:
+            meta_c_format[var] = None
+
+        try:
+            meta_dtype[var] = nc[var].dtype
+        except KeyError:
+            meta_dtype[var] = None
+
+    # Param: Save units, ref_scale, and c_format, dtype
     for var in nc.keys():
         try:
             param_units[var] = nc[var].attrs['units']
         except:
             param_units[var] = None
 
-    # Save units, ref_scale, and c_format
-    meta_ref_scale = {}
-    for var in nc.coords:
-        try:
-            meta_ref_scale[var] = nc[var].attrs['reference_scale']
-        except:
-            meta_ref_scale[var] = None
-
-    # Save units, ref_scale, and c_format
-    param_ref_scale = {}
-    for var in nc.keys():
         try:
             param_ref_scale[var] = nc[var].attrs['reference_scale']
         except:
             param_ref_scale[var] = None
 
-    # Save units, ref_scale, and c_format
-    meta_c_format = {}
-    for var in nc.coords:
-        try:
-            meta_c_format[var] = nc[var].attrs['C_format']
-        except:
-            meta_c_format[var] = None
-
-    # Save units, ref_scale, and c_format
-    param_c_format = {}
-    for var in nc.keys():
         try:
             param_c_format[var] = nc[var].attrs['C_format']
         except:
             param_c_format[var] = None
 
+        try:
+            param_dtype[var] = nc[var].dtype
+        except KeyError:
+            param_dtype[var] = None
+
     meta_mapping['names'] = list(nc.coords)
     meta_mapping['units'] = meta_units
     meta_mapping['ref_scale'] = meta_ref_scale
     meta_mapping['c_format'] = meta_c_format
+    meta_mapping['dtype'] = meta_dtype
 
     param_mapping['names'] = list(nc.keys())
     param_mapping['units'] = param_units
     param_mapping['ref_scale'] = param_ref_scale
     param_mapping['c_format'] = param_c_format
+    param_mapping['dtype'] = param_dtype
 
     return meta_mapping, param_mapping
 
@@ -1106,49 +1247,49 @@ def get_nc_dtypes(nc):
     return meta_dtype, param_dtype
 
 
-def string_to_float2(df, meta_mappings, param_mappings, meta_dtype, param_dtype):
+# def string_to_float2(df, meta_mappings, param_mappings, meta_dtype, param_dtype):
 
-    def convert_to_decimal(x):
-        return Decimal(x)
+#     def convert_to_decimal(x):
+#         return Decimal(x)
 
-    # Now apply c_format to it
-    @ njit
-    def apply_c_format_per(val, c_format):
-        # print(f'{val:.2f}') where val is a #
-        f_format = c_format.lstrip('%')
-        formatted = f"{val:{f_format}}"
-        return float(formatted)
+#     # Now apply c_format to it
+#     @ njit
+#     def apply_c_format_per(val, c_format):
+#         # print(f'{val:.2f}') where val is a #
+#         f_format = c_format.lstrip('%')
+#         formatted = f"{val:{f_format}}"
+#         return float(formatted)
 
-    meta_c_formats = meta_mappings['c_format']
-    param_c_formats = param_mappings['c_format']
+#     meta_c_formats = meta_mappings['c_format']
+#     param_c_formats = param_mappings['c_format']
 
-    float_types = ['float64', 'float32']
+#     float_types = ['float64', 'float32']
 
-    for key, val in meta_dtype.items():
-        if val in float_types and meta_c_formats[key]:
-            # Apply Decimal to it
-            df[key] = convert_to_decimal(df[key].values)
-            c_format = meta_c_formats[key]
-            df[key] = df[key].apply(
-                lambda x: apply_c_format_per(x, c_format))
-        elif val in float_types:
-            # Apply Decimal and then float
-            df[key] = df[key].apply(convert_to_decimal)
-            df[key] = df[key].apply(lambda x: float(x))
+#     for key, val in meta_dtype.items():
+#         if val in float_types and meta_c_formats[key]:
+#             # Apply Decimal to it
+#             df[key] = convert_to_decimal(df[key].values)
+#             c_format = meta_c_formats[key]
+#             df[key] = df[key].apply(
+#                 lambda x: apply_c_format_per(x, c_format))
+#         elif val in float_types:
+#             # Apply Decimal and then float
+#             df[key] = df[key].apply(convert_to_decimal)
+#             df[key] = df[key].apply(lambda x: float(x))
 
-    for key, val in param_dtype.items():
-        if val in float_types and param_c_formats[key]:
-            # Apply Decimal to it
-            df[key] = df[key].apply(convert_to_decimal)
-            c_format = param_c_formats[key]
-            df[key] = df[key].apply(
-                lambda x: apply_c_format_per(x, c_format))
-        elif val in float_types:
-            # Apply Decimal and then float
-            df[key] = df[key].apply(convert_to_decimal)
-            df[key] = df[key].apply(lambda x: float(x))
+#     for key, val in param_dtype.items():
+#         if val in float_types and param_c_formats[key]:
+#             # Apply Decimal to it
+#             df[key] = df[key].apply(convert_to_decimal)
+#             c_format = param_c_formats[key]
+#             df[key] = df[key].apply(
+#                 lambda x: apply_c_format_per(x, c_format))
+#         elif val in float_types:
+#             # Apply Decimal and then float
+#             df[key] = df[key].apply(convert_to_decimal)
+#             df[key] = df[key].apply(lambda x: float(x))
 
-    return df
+#     return df
 
 
 def string_to_float(df, meta_mappings, param_mappings, meta_dtype, param_dtype):
@@ -1252,7 +1393,7 @@ def create_mapping_profile(meta_mapping, param_mapping, type):
     mapping_dict = {}
 
     mapping_dict['goshipArgovisNameMapping'] = gvm.create_goship_argovis_core_values_mapping(
-        goship_names, type)
+        type)
     mapping_dict['argovisReferenceScale'] = gvm.get_argovis_ref_scale_mapping(
         goship_names, type)
 
@@ -1265,59 +1406,71 @@ def create_mapping_profile(meta_mapping, param_mapping, type):
 
     return mapping_dict
 
+# here
 
-def get_measurements_source(df_meas):
+
+def get_measurements_source(df_meas, temp_qc, type):
 
     # See if using ctd_salinty or bottle_salinity
     # Is ctd_salinity NaN? If it is and bottle_salinity isn't NaN, use it
     # See if all ctd_salinity are NaN, if not, use it and
     # drop bottle salinity column
     is_ctd_sal_empty = True
-    is_ctd_sal_column = 'ctd_salinity' in df_meas.columns
+    is_ctd_sal_column = 'psal' in df_meas.columns
     if is_ctd_sal_column:
-        is_ctd_sal_empty = df_meas['ctd_salinity'].isnull().all()
+        is_ctd_sal_empty = df_meas['psal'].isnull().all()
 
     is_bottle_sal_empty = True
-    is_bottle_sal_column = 'bottle_salinity' in df_meas.columns
+    is_bottle_sal_column = 'salinity' in df_meas.columns
     if is_bottle_sal_column:
         # Check if not all NaN
-        is_bottle_sal_empty = df_meas['bottle_salinity'].isnull().all()
+        is_bottle_sal_empty = df_meas['salinity'].isnull().all()
 
     if is_ctd_sal_column and not is_ctd_sal_empty and is_bottle_sal_column:
-        use_ctd_salinity = True
+        use_ctd_psal = True
         use_bottle_salinity = False
-        df_meas = df_meas.drop(['bottle_salinity'], axis=1)
+        df_meas = df_meas.drop(['salinity'], axis=1)
     elif is_ctd_sal_column and not is_ctd_sal_empty and not is_bottle_sal_column:
-        use_ctd_salinity = True
+        use_ctd_psal = True
         use_bottle_salinity = False
     elif is_ctd_sal_column and is_ctd_sal_empty and is_bottle_sal_column and not is_bottle_sal_empty:
-        use_ctd_salinity = False
+        use_ctd_psal = False
         use_bottle_salinity = True
-        df_meas = df_meas.drop(['ctd_salinity'], axis=1)
+        df_meas = df_meas.drop(['psal'], axis=1)
     elif not is_ctd_sal_column and is_bottle_sal_column and not is_bottle_sal_empty:
-        use_ctd_salinity = False
+        use_ctd_psal = False
         use_bottle_salinity = True
     else:
-        use_ctd_salinity = False
+        use_ctd_psal = False
         use_bottle_salinity = False
 
-    ctd_temp_cols = ['ctd_temperature', 'ctd_temperature_68']
-    is_ctd_temp_col = any(
-        [True if col in df_meas.columns else False for col in ctd_temp_cols])
+    # ctd_temp_cols = ['ctd_temperature', 'ctd_temperature_68']
+    # is_ctd_temp_col = any(
+    #     [True if col in df_meas.columns else False for col in ctd_temp_cols])
+    #is_ctd_temp_col = 'temp' in df_meas.columns
+    # Don't want to match variables with temp in name
+    is_ctd_temp = next(
+        (True for col in df_meas.columns if col == 'temp'), False)
 
-    is_ctd_temp_empty = True
-    if is_ctd_temp_col:
-        is_ctd_temp_empty = bool(
-            next(df_meas[col].isnull().all() for col in df_meas.columns))
+    if is_ctd_temp:
+        is_ctd_temp_empty = df_meas['temp'].isnull().all()
+    else:
+        is_ctd_temp_empty = True
+
+    # if is_ctd_temp_col:
+    #     is_ctd_temp_empty = next(
+    #         (df_meas[col].isnull().all() for col in df_meas.columns), False)
 
     if is_ctd_temp_empty:
         flag = None
-    elif not is_ctd_temp_empty and use_ctd_salinity and not use_bottle_salinity:
+    elif not is_ctd_temp_empty and use_ctd_psal and not use_bottle_salinity:
         flag = 'CTD'
-    elif not is_ctd_temp_empty and not use_ctd_salinity and use_bottle_salinity:
+    elif not is_ctd_temp_empty and not use_ctd_psal and use_bottle_salinity:
         flag = 'BTL'
-    elif not is_ctd_temp_empty and not use_ctd_salinity and not use_bottle_salinity:
+    elif type == 'ctd' and not is_ctd_temp_empty and not use_ctd_psal and not use_bottle_salinity:
         flag = 'CTD'
+    elif type == 'btl' and not is_ctd_temp_empty and not use_ctd_psal and not use_bottle_salinity:
+        flag = 'BTL'
     else:
         flag = None
 
@@ -1325,17 +1478,131 @@ def get_measurements_source(df_meas):
 
     # data_dict_list = json.loads(json_str)
 
-    measurements_source = {}
-    # measurements_source['flag'] = flag
-    measurements_source['qc'] = 2
-    measurements_source['use_ctd_temp'] = not is_ctd_temp_empty
-    measurements_source['use_ctd_salinity'] = use_ctd_salinity
+    measurements_source = flag
+
+    measurements_source_qc = {}
+    measurements_source_qc['qc'] = temp_qc
+    measurements_source_qc['use_ctd_temp'] = not is_ctd_temp_empty
+    measurements_source_qc['use_ctd_psal'] = use_ctd_psal
     if use_bottle_salinity:
-        measurements_source['use_bottle_salinity'] = use_bottle_salinity
+        measurements_source_qc['use_bottle_salinity'] = use_bottle_salinity
 
-    measurements_source = fp.convert_boolean(measurements_source)
+    # For json_str, convert True, False to 'true','false'
+    measurements_source_qc = fp.convert_boolean(measurements_source_qc)
 
-    return measurements_source
+    return measurements_source, measurements_source_qc
+
+
+# def get_measurements_source(df_meas):
+
+#     # See if using ctd_salinty or bottle_salinity
+#     # Is ctd_salinity NaN? If it is and bottle_salinity isn't NaN, use it
+#     # See if all ctd_salinity are NaN, if not, use it and
+#     # drop bottle salinity column
+#     is_ctd_sal_empty = True
+#     is_ctd_sal_column = 'ctd_salinity' in df_meas.columns
+#     if is_ctd_sal_column:
+#         is_ctd_sal_empty = df_meas['ctd_salinity'].isnull().all()
+
+#     is_bottle_sal_empty = True
+#     is_bottle_sal_column = 'bottle_salinity' in df_meas.columns
+#     if is_bottle_sal_column:
+#         # Check if not all NaN
+#         is_bottle_sal_empty = df_meas['bottle_salinity'].isnull().all()
+
+#     if is_ctd_sal_column and not is_ctd_sal_empty and is_bottle_sal_column:
+#         use_ctd_salinity = True
+#         use_bottle_salinity = False
+#         df_meas = df_meas.drop(['bottle_salinity'], axis=1)
+#     elif is_ctd_sal_column and not is_ctd_sal_empty and not is_bottle_sal_column:
+#         use_ctd_salinity = True
+#         use_bottle_salinity = False
+#     elif is_ctd_sal_column and is_ctd_sal_empty and is_bottle_sal_column and not is_bottle_sal_empty:
+#         use_ctd_salinity = False
+#         use_bottle_salinity = True
+#         df_meas = df_meas.drop(['ctd_salinity'], axis=1)
+#     elif not is_ctd_sal_column and is_bottle_sal_column and not is_bottle_sal_empty:
+#         use_ctd_salinity = False
+#         use_bottle_salinity = True
+#     else:
+#         use_ctd_salinity = False
+#         use_bottle_salinity = False
+
+#     ctd_temp_cols = ['ctd_temperature', 'ctd_temperature_68']
+#     is_ctd_temp_col = any(
+#         [True if col in df_meas.columns else False for col in ctd_temp_cols])
+
+#     is_ctd_temp_empty = True
+#     if is_ctd_temp_col:
+#         is_ctd_temp_empty = bool(
+#             next(df_meas[col].isnull().all() for col in df_meas.columns))
+
+#     if is_ctd_temp_empty:
+#         flag = None
+#     elif not is_ctd_temp_empty and use_ctd_salinity and not use_bottle_salinity:
+#         flag = 'CTD'
+#     elif not is_ctd_temp_empty and not use_ctd_salinity and use_bottle_salinity:
+#         flag = 'BTL'
+#     elif not is_ctd_temp_empty and not use_ctd_salinity and not use_bottle_salinity:
+#         flag = 'CTD'
+#     else:
+#         flag = None
+
+#     # json_str = df_meas.to_json(orient='records')
+
+#     # data_dict_list = json.loads(json_str)
+
+#     measurements_source = {}
+#     # measurements_source['flag'] = flag
+#     measurements_source['source'] = flag
+#     measurements_source['qc'] = 2
+#     measurements_source['use_ctd_temp'] = not is_ctd_temp_empty
+#     measurements_source['use_ctd_salinity'] = use_ctd_salinity
+#     if use_bottle_salinity:
+#         measurements_source['use_bottle_salinity'] = use_bottle_salinity
+
+#     measurements_source = fp.convert_boolean(measurements_source)
+
+#     return measurements_source
+
+
+def find_temp_qc_val(df, type):
+
+    # Check if have temp_{type}_qc with qc = 0 or qc = 2 values
+    has_ctd_temp_qc = f"temp_{type}_qc" in df.columns
+
+    if has_ctd_temp_qc:
+        temp_qc = df[f"temp_{type}_qc"].astype(int).values
+
+        if 0 in temp_qc:
+            qc = 0
+        elif 2 in temp_qc:
+            qc = 2
+        else:
+            qc = None
+
+    else:
+        qc = None
+
+    return qc
+
+
+def check_if_temp_qc(nc, type):
+
+    # Now check so see if there is a 'temp_{type}'  column and a corresponding
+    # qc col. 'temp_{type}_qc'. If not, add a 'temp' qc col. with values 0
+
+    has_ctd_temp = f"temp_{type}" in nc.keys()
+    has_ctd_temp_qc = f"temp_{type}_qc" in nc.keys()
+
+    if has_ctd_temp and not has_ctd_temp_qc:
+        temp_shape = np.shape(nc[f"temp_{type}"])
+        shape = np.transpose(temp_shape)
+        temp_qc = np.zeros(shape)
+
+        nc[f"temp_{type}_qc"] = (['N_PROF', 'N_LEVELS'], temp_qc)
+
+    return nc
 
 
 def create_geolocation_dict(lat, lon):
@@ -1449,6 +1716,9 @@ def add_extra_general_coords(nc, file_info):
 
     nc = nc.assign_coords(date=('N_PROF', new_date))
 
+    # Drop time
+    nc = nc.drop('time')
+
     latitude = nc['latitude'].values
     longitude = nc['longitude'].values
 
@@ -1508,8 +1778,16 @@ def modify_nc(nc, file_info):
     except:
         pass
 
-    # following doesn't keep float length even as strings
-    # nc = modify_floats(nc)
+    # drop_vars = ['profile_type', 'instrument_id', 'geometry_container']
+
+    # for var in drop_vars:
+    #     try:
+    #         nc = nc.drop_vars([var])
+    #     except KeyError:
+    #         pass
+
+    # Remove N_LEVELS dim
+    # Because dask array doesn't support  multi-index
 
     return nc
 
@@ -1561,119 +1839,148 @@ def create_profiles_one_type(data_obj):
     logging.info('Start modify_nc')
     nc = modify_nc(nc, file_info)
 
+    #  TODO
+    # If no ctd_temp qc, add one with qc=0
+
     logging.info('Start get_goship_mappings')
     # Get universal attributes independent of profile
     meta_mappings, param_mappings = get_goship_mappings_per(nc)
 
-    # TODO
-    # Is the  following  looping correct if using
-    # global attributes
+    # mapping
+    meta_mapping_argovis = rn.rename_mapping_to_argovis(meta_mappings)
+
+    param_mapping_argovis_btl = rn.rename_mapping_to_argovis_param(
+        param_mappings, 'btl')
+    param_mapping_argovis_ctd = rn.rename_mapping_to_argovis_param(
+        param_mappings, 'ctd')
+
     logging.info('start create_mapping_profile')
-    mapping_dict = create_mapping_profile(meta_mappings, param_mappings, type)
+    goship_mapping_dict = create_mapping_profile(
+        meta_mappings, param_mappings, type)
 
     logging.info('start apply_equations_and_ref_scale')
+    # TODO
+    # Get formula for Oxygen unit conversion
     nc = apply_equations_and_ref_scale(nc)
+
+    # Rename columns to argovis_names
+    # Create mapping from goship_col names to argovis names
+    argovis_col_mapping = rn.rename_cols_meta_no_type(list(nc.coords))
+    nc = nc.rename_vars(argovis_col_mapping)
+
+    argovis_col_mapping = rn.rename_cols_not_meta(list(nc.keys()), type)
+    nc = nc.rename_vars(argovis_col_mapping)
+
+    # TODO
+
+    # Now check so see if there is a 'temp_{type}'  column and a corresponding
+    # qc col. 'temp_{type}_qc'. If not, add a 'temp' qc col. with values 0
+    nc = check_if_temp_qc(nc, type)
+
+    # --------
+
+    # nc = nc.groupby("N_PROF").map(remove_rows)
+    # nc_groups = [obj[1] for obj in nc.groupby('N_PROF')]
+
+    # Removing rows in xarray is too slow with groupby
+    # since using a big loop. faster in pandas
+
+    # for nc_group in nc_groups:
+    #     #remove_rows(nc_group)
+    #     nc_group = nc_group.apply_ufunc(remove_rows)
 
     # separate param variables to a pandas dataframe and
     # process like would with a smaller df
     meta_keys = list(nc.coords)
     param_keys = list(nc.keys())
 
-    logging.info('start get_nc_dtypes')
-    meta_dtype, param_dtype = get_nc_dtypes(nc)
-
-    #  Now what, I have numbers in string, how to get back to number?
-    # Can I call Decimal on it?
-    logging.info('start float_to_string')
-    # TODO, skip NaN and NaT
-    nc = float_to_string(nc)
-
-    # TODO
-    # Convert xarray to a dask dataframe
-    # df = ds.to_dask_dataframe()
+    # logging.info('start get_nc_dtypes')
+    # meta_dtype, param_dtype = get_nc_dtypes(nc)
 
     logging.info('start nc to dataframe')
-    df = nc.to_dataframe()
-    #df = nc.to_dask_dataframe()
+    # nc.to_dask_dataframe causes strange df
+    # with ... as entries
+    # Maybe that's how dask represents things
+    # ddf = nc.to_dataframe()
 
-    # If convert to dask now, fix following
-    # df[key] = df[key].apply(lambda x: Decimal(x))
-    # decimal.InvalidOperation: [ < class 'decimal.ConversionSyntax' > ]
+    # No longer has N_PROF or N_LEVELS to group over
+    ddf = nc.to_dask_dataframe(dim_order=['N_PROF', 'N_LEVELS'])
 
-    # Convert string to Decimal if underlying value is a float
-    logging.info('start string_to_float')
+    # # Rename cols to argovis_names
+    # argovis_col_mapping = rn.rename_cols_to_argovis(ddf.columns)
+    # ddf = ddf.rename(columns=argovis_col_mapping)
 
-    # If I can do this later, may be better
-    # Break up df into groups, then use dask to
-    # apply string to float on each
-    df = string_to_float(df, meta_mappings, param_mappings,
-                         meta_dtype, param_dtype)
+    # Reset index so not multi-index
+    # add N_PROF AND N_LEVELS to both
+    # and add station_cast to param
+    # Add station_cast column so can
+    # later combine on station_cast instead
+    # of profile number
 
-    # error doesn't support multi-index
-    # try resetting levels index
-    # df = df.reset_index()
-    # df = dd.from_pandas(df, npartitions=3)
+    # ------
 
-    # df = df.reset_index()
-    # df = df.set_index('N_PROF')
-    # df = dd.from_pandas(df, npartitions=3)
+    meta_keys.extend(['N_PROF', 'N_LEVELS'])
+    param_keys.extend(['N_PROF', 'N_LEVELS', 'station_cast'])
 
-    df_meta = df[meta_keys].copy()
-    df_param = df[param_keys].copy()
+    # param_keys.extend(['station_cast'])
+    df_meta = ddf[meta_keys].copy()
+    df_param = ddf[param_keys].copy()
 
-    station_cast_col = df_meta['station_cast']
+    # Add station_cast column so can
+    # later combine on station_cast instead
+    # of profile number
+    # station_cast_col = df_meta['station_cast']
+    # df_param = df_param.join(station_cast_col)
 
-    df_param = df_param.join(station_cast_col)
-
-    # Add in extra metadata like roundLat  and roundLon
-    # and geolocation, etc
-
-    # Clean dataframes of empty rows by group
-    # Need to ignore station_cast column
-    logging.info('start meta and  param group by')
-    df_meta_grouped = df_meta.groupby(level="N_PROF")
-    df_param_grouped = df_param.groupby(level="N_PROF")
-
-    # With reindex
-
-    # df_meta_grouped = df_meta.groupby("N_PROF")
-    # df_bgc_grouped = df_param.groupby("N_PROF")
+    # logging.info('start meta and  param group by')
+    # df_meta_grouped = df_meta.groupby(level="N_PROF")
+    # df_param_grouped = df_param.groupby(level="N_PROF")
 
     logging.info('start apply removing empty rows')
-    # Version  orig and # 5 work
-    df_meta = df_meta_grouped.apply(remove_empty_rows5)
-    df_bgc = df_param_grouped.apply(remove_empty_rows5)
+    # Only need to apply to  param since meta is filled
 
-    # Group and remove rows has extra  N_PROF col if use
-    # remove_empty_rows original
+    # if remove_empty_rows5
+    # IndexError: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
 
-    # Clean dataframes of empty rows by group
-    # Need to ignore station_cast column
-    #logging.info('start apply removing empty rows')
-    # Version  orig and # 5 work
-    # df_meta = df_meta.groupby("N_PROF").apply(
-    #     remove_empty_rows)
-    # df_bgc = df_param.groupby("N_PROF").apply(
-    #     remove_empty_rows)
+    # df_param = df_param.reset_index()
+    # df_param = df_param.set_index('station_cast')
+    # df_param = df_param.drop('N_LEVELS', axis=1)
 
-    # Tried remove empty rows without groupby and
-    # says can't  find station_cast
+    df_param = df_param.reset_index()
+
+    df_param = df_param.drop('N_LEVELS', axis=1)
+
+    meta_dask = df_param.dtypes.to_dict()
+    df_param = df_param.groupby("N_PROF").apply(
+        remove_empty_rows, meta=meta_dask)
+
+    # meta_dask = df_param.dtypes.to_dict()
+    # df_param = df_param.groupby("N_PROF").apply(
+    #     remove_empty_rows, meta=meta_dask)
 
     # turn N_PROF back into an index for meta
-    df_meta = df_meta.reset_index()
+    # df_meta = df_meta.reset_index()
 
     # With meta columns, pandas exploded them
     # for all levels. Only keep one Level
     # since they repeat
-    logging.info('start dropping meta levels not 0')
-    df_meta.drop(df_meta[df_meta['N_LEVELS'] != 0].index, inplace=True)
+    # TODO
+    # Instead of dropping rows, just extract one
+    logging.info('Get level = 0 meta rows')
+    # df_meta.drop(df_meta[df_meta['N_LEVELS'] != 0].index, inplace=True)
+
+    df_meta = df_meta[df_meta['N_LEVELS'] == 0]
+    df_meta = df_meta.reset_index()
+    df_meta = df_meta.drop('index', axis=1)
+    df_meta = df_meta.drop('N_LEVELS', axis=1)
+    df_meta = df_meta.compute()
 
     # Drop N_LEVELS column
-    logging.info('start dropping col')
-    df_meta = df_meta.drop(['N_LEVELS'], axis=1)
+    # logging.info('start dropping col')
+    # df_meta.compute()
+    # df_meta = df_meta.drop(['N_LEVELS'], axis=1)
 
     # keep station_cast column
-    # Can this be sped up with Dask?
 
     # following doesn't work
     # says ValueError: cannot insert N_PROF, already exists
@@ -1684,7 +1991,69 @@ def create_profiles_one_type(data_obj):
 
     logging.info('start create_measurements_df_all')
     # Need  to  provide meta in calculation for dask
-    df_meas = create_measurements_df_all(df_bgc)
+    # TODO
+    # Update conditions to take ctd_temp with qc=0
+    # apply group wise instead. drop N_LEVELS and
+    # move station_cast as an index
+    # df_meas = create_measurements_df_all(df_param)
+
+    #df_param = df_param.drop('N_LEVELS', axis=1)
+    df_param = df_param.set_index('station_cast')
+
+    #  Determine here what meta returned will be
+    # core values includes '_qc' vars
+    # core_values = gvm.get_goship_core_values()
+    # table_columns = list(df_param.columns)
+    # core_cols = [col for col in table_columns if col in core_values]
+    # core_non_qc = [elem for elem in core_cols if '_qc' not in elem]
+    # meta_dask = df_param[core_non_qc].dtypes.to_dict()
+
+    # temperatures = ['ctd_temperature', 'ctd_temperature_68']
+
+    # for col in df_param.columns:
+    #     if col in temperatures and f"{col}_qc" not in df_param.columns:
+    #         df_param[f"{col}_qc"] = 0
+    #         break
+
+    # df_meas = create_measurements_df_all(df_param)
+    # df_meas.compute()
+
+    df_param = df_param.compute()
+
+    # df_meas = create_measurements_df_all2(df_param)
+
+    temp_qc = find_temp_qc_val(df_param, type)
+
+    df_meas = df_param.groupby('N_PROF').apply(
+        create_measurements_df_all2, type)
+
+    # Put N_PROF and station_cast in cols
+    # df_meas = df_meas.reset_index()
+    # df_meas = df_meas.drop('index', axis=1)
+
+    df_bgc = df_param
+    df_bgc = df_bgc.reset_index()
+    df_bgc = df_bgc.drop('index', axis=1)
+
+    # Rename elements while dataframe
+    # Just need  to rename the columns
+    # renamed_meta = rn.rename_argovis_meta(meta_dict)
+
+    # # Rename  meta
+    # argovis_col_mapping = rn.rename_cols_to_argovis(df_meta.columns)
+    # df_meta = df_meta.rename(columns=argovis_col_mapping)
+
+    # # Rename  bgc
+    # argovis_col_mapping = rn.rename_cols_to_argovis(df_bgc.columns)
+    # df_bgc = df_bgc.rename(columns=argovis_col_mapping)
+
+    # # Rename  meas
+    # argovis_col_mapping = rn.rename_cols_to_argovis(df_meas.columns)
+    # df_bgc = df_meas.rename(columns=argovis_col_mapping)
+
+    # print(df_meas.head())
+
+    # print(df_meta.head())
 
     # For each dataframe, separate into dictionaries
     logging.info('Start converting df to large dict')
@@ -1692,71 +2061,121 @@ def create_profiles_one_type(data_obj):
     large_bgc_dict = dict(tuple(df_bgc.groupby('N_PROF')))
     large_meas_dict = dict(tuple(df_meas.groupby('N_PROF')))
 
+    # logging.info("Time to run function ")
+    # logging.info(datetime.now() - start_time)
+
     # turn large dict into  lists of dicts with key of group
 
     logging.info('create all_meta list')
     all_meta = []
+    all_meta_profiles = []
     for key, val in large_meta_dict.items():
-        new_dict = {}
-        new_dict['group'] = key
-        new_dict['list'] = val.to_dict('records')
-        all_meta.append(new_dict)
+
+        val = val.reset_index()
+        station_cast = val['station_cast'].values[0]
+        val = val.drop(['station_cast', 'N_PROF', 'index'],  axis=1)
+        meta_dict = val.to_dict('records')[0]
+
+        # Apply c_format for decimal places
+        dtype_mapping = meta_mapping_argovis['dtype']
+        c_format_mapping = meta_mapping_argovis['c_format']
+
+        for name, value in meta_dict.items():
+
+            try:
+                new_val = apply_c_format_to_num(
+                    name, value, dtype_mapping, c_format_mapping)
+                meta_dict[name] = new_val
+            except KeyError:
+                pass
+
+        lat = meta_dict['lat']
+        lon = meta_dict['lon']
+
+        geo_dict = create_geolocation_dict(lat, lon)
+        meta_dict['geoLocation'] = geo_dict
+
+        meta_obj = {}
+        meta_obj['station_cast'] = station_cast
+        meta_obj['dict'] = meta_dict
+
+        all_meta.append(meta_obj)
 
     logging.info('create all_bgc list')
+
+    # Apply c_format for decimal places
+    if type == 'btl':
+        param_mapping = param_mapping_argovis_btl
+    elif type == 'ctd':
+        param_mapping = param_mapping_argovis_ctd
+
     all_bgc = []
     for key, val in large_bgc_dict.items():
-        new_dict = {}
-        new_dict['group'] = key
-        new_dict['list'] = val.to_dict('records')
-        all_bgc.append(new_dict)
+        val = val.reset_index()
+        station_cast = val['station_cast'].values[0]
+        val = val.drop(['station_cast', 'N_PROF', 'index'],  axis=1)
+        bgc_dict_list = val.to_dict('records')
+
+        formatted_list = []
+        dtype_mapping = param_mapping['dtype']
+        c_format_mapping = param_mapping['c_format']
+        for obj in bgc_dict_list:
+
+            new_obj = {name: apply_c_format_to_num(name, val, dtype_mapping, c_format_mapping)
+                       for name, val in obj.items()}
+
+            formatted_list.append(new_obj)
+
+        bgc_obj = {}
+        bgc_obj['station_cast'] = station_cast
+        bgc_obj['list'] = formatted_list
+        all_bgc.append(bgc_obj)
 
     logging.info('create all_meas list')
     all_meas = []
     for key, val in large_meas_dict.items():
-        new_dict = {}
-        new_dict['group'] = key
-        measurements_source = get_measurements_source(val)
-        new_dict['list'] = val.to_dict('records')
-        new_dict['source'] = measurements_source
-        all_meas.append(new_dict)
 
-    # Want to have a dict per group with
-    # key: station_cast and val: meta_dict
-    # geolocation_json_str = create_geolocation_json_str(nc_profile_group)
-    # geolocation_dict = json.loads(geolocation_json_str)
-    # meta_dict['geolocation'] = geolocation_dict
+        val = val.reset_index()
+        station_cast = val['station_cast'].values[0]
+        val = val.drop(['station_cast', 'N_PROF'],  axis=1)
+
+        measurements_source, measurements_source_qc = get_measurements_source(
+            val, temp_qc, type)
+
+        meas_dict = val.to_dict('records')
+
+        # For mapping, param_mapping has extensions and
+        # measurements don't
+        c_format_mapping = {name.replace(
+            f"_{type}", ''): val for name, val in param_mapping['c_format'].items()}
+        dtype_mapping = {name.replace(
+            f"_{type}", ''): val for name, val in param_mapping['dtype'].items()}
+
+        formatted_list = []
+        for obj in meas_dict:
+
+            new_obj = {name: apply_c_format_to_num(name, val, dtype_mapping, c_format_mapping)
+                       for name, val in obj.items()}
+
+            formatted_list.append(new_obj)
+
+        meas_obj = {}
+        meas_obj['station_cast'] = station_cast
+        meas_obj['source'] = measurements_source
+        meas_obj['qc'] = measurements_source_qc
+        meas_obj['list'] = formatted_list
+
+        all_meas.append(meas_obj)
 
     logging.info('start create all_meta_profiles')
+    # TODO
+    # do this earlier
     all_meta_profiles = []
     for obj in all_meta:
 
-        meta_dict = obj['list'][0]
-
-        # pop off unneeded keys
-        try:
-            meta_dict.pop('time')
-        except KeyError:
-            pass
-
-        meta_dict.pop('N_PROF')
-
-        # Add in geolocation dict here
-        # using c_formatted lat and lon
-        station_cast = meta_dict['station_cast']
-
-        lat = meta_dict['latitude']
-        lon = meta_dict['longitude']
-
-        # Later add specific coords for each group to meta dict
-        # like where add geolocation dict
-        geo_dict = create_geolocation_dict(lat, lon)
-        meta_dict['geoLocation'] = geo_dict
-
-        renamed_meta = rn.rename_argovis_meta(meta_dict)
-
         meta_profile = {}
-        meta_profile['station_cast'] = station_cast
-        meta_profile['meta'] = renamed_meta
+        meta_profile['station_cast'] = obj['station_cast']
+        meta_profile['meta'] = obj['dict']
 
         all_meta_profiles.append(meta_profile)
 
@@ -1766,19 +2185,9 @@ def create_profiles_one_type(data_obj):
 
         bgc_list = obj['list']
 
-        bgc_list = list(map(to_int_qc, bgc_list))
-
-        station_cast = bgc_list[0]['station_cast']
-
-        remove_list = ['N_LEVELS', 'N_PROF', 'station_cast']
-        bgc_list = [obj for obj in bgc_list if next(
-            iter(obj)) not in remove_list]
-
-        renamed_bgc_list = rn.create_renamed_list_of_objs(bgc_list, type)
-
         bgc_profile = {}
-        bgc_profile['station_cast'] = station_cast
-        bgc_profile['bgcMeas'] = renamed_bgc_list
+        bgc_profile['station_cast'] = obj['station_cast']
+        bgc_profile['bgcMeas'] = list(map(to_int_qc, bgc_list))
 
         all_bgc_profiles.append(bgc_profile)
 
@@ -1787,37 +2196,28 @@ def create_profiles_one_type(data_obj):
     all_meas_source_profiles = []
     for obj in all_meas:
 
-        meas_source = obj['source']
-
         meas_list = obj['list']
 
-        meas_list = list(map(to_int_qc, meas_list))
-
-        station_cast = meas_list[0]['station_cast']
-
-        remove_list = ['N_LEVELS', 'N_PROF', 'station_cast']
-        meas_list = [obj for obj in meas_list if next(
-            iter(obj)) not in remove_list]
-
-        renamed_meas_list = rn.create_renamed_list_of_objs_argovis_measurements(
-            meas_list)
-
         meas_profile = {}
-        meas_profile['station_cast'] = station_cast
-        meas_profile['measurements'] = renamed_meas_list
-
+        meas_profile['station_cast'] = obj['station_cast']
+        meas_profile['measurements'] = list(map(to_int_qc, meas_list))
         all_meas_profiles.append(meas_profile)
 
+        # here
         meas_source_profile = {}
-        meas_source_profile['station_cast'] = station_cast
-        meas_source_profile['measurementsSource'] = meas_source
-
+        meas_source_profile['station_cast'] = obj['station_cast']
+        meas_source_profile['measurementsSource'] = obj['source']
         all_meas_source_profiles.append(meas_source_profile)
+
+        meas_source_profile_qc = {}
+        meas_source_profile_qc['station_cast'] = obj['station_cast']
+        meas_source_profile_qc['measurementsSourceQC'] = obj['qc']
+        all_meas_source_profiles.append(meas_source_profile_qc)
 
     # Combine
     logging.info('start combining profiles')
     all_profiles = combine_profiles(all_meta_profiles, all_bgc_profiles,
-                                    all_meas_profiles, all_meas_source_profiles, mapping_dict, type)
+                                    all_meas_profiles, all_meas_source_profiles, goship_mapping_dict, type)
 
     logging.info("Time to run function create_profiles_one_type_ver2")
     logging.info(datetime.now() - start_time)
@@ -1832,49 +2232,11 @@ def create_profiles_one_type(data_obj):
 
     logging.info('---------------------------')
     logging.info(f'End processing {type} profiles')
+    logging.info(f"Shape of dims")
+    logging.info(nc.dims)
     logging.info('---------------------------')
 
     # TODO
     # ddf = dd.from_pandas(df, npartitions=2)
 
     return all_profiles
-
-    # Apply function to each array to convert to json string/dicts
-
-    # ------
-
-    # nc_groups = [obj[1] for obj in nc.groupby('N_PROF')]
-
-    # # TODO
-    # # Is it better to just put in one loop?
-
-    # # Get dataframes indexed by station_cast
-    # b1 = db.from_sequence(nc_groups)
-    # c1_meta = b1.map(create_df_profiles_one_group, 'meta')
-
-    # b2 = db.from_sequence(nc_groups)
-    # c2_param = b2.map(create_df_profiles_one_group, 'param')
-
-    # all_df_meta, all_df_param = dask.compute(c1_meta, c2_param)
-
-    # df_metas, df_params = create_meta_param_profiles_df(
-    #     all_df_meta, all_df_param)
-
-    # df_bgc_station_cast_all = clean_df_param_station_cast_all(df_params)
-
-    # measurements_list_df_all = create_measurements_df_all(
-    #     df_bgc_station_cast_all)
-
-    # b1 = db.from_sequence(nc_groups)
-    # c1 = b1.map(create_meta_profiles, df_metas, file_info)
-
-    # b2 = db.from_sequence(nc_groups)
-    # c2 = b2.map(create_mapping_profile, type)
-
-    # b3 = db.from_sequence(nc_groups)
-    # c3 = b3.map(process_one_profile_group,
-    #             df_bgc_station_cast_all, measurements_list_df_all, type)
-
-    # meta_profiles, mappings, data_lists = dask.compute(c1, c2, c3)
-
-    # all_profiles = combine_profiles(meta_profiles, data_lists, mappings, type)

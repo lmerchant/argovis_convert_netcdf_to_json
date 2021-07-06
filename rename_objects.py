@@ -7,6 +7,144 @@ import get_variable_mappings as gvm
 # Rename objects
 
 
+def rename_mapping_to_argovis_map(mapping):
+
+    # Get mapping including qc
+    core_values_mapping = gvm.get_goship_argovis_name_mapping()
+
+    goship_core_values = [core for core in core_values_mapping]
+
+    new_mapping = {}
+
+    for name, val in mapping.items():
+
+        if name in goship_core_values:
+            new_name = core_values_mapping[name]
+            new_mapping[new_name] = val
+
+        else:
+            new_mapping[name] = val
+
+    return new_mapping
+
+
+def rename_mapping_to_argovis(mapping):
+
+    goship_names_list = mapping['names']
+    goship_units_mapping = mapping['units']
+    goship_ref_scale_mapping = mapping['ref_scale']
+    goship_c_format_mapping = mapping['c_format']
+    goship_dtype_mapping = mapping['dtype']
+
+    goship_argovis_name_mapping = gvm.get_goship_argovis_name_mapping()
+    core_goship_names = goship_argovis_name_mapping.keys()
+
+    renamed_names_list = [goship_argovis_name_mapping[name]
+                          if name in core_goship_names else name for name in goship_names_list]
+
+    renamed_units_mapping = rename_mapping_to_argovis_map(goship_units_mapping)
+
+    renamed_ref_scale_mapping = rename_mapping_to_argovis_map(
+        goship_ref_scale_mapping)
+
+    renamed_c_format_mapping = rename_mapping_to_argovis_map(
+        goship_c_format_mapping)
+
+    renamed_dtype_mapping = rename_mapping_to_argovis_map(
+        goship_dtype_mapping)
+
+    argovis_mapping = {}
+    argovis_mapping['names'] = renamed_names_list
+    argovis_mapping['units'] = renamed_units_mapping
+    argovis_mapping['ref_scale'] = renamed_ref_scale_mapping
+    argovis_mapping['c_format'] = renamed_c_format_mapping
+    argovis_mapping['dtype'] = renamed_dtype_mapping
+
+    return argovis_mapping
+
+
+# third
+def rename_goship_name_list_param(goship_names_list, type):
+
+    goship_argovis_core_mapping = gvm.create_goship_argovis_core_values_mapping(
+        type)
+
+    core_goship_names = goship_argovis_core_mapping.keys()
+
+    new_names_list = []
+
+    for name in goship_names_list:
+
+        if name in core_goship_names:
+            new_name = goship_argovis_core_mapping[name]
+
+        elif name.endswith('_qc'):
+            non_qc_name = name.replace('_qc', '')
+            new_name = f"{non_qc_name}_{type}_qc"
+
+        else:
+            new_name = f"{name}_{type}"
+
+        new_names_list.append(new_name)
+
+    return new_names_list
+
+
+# second
+def rename_mapping_to_argovis_param(mapping, type):
+
+    goship_names_list = mapping['names']
+    goship_units_mapping = mapping['units']
+    goship_ref_scale_mapping = mapping['ref_scale']
+    goship_c_format_mapping = mapping['c_format']
+    goship_dtype_mapping = mapping['dtype']
+
+    renamed_names_list = rename_goship_name_list_param(goship_names_list, type)
+
+    argovis_mapping = {}
+    argovis_mapping['names'] = renamed_names_list
+
+    renamed_units_mapping = rename_key_not_meta_argovis(
+        goship_units_mapping, type)
+
+    renamed_ref_scale_mapping = rename_key_not_meta_argovis(
+        goship_ref_scale_mapping, type)
+
+    renamed_c_format_mapping = rename_key_not_meta_argovis(
+        goship_c_format_mapping, type)
+
+    renamed_dtype_mapping = rename_key_not_meta_argovis(
+        goship_dtype_mapping, type)
+
+    argovis_mapping['units'] = renamed_units_mapping
+    argovis_mapping['ref_scale'] = renamed_ref_scale_mapping
+    argovis_mapping['c_format'] = renamed_c_format_mapping
+    argovis_mapping['dtype'] = renamed_dtype_mapping
+
+    return argovis_mapping
+
+
+def rename_meta_to_argovis(cols):
+
+    core_values_mapping = gvm.get_argovis_meta_mapping()
+
+    core_values = [core for core in core_values_mapping]
+
+    name_mapping = {}
+
+    for name in cols:
+
+        if name in core_values:
+            new_name = core_values_mapping[name]
+
+        else:
+            new_name = name
+
+        name_mapping[name] = new_name
+
+    return name_mapping
+
+
 def rename_argovis_meta(obj):
 
     core_values_mapping = gvm.get_argovis_meta_mapping()
@@ -82,6 +220,56 @@ def rename_btl_by_key_meta(obj):
     return new_obj
 
 
+def rename_cols_meta_no_type(cols):
+
+    core_values_mapping = gvm.get_goship_argovis_name_mapping()
+
+    core_values = core_values_mapping.keys()
+
+    col_mapping = {}
+
+    for name in cols:
+
+        if name in core_values:
+            mapped_name = core_values_mapping[name]
+
+        else:
+            mapped_name = name
+
+        col_mapping[name] = mapped_name
+
+    return col_mapping
+
+
+def rename_cols_not_meta(cols, type):
+
+    # names without '_qc'
+    core_values_mapping = gvm.get_goship_argovis_core_values_mapping(type)
+
+    core_values = [core for core in core_values_mapping]
+
+    col_mapping = {}
+
+    for name in cols:
+
+        if name.endswith('_qc'):
+            non_qc_name = name.replace('_qc', '')
+            if non_qc_name in core_values:
+                new_name = f"{core_values_mapping[non_qc_name]}_qc"
+            else:
+                new_name = f"{non_qc_name}_{type}_qc"
+
+        elif name in core_values:
+            new_name = core_values_mapping[name]
+
+        else:
+            new_name = f"{name}_{type}"
+
+        col_mapping[name] = new_name
+
+    return col_mapping
+
+
 def rename_key_not_meta(obj, type):
 
     if type == 'btl':
@@ -139,6 +327,30 @@ def rename_key_not_meta(obj, type):
     return new_obj
 
 
+def rename_key_not_meta_argovis(obj, type):
+
+    core_values_mapping = gvm.get_goship_argovis_name_mapping_per_type(type)
+    core_values = core_values_mapping.keys()
+
+    new_obj = {}
+
+    for name, val in obj.items():
+
+        if name in core_values:
+            new_name = core_values_mapping[name]
+
+        elif '_qc' in name:
+            no_qc = name.replace('_qc', '')
+            new_name = f"{no_qc}_{type}_qc"
+
+        else:
+            new_name = f"{name}_{type}"
+
+        new_obj[new_name] = val
+
+    return new_obj
+
+
 def rename_key_not_meta_argovis_measurements(obj):
 
     core_values_mapping = gvm.get_goship_argovis_measurements_mapping()
@@ -161,55 +373,28 @@ def rename_key_not_meta_argovis_measurements(obj):
     return new_obj
 
 
-def rename_key_not_meta_argovis(obj, type):
+def rename_mapping_argovis_param(mapping, type):
 
-    # here
+    core_values_mapping = gvm.get_goship_argovis_core_values_mapping(type)
+    core_values = [core for core in core_values_mapping]
 
-    if type == 'btl':
+    new_mapping = {}
 
-        core_values_mapping = gvm.get_goship_argovis_core_values_mapping('btl')
-        core_values = [core for core in core_values_mapping]
+    for key, val in mapping.items():
+        if '_qc' in key:
+            check_core = key.replace('_qc', '')
+            if check_core in core_values:
+                new_key = f"{core_values_mapping[check_core]}_qc"
 
-        new_obj = {}
+        elif key in core_values:
+            new_key = core_values_mapping[key]
 
-        for key, val in obj.items():
+        else:
+            new_key = val
 
-            if '_qc' in key:
-                check_core = key.replace('_qc', '')
-                if check_core in core_values:
-                    new_key = f"{core_values_mapping[check_core]}_qc"
+        new_mapping[new_key] = val
 
-            elif key in core_values:
-                new_key = core_values_mapping[key]
-
-            else:
-                new_key = val
-
-            new_obj[new_key] = val
-
-    if type == 'ctd':
-
-        core_values_mapping = gvm.get_goship_argovis_core_values_mapping('ctd')
-        core_value = [core for core in core_values_mapping]
-
-        new_obj = {}
-
-        for key, val in obj.items():
-
-            if '_qc' in key:
-                check_core = key.replace('_qc', '')
-                if check_core in core_value:
-                    new_key = f"{core_values_mapping[check_core]}_qc"
-
-            elif key in core_value:
-                new_key = core_values_mapping[key]
-
-            else:
-                new_key = val
-
-            new_obj[new_key] = val
-
-    return new_obj
+    return new_mapping
 
 
 def create_renamed_list_of_objs_argovis_measurements(cur_list):

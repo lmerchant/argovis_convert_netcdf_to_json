@@ -36,6 +36,27 @@ def get_goship_argovis_unit_mapping():
     }
 
 
+def get_goship_argovis_name_mapping_per_type(type):
+
+    return {
+        'pressure': 'pres',
+        'ctd_salinity': f'psal_{type}',
+        'ctd_salinity_qc': f'psal_{type}_qc',
+        'ctd_temperature': f'temp_{type}',
+        'ctd_temperature_qc': f'temp_{type}_qc',
+        'ctd_temperature_68': f'temp_{type}',
+        'ctd_temperature_68_qc': f'temp_{type}_qc',
+        'ctd_oxygen': f'doxy_{type}',
+        'ctd_oxygen_qc': f'doxy_{type}_qc',
+        'ctd_oxygen_ml_l': f'doxy_{type}',
+        'ctd_oxygen_ml_l_qc': f'doxy_{type}_qc',
+        'bottle_salinity': f'salinity_{type}',
+        'bottle_salinity_qc': f'salinity_{type}_qc',
+        'latitude': 'lat',
+        'longitude': 'lon'
+    }
+
+
 def get_goship_argovis_measurements_mapping():
 
     # No extension for measurements
@@ -66,7 +87,7 @@ def get_goship_argovis_core_values_mapping(type):
             'ctd_temperature': 'temp_btl',
             'ctd_temperature_68': 'temp_btl',
             'ctd_oxygen': 'doxy_btl',
-            'ctd_oxygen_ml_l': 'doxy',
+            'ctd_oxygen_ml_l': 'doxy_btl',
             'bottle_salinity': 'salinity_btl',
             'latitude': 'lat',
             'longitude': 'lon'
@@ -80,7 +101,7 @@ def get_goship_argovis_core_values_mapping(type):
             'ctd_temperature': 'temp_ctd',
             'ctd_temperature_68': 'temp_ctd',
             'ctd_oxygen': 'doxy_ctd',
-            'ctd_oxygen_ml_l': 'doxy',
+            'ctd_oxygen_ml_l': 'doxy_ctd',
             'latitude': 'lat',
             'longitude': 'lon'
         }
@@ -89,13 +110,41 @@ def get_goship_argovis_core_values_mapping(type):
 # Add in bottle_salinity since will use this in
 # measurements to check if have ctd_salinity, and
 # if now, use bottle_salinity
-def get_goship_core_values():
-    return ['pressure', 'ctd_temperature', 'ctd_temperature_qc', 'ctd_salinity', 'ctd_temperature_qc', 'ctd_salinity_qc', 'ctd_temperature_68', 'ctd_temperature_68_qc', 'bottle_salinity', 'bottle_salinity_qc']
+def get_argovis_core_values_per_type(type):
+    if type == 'btl':
+        return ['pres', 'temp_btl', 'temp_btl_qc', 'psal_btl',  'psal_btl_qc', 'salinity_btl', 'salinity_btl_qc']
+
+    if type == 'ctd':
+        return ['pres', 'temp_ctd', 'temp_ctd_qc', 'psal_ctd',  'psal_ctd_qc']
+
+
+def get_argovis_core_values():
+    return ['pres', 'temp', 'temp_qc', 'ctd_salinity', 'temp_qc', 'ctd_salinity_qc', 'temp_68', 'temp_68_qc', 'bottle_salinity', 'bottle_salinity_qc']
 
 
 def get_argovis_meta_mapping():
     return {'latitude': 'lat',
             'longitude': 'lon'}
+
+
+def get_goship_argovis_name_mapping():
+    return {
+        'pressure': 'pres',
+        'ctd_salinity': 'psal',
+        'ctd_salinity': 'psal_qc',
+        'ctd_temperature': 'temp',
+        'ctd_temperature_qc': 'temp_qc',
+        'ctd_temperature_68': 'temp',
+        'ctd_temperature_68_qc': 'temp_qc',
+        'ctd_oxygen': 'doxy',
+        'ctd_oxygen_qc': 'doxy_qc',
+        'ctd_oxygen_ml_l': 'doxy',
+        'ctd_oxygen_ml_l_qc': 'doxy_qc',
+        'bottle_salinity': 'salinity',
+        'bottle_salinity_qc': 'salinity_qc',
+        'latitude': 'lat',
+        'longitude': 'lon'
+    }
 
 
 def create_goship_ref_scale_mapping(nc):
@@ -116,63 +165,25 @@ def create_goship_ref_scale_mapping(nc):
     return ref_scale
 
 
-def create_goship_argovis_core_values_mapping(goship_names, type):
+def create_goship_argovis_core_values_mapping(type):
 
-    # TODO
-    # is this necessary to split?
-
-    if type == 'btl':
-
-        core_mapping = {
-            'pressure': 'pres',
-            'ctd_salinity': 'psal_btl',
-            'ctd_salinity_qc': 'psal_btl_qc',
-            'ctd_temperature': 'temp_btl',
-            'ctd_temperature_qc': 'temp_btl_qc',
-            'ctd_temperature_68': 'temp_btl',
-            'ctd_temperature_68_qc': 'temp_btl_qc',
-            'ctd_oxygen': 'doxy_btl',
-            'ctd_oxygen_qc': 'doxy_btl_qc',
-            'ctd_oxygen_ml_l': 'doxy',
-            'ctd_oxygen_ml_l_qc': 'doxy_qc',
-            'bottle_salinity': 'salinity_btl',
-            'bottle_salinity_qc': 'salinity_btl_qc',
-            'latitude': 'lat',
-            'longitude': 'lon'
-        }
-
-    if type == 'ctd':
-
-        core_mapping = {
-            'pressure': 'pres',
-            'ctd_salinity': 'psal_ctd',
-            'ctd_salinity_qc': 'psal_ctd_qc',
-            'ctd_temperature': 'temp_ctd',
-            'ctd_temperature_qc': 'temp_ctd_qc',
-            'ctd_temperature_68': 'temp_ctd',
-            'ctd_temperature_68_qc': 'temp_ctd_qc',
-            'ctd_oxygen': 'doxy_ctd',
-            'ctd_oxygen_qc': 'doxy_ctd_qc',
-            'ctd_oxygen_ml_l': 'doxy',
-            'ctd_oxygen_ml_l_qc': 'doxy_qc',
-            'latitude': 'lat',
-            'longitude': 'lon'
-        }
-
-    # If meta or param in the core_mapping, keep in
-    # the returned mapping
-    core_names = core_mapping.keys()
-
-    new_mapping = {}
-
-    for name in goship_names:
-        if name in core_names:
-            new_mapping[name] = core_mapping[name]
-
-    name_mapping = {key: val for key,
-                    val in core_mapping.items() if key in goship_names}
-
-    return name_mapping
+    return {
+        'pressure': f'pres',
+        'ctd_salinity': f'psal_{type}',
+        'ctd_salinity_qc': f'psal_{type}_qc',
+        'ctd_temperature': f'temp_{type}',
+        'ctd_temperature_qc': f'temp_{type}_qc',
+        'ctd_temperature_68': f'temp_{type}',
+        'ctd_temperature_68_qc': f'temp_{type}_qc',
+        'ctd_oxygen': f'doxy_{type}',
+        'ctd_oxygen_qc': f'doxy_{type}_qc',
+        'ctd_oxygen_ml_l': f'doxy',
+        'ctd_oxygen_ml_l_qc': f'doxy_qc',
+        'bottle_salinity': f'salinity_{type}',
+        'bottle_salinity_qc': f'salinity_{type}_qc',
+        'latitude': 'lat',
+        'longitude': 'lon'
+    }
 
 
 def create_goship_c_format_mapping(nc):

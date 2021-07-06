@@ -10,10 +10,10 @@ def combine_btl_ctd_measurements(btl_measurements, ctd_measurements):
     use_elems, flag = fp.find_measurements_hierarchy_btl_ctd(
         btl_measurements, ctd_measurements)
 
-    combined_btl_ctd_measurements, measurements_source = fp.filter_btl_ctd_combined_measurements(
+    combined_btl_ctd_measurements, measurements_source, measurements_source_qc = fp.filter_btl_ctd_combined_measurements(
         btl_measurements, ctd_measurements, use_elems, flag)
 
-    return combined_btl_ctd_measurements, measurements_source
+    return combined_btl_ctd_measurements, measurements_source, measurements_source_qc
 
 
 def combine_output_per_profile_btl_ctd(btl_profile, ctd_profile):
@@ -107,7 +107,7 @@ def combine_output_per_profile_btl_ctd(btl_profile, ctd_profile):
 
     bgc_meas = [*ctd_bgc_meas, *btl_bgc_meas]
 
-    measurements, measurements_source = combine_btl_ctd_measurements(
+    measurements, measurements_source, measurements_source_qc = combine_btl_ctd_measurements(
         btl_measurements, ctd_measurements)
 
     goship_ref_scale_mapping = {
@@ -123,6 +123,7 @@ def combine_output_per_profile_btl_ctd(btl_profile, ctd_profile):
     combined_btl_ctd_dict['bgcMeas'] = bgc_meas
     combined_btl_ctd_dict['measurements'] = measurements
     combined_btl_ctd_dict['measurementsSource'] = measurements_source
+    combined_btl_ctd_dict['measurementsSourceQC'] = measurements_source_qc
 
     if goship_argovis_name_mapping_btl and goship_argovis_name_mapping_ctd:
         combined_btl_ctd_dict['goshipArgovisNameMappingBtl'] = goship_argovis_name_mapping_btl

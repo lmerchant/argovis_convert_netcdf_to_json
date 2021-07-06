@@ -357,7 +357,7 @@ def main(start_year, end_year, append):
                         f.write(f"expocode {cruise_expocode}\n")
                         f.write(f"file type BTL\n")
 
-                profiles_ctd = op.create_profiles_one_type(ctd_obj)
+                profiles_btl = op.create_profiles_one_type(btl_obj)
 
         if ctd_found:
 
@@ -425,7 +425,7 @@ def main(start_year, end_year, append):
                     f.write(f"{cruise_expocode}\n")
 
         elif btl_found:
-            # filter measurements for qc=2
+            # filter measurements for qc=0, qc=2
             profiles_btl = fp.filter_measurements(profiles_btl, 'btl')
 
             checked_ctd_variables, ctd_vars_flag = ckvar.check_of_ctd_variables(
@@ -449,7 +449,7 @@ def main(start_year, end_year, append):
                     f.write(f"{cruise_expocode}\n")
 
         elif ctd_found:
-            # filter measurements for qc=2
+            # filter measurements for qc=0, qc=2
             profiles_ctd = fp.filter_measurements(profiles_ctd, 'ctd')
 
             checked_ctd_variables, ctd_vars_flag = ckvar.check_of_ctd_variables(
