@@ -144,7 +144,10 @@ def read_file(data_obj):
     data_obj['meta'] = meta_names
     data_obj['param'] = param_names
 
-    file_expocode = nc.coords['expocode'].data[0]
+    # TODO
+    # need to add compute to this
+    # Do I use data or just straight compute?
+    file_expocode = nc.coords['expocode'].data.compute()[0]
 
     data_obj['file_expocode'] = file_expocode
 

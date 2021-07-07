@@ -1390,6 +1390,15 @@ def create_mapping_profile(meta_mapping, param_mapping, type):
     goship_ref_scale = {**meta_ref_scale, **param_ref_scale}
     goship_c_format = {**meta_c_format, **param_c_format}
 
+    # Remove null values
+    goship_units = {key: val for key,
+                    val in goship_units.items() if pd.notnull(val)}
+
+    goship_ref_scale = {key: val for key,
+                        val in goship_ref_scale.items() if pd.notnull(val)}
+    goship_c_format = {key: val for key,
+                       val in goship_c_format.items() if pd.notnull(val)}
+
     mapping_dict = {}
 
     mapping_dict['goshipArgovisNameMapping'] = gvm.create_goship_argovis_core_values_mapping(
@@ -1405,8 +1414,6 @@ def create_mapping_profile(meta_mapping, param_mapping, type):
     mapping_dict['goshipArgovisUnitsMapping'] = gvm.get_goship_argovis_unit_mapping()
 
     return mapping_dict
-
-# here
 
 
 def get_measurements_source(df_meas, temp_qc, type):
@@ -1572,7 +1579,9 @@ def find_temp_qc_val(df, type):
     has_ctd_temp_qc = f"temp_{type}_qc" in df.columns
 
     if has_ctd_temp_qc:
-        temp_qc = df[f"temp_{type}_qc"].astype(int).values
+
+        temp_qc = df[f"temp_{type}_qc"]
+        temp_qc = list(temp_qc.array)
 
         if 0 in temp_qc:
             qc = 0
@@ -1695,8 +1704,14 @@ def add_extra_general_coords(nc, file_info):
 
     nc = nc.assign_coords(station_cast=('N_PROF', station_cast))
 
-    expocode_list = [expocode]*coord_length
-    id = list(map(lambda e, s: f"{e}_{s}", expocode_list, station_cast))
+    #expocode_list = [expocode]*coord_length
+
+    def create_id(x, y):
+        station = str(x).zfill(3)
+        cast = str(y).zfill(3)
+        return f"expo_{expocode}_sta_{station}_cast_{cast}"
+
+    id = list(map(create_id, station_list, cast_list))
 
     nc = nc.assign_coords(id=('N_PROF', id))
     nc = nc.assign_coords(_id=('N_PROF', id))
@@ -1839,12 +1854,12 @@ def create_profiles_one_type(data_obj):
     logging.info('Start modify_nc')
     nc = modify_nc(nc, file_info)
 
-    #  TODO
-    # If no ctd_temp qc, add one with qc=0
-
     logging.info('Start get_goship_mappings')
     # Get universal attributes independent of profile
     meta_mappings, param_mappings = get_goship_mappings_per(nc)
+
+    # TODO
+    # check meta mappings. Why does expocode end up having units of the expocode
 
     # mapping
     meta_mapping_argovis = rn.rename_mapping_to_argovis(meta_mappings)
@@ -1925,6 +1940,14 @@ def create_profiles_one_type(data_obj):
     # param_keys.extend(['station_cast'])
     df_meta = ddf[meta_keys].copy()
     df_param = ddf[param_keys].copy()
+
+    # TODO
+    # Can I sort variable names?
+    # because at the  moment, df gives temp  and temp_qc separated
+    # in json output
+    # df_param = df_param.reindex(sorted(df_param.columns), axis=1)
+
+    # -----
 
     # Add station_cast column so can
     # later combine on station_cast instead
@@ -2120,7 +2143,6 @@ def create_profiles_one_type(data_obj):
         dtype_mapping = param_mapping['dtype']
         c_format_mapping = param_mapping['c_format']
         for obj in bgc_dict_list:
-
             new_obj = {name: apply_c_format_to_num(name, val, dtype_mapping, c_format_mapping)
                        for name, val in obj.items()}
 
@@ -2219,7 +2241,7 @@ def create_profiles_one_type(data_obj):
     all_profiles = combine_profiles(all_meta_profiles, all_bgc_profiles,
                                     all_meas_profiles, all_meas_source_profiles, goship_mapping_dict, type)
 
-    logging.info("Time to run function create_profiles_one_type_ver2")
+    logging.info("Time to run function create_profiles_one_type")
     logging.info(datetime.now() - start_time)
 
     # # Error tracing

@@ -76,35 +76,17 @@ def get_goship_argovis_measurements_mapping():
 
 def get_goship_argovis_core_values_mapping(type):
 
-    # TODO
-    # is this necessary to split
-
-    if type == 'btl':
-
-        return {
-            'pressure': 'pres',
-            'ctd_salinity': 'psal_btl',
-            'ctd_temperature': 'temp_btl',
-            'ctd_temperature_68': 'temp_btl',
-            'ctd_oxygen': 'doxy_btl',
-            'ctd_oxygen_ml_l': 'doxy_btl',
-            'bottle_salinity': 'salinity_btl',
-            'latitude': 'lat',
-            'longitude': 'lon'
-        }
-
-    if type == 'ctd':
-
-        return {
-            'pressure': 'pres',
-            'ctd_salinity': 'psal_ctd',
-            'ctd_temperature': 'temp_ctd',
-            'ctd_temperature_68': 'temp_ctd',
-            'ctd_oxygen': 'doxy_ctd',
-            'ctd_oxygen_ml_l': 'doxy_ctd',
-            'latitude': 'lat',
-            'longitude': 'lon'
-        }
+    return {
+        'pressure': 'pres',
+        'ctd_salinity': f'psal_{type}',
+        'ctd_temperature': f'temp_{type}',
+        'ctd_temperature_68': f'temp_{type}',
+        'ctd_oxygen': f'doxy_{type}',
+        'ctd_oxygen_ml_l': f'doxy_{type}',
+        'bottle_salinity': f'salinity_{type}',
+        'latitude': 'lat',
+        'longitude': 'lon'
+    }
 
 
 # Add in bottle_salinity since will use this in

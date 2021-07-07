@@ -139,10 +139,15 @@ def get_information_one_cruise_test(session):
     # expocode = '316N154_2'
 
     # btl file
-    expocode = '325020210420'
-    file_id = 19429
+    # expocode = '325020210420'
+    # file_id = 19429
 
-    # # ctd file
+    # ctd file
+    # has both ctd temp and ctd temp 68
+    expocode = '49K6KY9606_1'
+    file_id = 17365
+
+    # # # ctd file
     # expocode = '325020210420'
     # file_id = 19427
 

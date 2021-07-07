@@ -37,7 +37,10 @@ def rename_mapping_to_argovis(mapping):
     goship_dtype_mapping = mapping['dtype']
 
     goship_argovis_name_mapping = gvm.get_goship_argovis_name_mapping()
-    core_goship_names = goship_argovis_name_mapping.keys()
+    #core_goship_names = goship_argovis_name_mapping.keys()
+
+    core_goship_names = [
+        key for key in goship_argovis_name_mapping.keys() if key in mapping.keys()]
 
     renamed_names_list = [goship_argovis_name_mapping[name]
                           if name in core_goship_names else name for name in goship_names_list]
@@ -69,7 +72,10 @@ def rename_goship_name_list_param(goship_names_list, type):
     goship_argovis_core_mapping = gvm.create_goship_argovis_core_values_mapping(
         type)
 
-    core_goship_names = goship_argovis_core_mapping.keys()
+    #core_goship_names = goship_argovis_core_mapping.keys()
+
+    core_goship_names = [key for key in goship_argovis_core_mapping.keys()
+                         if key in goship_names_list]
 
     new_names_list = []
 
@@ -90,7 +96,6 @@ def rename_goship_name_list_param(goship_names_list, type):
     return new_names_list
 
 
-# second
 def rename_mapping_to_argovis_param(mapping, type):
 
     goship_names_list = mapping['names']
@@ -172,7 +177,8 @@ def rename_goship_on_key_not_meta(obj, type):
 
         core_values_mapping = gvm.get_goship_argovis_core_values_mapping('btl')
 
-        core_values = [core for core in core_values_mapping]
+        core_values = [
+            core for core in core_values_mapping if core in obj.keys()]
 
         new_obj = {}
 
@@ -190,7 +196,8 @@ def rename_goship_on_key_not_meta(obj, type):
 
         core_values_mapping = gvm.get_goship_argovis_core_values_mapping('ctd')
 
-        core_values = [core for core in core_values_mapping]
+        core_values = [
+            core for core in core_values_mapping if core in obj.keys()]
 
         new_obj = {}
 
@@ -224,7 +231,8 @@ def rename_cols_meta_no_type(cols):
 
     core_values_mapping = gvm.get_goship_argovis_name_mapping()
 
-    core_values = core_values_mapping.keys()
+    #core_values = core_values_mapping.keys()
+    core_values = [key for key in core_values_mapping.keys() if key in cols]
 
     col_mapping = {}
 
@@ -246,7 +254,17 @@ def rename_cols_not_meta(cols, type):
     # names without '_qc'
     core_values_mapping = gvm.get_goship_argovis_core_values_mapping(type)
 
-    core_values = [core for core in core_values_mapping]
+    core_values = [core for core in core_values_mapping if core in cols]
+
+    # check if both ctd_temperature  and ctd_temperature_68 are
+    # in the file, if it is, only rename ctd_temperature as core.
+    # Same for oxygen, check for ctd_oxygen and ctd_oxygen_ml_l
+
+    has_both_temp = 'ctd_temperature' in cols and 'ctd_temperature_68' in cols
+    has_both_oxygen = 'ctd_oxygen' in cols and 'ctd_oxygen_ml_l' in cols
+
+    primary_core = ['ctd_temperature', 'ctd_oxygen']
+    secondary_core = ['ctd_temperature_68', 'ctd_oxygen_ml_l']
 
     col_mapping = {}
 
@@ -254,14 +272,25 @@ def rename_cols_not_meta(cols, type):
 
         if name.endswith('_qc'):
             non_qc_name = name.replace('_qc', '')
-            if non_qc_name in core_values:
+
+            if has_both_temp and non_qc_name in primary_core:
+                new_name = f"{core_values_mapping[non_qc_name]}_qc"
+
+            elif has_both_oxygen and non_qc_name in primary_core:
+                new_name = f"{core_values_mapping[non_qc_name]}_qc"
+
+            elif non_qc_name in core_values and non_qc_name not in secondary_core:
                 new_name = f"{core_values_mapping[non_qc_name]}_qc"
             else:
                 new_name = f"{non_qc_name}_{type}_qc"
 
-        elif name in core_values:
+        elif has_both_temp and name in primary_core:
+            new_name = core_values_mapping[name]
+        elif has_both_oxygen and name in primary_core:
             new_name = core_values_mapping[name]
 
+        elif name in core_values and name not in secondary_core:
+            new_name = core_values_mapping[name]
         else:
             new_name = f"{name}_{type}"
 
@@ -330,19 +359,42 @@ def rename_key_not_meta(obj, type):
 def rename_key_not_meta_argovis(obj, type):
 
     core_values_mapping = gvm.get_goship_argovis_name_mapping_per_type(type)
-    core_values = core_values_mapping.keys()
+
+    core_values = [key for key in core_values_mapping.keys()
+                   if key in obj.keys()]
+
+    has_both_temp = 'ctd_temperature' in obj.keys(
+    ) and 'ctd_temperature_68' in obj.keys()
+    has_both_oxygen = 'ctd_oxygen' in obj.keys() and 'ctd_oxygen_ml_l' in obj.keys()
+
+    primary_core = ['ctd_temperature', 'ctd_oxygen']
+    secondary_core = ['ctd_temperature_68', 'ctd_oxygen_ml_l']
 
     new_obj = {}
 
     for name, val in obj.items():
 
-        if name in core_values:
+        if name.endswith('_qc'):
+            non_qc_name = name.replace('_qc', '')
+
+            if has_both_temp and non_qc_name in primary_core:
+                new_name = f"{core_values_mapping[non_qc_name]}_qc"
+
+            elif has_both_oxygen and non_qc_name in primary_core:
+                new_name = f"{core_values_mapping[non_qc_name]}_qc"
+
+            elif non_qc_name in core_values and non_qc_name not in secondary_core:
+                new_name = f"{core_values_mapping[non_qc_name]}_qc"
+            else:
+                new_name = f"{non_qc_name}_{type}_qc"
+
+        elif has_both_temp and name in primary_core:
+            new_name = core_values_mapping[name]
+        elif has_both_oxygen and name in primary_core:
             new_name = core_values_mapping[name]
 
-        elif '_qc' in name:
-            no_qc = name.replace('_qc', '')
-            new_name = f"{no_qc}_{type}_qc"
-
+        elif name in core_values and name not in secondary_core:
+            new_name = core_values_mapping[name]
         else:
             new_name = f"{name}_{type}"
 
@@ -351,12 +403,13 @@ def rename_key_not_meta_argovis(obj, type):
     return new_obj
 
 
+# here
 def rename_key_not_meta_argovis_measurements(obj):
 
     core_values_mapping = gvm.get_goship_argovis_measurements_mapping()
 
     # core_values_mapping = gvm.get_goship_argovis_core_values_mapping(type)
-    core_values = [core for core in core_values_mapping]
+    core_values = [core for core in core_values_mapping if core in obj.keys()]
 
     new_obj = {}
 
