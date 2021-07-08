@@ -1,6 +1,9 @@
-import rename_objects as rn
+import pandas as pd
 
+import rename_objects as r
 import get_profile_mapping_and_conversions as pm
+import get_variable_mappings as gvm
+import rename_objects as rn
 
 # Objects storing core Objects
 
@@ -254,3 +257,134 @@ def get_argovis_ref_scale_mapping(goship_names, type):
         ref_scale_mapping, type)
 
     return new_ref_scale_mapping
+
+
+def get_goship_mappings(nc):
+
+    meta_mapping = {}
+
+    meta_units = {}
+    meta_ref_scale = {}
+    meta_c_format = {}
+    meta_dtype = {}
+
+    param_mapping = {}
+
+    param_units = {}
+    param_ref_scale = {}
+    param_c_format = {}
+    param_dtype = {}
+
+    # Meta: Save units, ref_scale, c_format, dtype
+    for var in nc.coords:
+        try:
+            meta_units[var] = nc[var].attrs['units']
+        except:
+            meta_units[var] = None
+
+        try:
+            meta_ref_scale[var] = nc[var].attrs['reference_scale']
+        except:
+            meta_ref_scale[var] = None
+
+        try:
+            meta_c_format[var] = nc[var].attrs['C_format']
+        except:
+            meta_c_format[var] = None
+
+        try:
+            meta_dtype[var] = nc[var].dtype
+        except KeyError:
+            meta_dtype[var] = None
+
+    # Param: Save units, ref_scale, and c_format, dtype
+    for var in nc.keys():
+        try:
+            param_units[var] = nc[var].attrs['units']
+        except:
+            param_units[var] = None
+
+        try:
+            param_ref_scale[var] = nc[var].attrs['reference_scale']
+        except:
+            param_ref_scale[var] = None
+
+        try:
+            param_c_format[var] = nc[var].attrs['C_format']
+        except:
+            param_c_format[var] = None
+
+        try:
+            param_dtype[var] = nc[var].dtype
+        except KeyError:
+            param_dtype[var] = None
+
+    # Using station_cast for program use to keep track of each
+    # station_cast group
+    # Using dtype for program use when apply c_format to floats
+    meta_mapping['names'] = [
+        coord for coord in nc.coords if coord != 'station_cast']
+    meta_mapping['units'] = {key: val for key,
+                             val in meta_units.items() if val}
+    meta_mapping['ref_scale'] = {key: val for key,
+                                 val in meta_ref_scale.items() if val}
+    meta_mapping['c_format'] = {key: val for key,
+                                val in meta_c_format.items() if val and val != 'station_cast'}
+    meta_mapping['dtype'] = {key: val for key,
+                             val in meta_dtype.items() if val}
+
+    param_mapping['names'] = list(nc.keys())
+    param_mapping['units'] = {key: val for key,
+                              val in param_units.items() if val}
+    param_mapping['ref_scale'] = {
+        key: val for key, val in param_ref_scale.items() if val}
+    param_mapping['c_format'] = {key: val for key,
+                                 val in param_c_format.items() if val}
+    param_mapping['dtype'] = {key: val for key,
+                              val in param_dtype.items() if val}
+
+    return meta_mapping, param_mapping
+
+
+def create_mapping_profile(meta_mapping, param_mapping, type):
+
+    # This function is for one station_cast
+    meta_names = meta_mapping['names']
+    meta_units = meta_mapping['units']
+    meta_ref_scale = meta_mapping['ref_scale']
+    meta_c_format = meta_mapping['c_format']
+
+    param_names = param_mapping['names']
+    param_units = param_mapping['units']
+    param_ref_scale = param_mapping['ref_scale']
+    param_c_format = param_mapping['c_format']
+
+    goship_names = [*meta_names, *param_names]
+    goship_units = {**meta_units, **param_units}
+    goship_ref_scale = {**meta_ref_scale, **param_ref_scale}
+    goship_c_format = {**meta_c_format, **param_c_format}
+
+    # Remove null values
+    goship_units = {key: val for key,
+                    val in goship_units.items() if pd.notnull(val)}
+
+    goship_ref_scale = {key: val for key,
+                        val in goship_ref_scale.items() if pd.notnull(val)}
+    goship_c_format = {key: val for key,
+                       val in goship_c_format.items() if pd.notnull(val)}
+
+    mapping_dict = {}
+
+    mapping_dict['goshipArgovisNameMapping'] = gvm.create_goship_argovis_core_values_mapping(
+        type)
+    mapping_dict['argovisReferenceScale'] = gvm.get_argovis_ref_scale_mapping(
+        goship_names, type)
+
+    mapping_dict['goshipNames'] = goship_names
+    mapping_dict['goshipReferenceScale'] = goship_ref_scale
+    mapping_dict['goshipUnits'] = goship_units
+    mapping_dict['goshipCformat'] = goship_c_format
+
+    mapping_dict['goshipArgovisUnitsMapping'] = gvm.get_goship_argovis_unit_mapping()
+
+    return mapping_dict

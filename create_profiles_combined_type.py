@@ -21,6 +21,7 @@ def combine_output_per_profile_btl_ctd(btl_profile, ctd_profile):
     btl_meta = {}
     btl_bgc_meas = []
     btl_measurements = []
+    goship_names_btl = []
     goship_argovis_name_mapping_btl = {}
     goship_ref_scale_mapping_btl = {}
     argovis_ref_scale_btl = {}
@@ -30,6 +31,7 @@ def combine_output_per_profile_btl_ctd(btl_profile, ctd_profile):
     ctd_meta = {}
     ctd_bgc_meas = []
     ctd_measurements = []
+    goship_names_ctd = []
     goship_argovis_name_mapping_ctd = {}
     goship_ref_scale_mapping_ctd = {}
     argovis_ref_scale_ctd = {}
@@ -62,6 +64,7 @@ def combine_output_per_profile_btl_ctd(btl_profile, ctd_profile):
 
         goship_argovis_name_mapping_btl = btl_dict['goshipArgovisNameMapping']
 
+        goship_names_btl = btl_dict['goshipNames']
         goship_ref_scale_mapping_btl = btl_dict['goshipReferenceScale']
         argovis_ref_scale_btl = btl_dict['argovisReferenceScale']
         goship_units_btl = btl_dict['goshipUnits']
@@ -76,6 +79,7 @@ def combine_output_per_profile_btl_ctd(btl_profile, ctd_profile):
 
         goship_argovis_name_mapping_ctd = ctd_dict['goshipArgovisNameMapping']
 
+        goship_names_ctd = ctd_dict['goshipNames']
         goship_ref_scale_mapping_ctd = ctd_dict['goshipReferenceScale']
         argovis_ref_scale_ctd = ctd_dict['argovisReferenceScale']
         goship_units_ctd = ctd_dict['goshipUnits']
@@ -110,6 +114,8 @@ def combine_output_per_profile_btl_ctd(btl_profile, ctd_profile):
     measurements, measurements_source, measurements_source_qc = combine_btl_ctd_measurements(
         btl_measurements, ctd_measurements)
 
+    goship_names = [*goship_names_btl, *goship_names_ctd]
+
     goship_ref_scale_mapping = {
         **goship_ref_scale_mapping_ctd, **goship_ref_scale_mapping_btl}
 
@@ -138,6 +144,8 @@ def combine_output_per_profile_btl_ctd(btl_profile, ctd_profile):
     combined_btl_ctd_dict['goshipReferenceScale'] = goship_ref_scale_mapping
     combined_btl_ctd_dict['argovisReferenceScale'] = argovis_reference_scale
     combined_btl_ctd_dict['goshipArgovisUnitsMapping'] = goship_argovis_units_mapping
+
+    combined_btl_ctd_dict['goshipNames'] = goship_names
 
     if goship_units_btl and goship_units_ctd:
         combined_btl_ctd_dict['goshipUnitsBtl'] = goship_units_btl

@@ -255,7 +255,6 @@ def setup_logging(append_logs):
 @ click.command()
 @ click.option('-s', '--start_year', default=1950, help='Start year')
 @ click.option('-e', '--end_year', default=date.today().year, help='End year')
-# @click.option('-e', '--end_year', help='End year', is_flag=True, default=date.today().year, is_eager=True)
 @ click.option('-a', '--append', is_flag=True, help='Append logs')
 def main(start_year, end_year, append):
 
@@ -408,7 +407,7 @@ def main(start_year, end_year, append):
         if btl_found and ctd_found:
 
             checked_ctd_variables, ctd_vars_flag = ckvar.check_of_ctd_variables(
-                profiles_btl_ctd, logging, logging_dir)
+                profiles_btl_ctd, logging_dir)
 
             if ctd_vars_flag:
                 logging.info('----------------------')
@@ -432,7 +431,7 @@ def main(start_year, end_year, append):
             profiles_btl = fp.filter_measurements(profiles_btl, 'btl')
 
             checked_ctd_variables, ctd_vars_flag = ckvar.check_of_ctd_variables(
-                profiles_btl, logging, logging_dir)
+                profiles_btl, logging_dir)
 
             if ctd_vars_flag:
                 logging.info('----------------------')
@@ -456,7 +455,7 @@ def main(start_year, end_year, append):
             profiles_ctd = fp.filter_measurements(profiles_ctd, 'ctd')
 
             checked_ctd_variables, ctd_vars_flag = ckvar.check_of_ctd_variables(
-                profiles_ctd, logging, logging_dir)
+                profiles_ctd, logging_dir)
 
             if ctd_vars_flag:
                 logging.info('----------------------')
@@ -464,6 +463,7 @@ def main(start_year, end_year, append):
                 logging.info('----------------------')
                 sv.write_profile_goship_units(
                     checked_ctd_variables, logging_dir)
+
                 sv.save_all_profiles_one_type(
                     checked_ctd_variables, logging_dir, json_directory)
 
@@ -526,13 +526,17 @@ if __name__ == '__main__':
 
     # By default Client() forks processes. If you use it within a module you should hide it within the __main__ block.
 
+    # setting Client() without arguments
+    # This sets up a scheduler in your local process along with a number of workers and threads per worker related to the number of cores in your machine.
+    #client = Client()
+
     # https://github.com/dask/dask-jobqueue/issues/391
     # Set dashboard too none
 
     # For debugging, use single-threaded
     #client = Client(scheduler='single-threaded')
 
-    #client = Client(processes=False, dashboard_address=None)
+    client = Client(processes=False, dashboard_address=None)
 
     # https://www.javaer101.com/en/article/18616059.html
     # However, if you are spending most of your compute time manipulating Pure Python objects like strings or dictionaries then you may want to avoid GIL issues by having more processes with fewer threads each
@@ -544,10 +548,6 @@ if __name__ == '__main__':
     # client = Client(n_workers=4, threads_per_worker=1)
     # client = Client('127.0.0.1:8786')
     # client = Client(processes=False)
-
-    # setting Client() without arguments
-    # This sets up a scheduler in your local process along with a number of workers and threads per worker related to the number of cores in your machine.
-    # client = Client()
 
     # Using 1 thread per worker hangs for me
     # client = Client(n_workers=3, threads_per_worker=1)

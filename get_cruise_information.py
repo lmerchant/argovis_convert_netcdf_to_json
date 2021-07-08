@@ -381,27 +381,6 @@ def get_cruise_information(session, logging_dir, start_datetime, end_datetime):
 
     all_cruises_info = c.compute()
 
-    # for cruise in all_cruises:
-
-    # all_cruises_info = []
-
-    # cruise_info = get_information_one_cruise(
-    #     cruise, all_file_ids, file_id_hash_mapping, start_datetime, end_datetime, session)
-
-    # b = db.from_sequence(all_cruises)
-
-    # c = b.map(get_information_one_cruise, all_file_ids,
-    #           file_id_hash_mapping, start_datetime, end_datetime, session)
-
-    # all_cruises_info = c.compute()
-
-    # all_cruises_info.append(cruise_info)
-
-    # logging.info(f"Cruise {cruise_info['expocode']} found")
-    # logging.info(f"start date {cruise_info['start_date']}")
-    # logging.info(f"collection type: {cruise_info['type']}")
-    # logging.info('=======================================')
-
     # Remove blank cruise_info objects
     all_cruises_info = [
         cruise_info for cruise_info in all_cruises_info if cruise_info]

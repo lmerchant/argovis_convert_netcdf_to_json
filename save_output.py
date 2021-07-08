@@ -30,23 +30,21 @@ def write_profile_goship_units(checked_ctd_variables, logging_dir):
         filepath = os.path.join(logging_dir, filename)
 
         if type == 'btl':
-            goship_units = profile_dict['goshipUnits']
+            goship_units_profile = profile_dict['goshipUnits']
 
         if type == 'ctd':
-            goship_units = profile_dict['goshipUnits']
+            goship_units_profile = profile_dict['goshipUnits']
 
         if type == 'btl_ctd':
             try:
                 goship_units_btl = profile_dict['goshipUnitsBtl']
                 goship_units_ctd = profile_dict['goshipUnitsCtd']
-                goship_units = {**goship_units_btl, **goship_units_ctd}
+                goship_units_profile = {**goship_units_btl, **goship_units_ctd}
             except:
-                goship_units = profile_dict['goshipUnits']
-
-        goship_units['expocode'] = profile_dict['meta']['expocode']
+                goship_units_profile = profile_dict['goshipUnits']
 
         with open(filepath, 'a') as f:
-            json.dump(goship_units, f, indent=4,
+            json.dump(goship_units_profile, f, indent=4,
                       sort_keys=True, default=convert)
 
     except KeyError:
@@ -56,7 +54,11 @@ def write_profile_goship_units(checked_ctd_variables, logging_dir):
 
 def prepare_profile_json(profile_dict):
 
-    station_cast = profile_dict['stationCast']
+    #station_cast = profile_dict['stationCast']
+
+    # TODO
+    # If want to remove goshipNames list, do it here
+    # profile_dict.pop('goshipNames', None)
 
     profile_dict.pop('stationCast', None)
     profile_dict.pop('type', None)
@@ -115,8 +117,6 @@ def write_profile_json(cruise_expocode, json_dir, profile_dict):
     with open(file, 'w') as f:
         json.dump(data_dict, f, indent=4, sort_keys=False, default=convert)
 
-    #logging.info(f"Saved profile id {id}")
-
 
 def save_profile_one_type(ctd_var_check, logging_dir, json_directory):
 
@@ -157,12 +157,6 @@ def save_one_btl_ctd_profile(ctd_var_check, logging_dir, json_directory):
 
 
 def save_all_btl_ctd_profiles(checked_ctd_variables, logging_dir, json_directory):
-
-    # b = db.from_sequence(checked_ctd_variables)
-
-    # c = b.map(save_one_btl_ctd_profile, logging_dir, json_directory)
-
-    # c.compute()
 
     for checked_vars in checked_ctd_variables:
         save_one_btl_ctd_profile(checked_vars, logging_dir, json_directory)

@@ -356,6 +356,7 @@ def rename_key_not_meta(obj, type):
     return new_obj
 
 
+# here
 def rename_key_not_meta_argovis(obj, type):
 
     core_values_mapping = gvm.get_goship_argovis_name_mapping_per_type(type)
@@ -594,6 +595,8 @@ def rename_profile_to_argovis(profile):
         goship_ref_scale = profile_dict['goship_ref_scale']
         goship_units = profile_dict['goship_units']
 
+        # TODO fix this
+        # If have multiple ctd temps, only map primary to argovis name
         goship_argovis_name = gvm.create_goship_argovis_core_values_mapping(
             goship_names, type)
 
