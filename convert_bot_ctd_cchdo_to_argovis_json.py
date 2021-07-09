@@ -298,11 +298,11 @@ def main(start_year, end_year, append):
 
     else:
         # Loop through all cruises and grap NetCDF files
-        all_cruises_info = gi.get_cruise_information(
-            session, logging_dir, start_datetime, end_datetime)
+        # all_cruises_info = gi.get_cruise_information(
+        #     session, logging_dir, start_datetime, end_datetime)
 
-        # cruise_info = gi.get_information_one_cruise_test(session)
-        # all_cruises_info = [cruise_info]
+        cruise_info = gi.get_information_one_cruise_test(session)
+        all_cruises_info = [cruise_info]
 
         if not all_cruises_info:
             logging.info('No cruises within dates selected')
@@ -536,7 +536,7 @@ if __name__ == '__main__':
     # For debugging, use single-threaded
     #client = Client(scheduler='single-threaded')
 
-    client = Client(processes=False, dashboard_address=None)
+    #client = Client(processes=False, dashboard_address=None)
 
     # https://www.javaer101.com/en/article/18616059.html
     # However, if you are spending most of your compute time manipulating Pure Python objects like strings or dictionaries then you may want to avoid GIL issues by having more processes with fewer threads each

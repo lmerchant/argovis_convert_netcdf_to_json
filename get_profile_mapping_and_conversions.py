@@ -130,18 +130,15 @@ def convert_goship_to_argovis_ref_scale(nc):
 
     return nc
 
+# --------
+
+
+# ***** Is this used? *******
 
 def get_meta_param_names(nc):
 
     # Meta names have size N_PROF and no N_LEVELS
     # Parameter names have size N_PROF AND N_LEVELS
-
-    #  TODO
-    # Why not find btm_depth? Not finding it for units mapping
-
-    # It is  N_PROF dimension only. Maybe need to look
-    # for a size  not N_LEVELS
-    # Does it find cast and station for meta names?
 
     meta_names = []
     param_names = []
@@ -173,6 +170,7 @@ def get_meta_param_names(nc):
     return meta_names, param_names
 
 
+# ***** Is this used? ******
 def get_profile_conversions(nc):
 
     # Rename converted temperature later.
@@ -189,6 +187,7 @@ def get_profile_conversions(nc):
     return nc
 
 
+# **** Is this used ******
 def get_profile_mapping(nc, station_cast):
 
     goship_units = gvm.create_goship_unit_mapping(nc)
@@ -211,18 +210,6 @@ def get_profile_mapping_and_conversions(data_obj):
 
     data_obj = gvm.create_goship_unit_mapping(data_obj)
     data_obj = gvm.create_goship_ref_scale_mapping(data_obj)
-
-    # get c-format (string representation of numbers)
     data_obj = gvm.create_goship_c_format_mapping(data_obj)
-
-    # # Rename converted temperature later.
-    # # Keep 68 in name and show it maps to temp_ctd
-    # # and ref scale show what scale it was converted to
-
-    # # Only converting temperature so far
-    # data_obj = convert_goship_to_argovis_ref_scale(data_obj)
-
-    # # Add convert units function
-    # data_obj = convert_goship_to_argovis_units(data_obj)
 
     return data_obj

@@ -22,13 +22,12 @@ from collections import defaultdict
 from operator import itemgetter
 import itertools
 from decimal import Decimal
-import operator
 
 
 import get_variable_mappings as gvm
-import filter_profiles as fp
 import rename_objects as rn
-import get_profile_mapping_and_conversions as pm
+import process_meta_data as pmd
+import process_parameter_data as ppd
 
 
 # # https://stackoverflow.com/questions/40659212/futurewarning-elementwise-comparison-failed-returning-scalar-but-in-the-futur
@@ -59,6 +58,15 @@ def dtjson(o):
         return o.isoformat()
 
 
+def to_int_qc(obj):
+    # _qc":2.0
+    # If float qc with '.0' in qc value, remove it to get an int
+    json_str = json.dumps(obj,  default=dtjson)
+    json_str = re.sub(r'(_qc":\s?\d)\.0', r"\1", json_str)
+    obj = json.loads(json_str)
+    return obj
+
+
 # def get_station_cast(nc_profile_group):
 
 #     # Error for cruise
@@ -80,365 +88,6 @@ def dtjson(o):
 #     station_cast = f"{padded_station}_{padded_cast}"
 
 #     return station_cast
-
-
-def remove_rows(nc):
-
-    # Once remove variables like profile that exist
-    # in all array values, can create array that
-    # holds Boolean values of whether all array
-    # values at a Level are empty
-    # And then remove these in Pandas
-    # Can I use np.where?
-
-    # Want to compare arrays for null values
-    # Since arrays could be of different
-    # length, create one padded with False and length N_LEVELS
-
-    nc_length = nc.dims['N_LEVELS']
-
-    # padded_array = np.pad(array, (0, width), mode='constant', constant_values=False)
-    # where array is the boolean array and width is nc_length - boolean_length
-
-    vars = nc.keys()
-
-    print(nc.sizes)
-
-    all_vars = []
-
-    for var in vars:
-
-        print(var)
-
-        is_null = np.isnan(nc[var])
-
-        is_empty_str = operator.eq(nc[var], '')
-
-        is_nat = operator.eq(nc[var], 'NaT')
-
-        is_empty_array = np.logical_or.reduce(
-            (is_null, is_empty_str, is_nat))
-
-        # padded_array = np.pad(array, (0, width), mode='constant', constant_values=False)
-        # where array is the boolean array and width is nc_length - boolean_length
-        padded_length = nc_length - np.size(is_empty_array)
-
-        padded_array = np.pad(
-            is_empty_array, (0, padded_length), mode='constant', constant_values=True)
-
-        all_vars.append(padded_array)
-
-    not_empty_arr = np.logical_not(np.logical_and.reduce(all_vars))
-
-    nc['not_empty'] = (['N_LEVELS'], not_empty_arr)
-
-    # Now trim each array where boolean True
-    nc = nc.where(nc['not_empty'], drop=True)
-
-    nc = nc.drop('not_empty')
-
-    return nc
-
-
-def combine_profiles(meta_profiles, bgc_profiles, meas_profiles, meas_source_profiles, mapping_dict, type):
-
-    #  https://stackoverflow.com/questions/5501810/join-two-lists-of-dictionaries-on-a-single-key
-
-    profile_dict = defaultdict(dict)
-    for elem in itertools.chain(meta_profiles, bgc_profiles,  meas_profiles, meas_source_profiles):
-        profile_dict[elem['station_cast']].update(elem)
-
-    all_profiles = []
-    for key, val in profile_dict.items():
-        new_obj = {}
-        new_obj['station_cast'] = key
-        val['type'] = type
-        # Insert a mapping dict
-        val = {**val, **mapping_dict}
-        # Add stationCast to the dict itself
-        val['stationCast'] = key
-        new_obj['profile_dict'] = val
-        all_profiles.append(new_obj)
-
-    return all_profiles
-
-
-def apply_c_format_to_num(name, num, dtype_mapping, c_format_mapping):
-
-    # Now get str in C_format. e.g. "%9.1f"
-    # dtype = mapping['dtype'][name]
-    # c_format = mapping['c_format'][name]
-
-    float_types = ['float64', 'float32']
-
-    try:
-
-        dtype = dtype_mapping[name]
-        c_format = c_format_mapping[name]
-
-        if dtype in float_types and c_format:
-            f_format = c_format.lstrip('%')
-            return float(f"{num:{f_format}}")
-
-        else:
-            return num
-
-    except:
-        return num
-
-
-def apply_c_format(json_str, name, c_format):
-
-    number_dict = json.loads(json_str)
-
-    number_obj = number_dict[name]
-
-    # Now get str in C_format. e.g. "%9.1f"
-    # print(f'{val:.2f}') where val is a #
-    f_format = c_format.lstrip('%')
-
-    new_obj = {}
-
-    if isinstance(number_obj, float):
-        new_val = float(f"{number_obj:{f_format}}")
-        new_obj[name] = new_val
-        json_str = json.dumps(new_obj)
-        return json_str
-    elif isinstance(number_obj, list):
-        new_val = [float(f"{item:{f_format}}") for item in number_obj]
-        new_obj[name] = new_val
-        json_str = json.dumps(new_obj)
-        return json_str
-    else:
-        return json_str
-
-
-def create_bgc_meas_list(df):
-
-    json_str = df.to_json(orient='records')
-
-    # _qc":2.0
-    # If tgoship_argovis_name_mapping_btl is '.0' in qc value, remove it to get an int
-    json_str = re.sub(r'(_qc":\s?\d)\.0', r"\1", json_str)
-
-    data_dict_list = json.loads(json_str)
-
-    return data_dict_list
-
-
-def create_measurements_df_all(df,  type):
-
-    # core values includes '_qc' vars
-    core_values = gvm.get_argovis_core_values_per_type(type)
-    table_columns = list(df.columns)
-    core_cols = [col for col in table_columns if col in core_values]
-
-    core_non_qc = [elem for elem in core_cols if '_qc' not in elem]
-
-    df_meas = df[core_cols].copy()
-
-    # here
-
-    def check_qc(row):
-        if pd.notnull(row[1]) and int(row[1]) == 0:
-            return row[0]
-        elif pd.notnull(row[1]) and int(row[1]) == 2:
-            return row[0]
-        else:
-            return np.nan
-
-    # If qc != 2, set corresponding value to np.nan
-    for col in core_non_qc:
-
-        qc_key = f"{col}_qc"
-
-        try:
-            df_meas[col] = df_meas[[col, qc_key]].apply(
-                check_qc, axis=1)
-        except:
-            pass
-
-    # drop qc columns now that have marked non_qc column values
-    for col in df_meas.columns:
-        if '_qc' in col:
-            df_meas = df_meas.drop([col], axis=1)
-
-    # If all core values have nan, drop row
-    # This won't work since
-    df_meas = df_meas.dropna(how='all')
-
-    df_meas = df_meas.sort_values(by=['pres'])
-
-    # Remove type ('btl', 'ctd') from  variable names
-    column_mapping = {}
-    column_mapping[f"psal_{type}"] = 'psal'
-    column_mapping[f"temp_{type}"] = 'temp'
-    column_mapping[f"salinity_btl"] = 'salinity'
-
-    df_meas = df_meas.rename(columns=column_mapping)
-
-    return df_meas
-
-
-def create_meta_param_profiles_df(all_df_meta, all_df_param):
-
-    frames_meta = [obj['df_nc'] for obj in all_df_meta]
-    keys_meta = [obj['station_cast'] for obj in all_df_meta]
-    df_metas = pd.concat(frames_meta, keys=keys_meta)
-
-    frames_param = [frame['df_nc'] for frame in all_df_param]
-    keys_param = [frame['station_cast'] for frame in all_df_param]
-    df_params = pd.concat(frames_param, keys=keys_param)
-
-    return df_metas, df_params
-
-
-def remove_empty_rows5(df):
-
-    # TODO
-    # use np.where to speed it up
-
-    # n[89]: cond1 = df.Close > df.Close.shift(1)
-    # # In[90]: cond2 = df.High < 12
-    # # In[91]: df['New_Close'] = np.where(cond1, 'A', 'B')
-
-    # df.loc[df['B'].isin(['one','three'])]
-
-    # a = df.loc[df[cols].isin(['', np.nan, 'NaT'])]
-
-    # df['test'] = pd.np.where(df[['col1', 'col2', 'col3']].eq('Y').any(1, skipna=True), 'Y',
-    #                          pd.np.where(df[['col1', 'col2', 'col3']].isnull().all(1), None, 'N'))
-
-    # a = pd.np.where(df[cols].isnull().all(1), None, False)
-
-    # df['test'] = pd.np.where(df[cols].eq('').any(1), 'N', 'Y',
-    #                          pd.np.where(df[cols].isnull().any(1), 'N', 'Y'),
-    #                          pd.np.where(df[cols].eq('NaT').any(1), 'N', 'Y'))
-
-    # df['empty'] = pd.np.where(df[cols].eq(
-    #     '').any(1, skipna=True), 'Y', 'N')
-
-    # df['empty'] = pd.np.where(df[cols].eq(
-    #     'NaT').any(1, skipna=True), 'Y', df['empty'])
-
-    # df['empty'] = pd.np.where(df[cols].isnull().any(
-    #     1, skipna=True), 'Y', df['empty'])
-
-   # Remove station cast for now since
-    # it is filled
-    # Need original order for dask compute  meta
-    df = orig_cols = df.columns
-
-    station_cast_col = df['station_cast']
-    df = df.drop(['station_cast'], axis=1)
-
-    cols = df.columns
-
-    df['string'] = np.where(df[cols].eq(
-        '').any(1), False, True)
-
-    df['time_check'] = np.where(df[cols].eq(
-        'NaT').any(1), False, True)
-
-    df['null'] = np.where(df[cols].isnull().any(1), False, True)
-
-    df["num_elems"] = df[['null', 'string', 'time_check']].sum(axis=1)
-
-    df = df.join(station_cast_col)
-
-    # Then drop rows where num_elems is 0
-    df = df.drop(df[df['num_elems'] == 0].index)
-
-    # # And drop num_elems column
-    df = df.drop(columns=['null', 'string', 'time_check', 'num_elems'])
-
-    df = df[orig_cols]
-
-    return df
-
-    # df = df.drop(df[df['empty'] == 'Y'].index)
-
-    # # And drop num_elems column
-    # df = df.drop(columns=['empty'])
-
-
-def remove_empty_rows(df):
-
-    # Count # of non empty elems in each row and save to new column
-    def count_elems(row):
-
-        result = [0 if pd.isnull(
-            cell) or cell == '' or cell == 'NaT' else 1 for cell in row]
-
-        return sum(result)
-
-    orig_cols = df.columns
-
-    df_columns = list(df.columns)
-    df_columns.remove('N_PROF')
-    df_columns.remove('station_cast')
-    df_columns.remove('index')
-    df_subset = df[df_columns]
-
-    new_df = df_subset.apply(count_elems, axis=1)
-
-    new_df.columns = ['num_elems']
-
-    df_end = pd.concat([df, new_df], axis=1)
-
-    # name last column so know what to delete
-    df_end.columns = [*df_end.columns[:-1], 'num_elems']
-
-    # Then drop rows where num_elems is 0
-    df_end = df_end.drop(df_end[df_end['num_elems'] == 0].index)
-
-    df_end = df_end[orig_cols]
-
-    return df_end
-
-
-def apply_c_format_per_elem(val, c_format):
-
-    # print(f'{val:.2f}') where val is a #
-    f_format = c_format.lstrip('%')
-
-    return f"{float(val):{f_format}}"
-
-
-def apply_c_format_to_nc(nc_val, c_format):
-
-    #  This work but not saved correctly in nc
-
-    # Now get str in C_format. e.g. "%9.1f"
-    # print(f'{val:.2f}') where val is a #
-    f_format = c_format.lstrip('%')
-
-    func_vec = np.vectorize(apply_c_format_per_elem)
-    result = func_vec(nc_val, f_format)
-
-    # print(new_val)
-
-    # if isinstance(val, float):
-    #     new_val = float(f"{val:{f_format}}")
-    # elif isinstance(val, list):
-    #     new_val = [float(f"{item:{f_format}}") for item in val]
-    # else:
-    #     new_val = val
-
-
-def apply_equations_and_ref_scale(nc):
-
-    # Rename converted temperature later.
-    # Keep 68 in name and show it maps to temp_ctd
-    # and ref scale show what scale it was converted to
-
-    # Converting to argovis ref scale if needed
-    nc = pm.convert_goship_to_argovis_ref_scale(nc)
-
-    # Apply equations to convert units
-    nc = pm.convert_goship_to_argovis_units(nc)
-
-    return nc
 
 
 def string_to_float(df, meta_mapping, param_mapping, meta_dtype, param_dtype):
@@ -521,274 +170,503 @@ def float_to_string(nc):
     return nc
 
 
-def get_measurements_source(df_meas, temp_qc, type):
+def combine_profiles(meta_profiles, bgc_profiles, meas_profiles, meas_source_profiles, mapping_dict, type):
 
-    # See if using ctd_salinty or bottle_salinity
-    # Is ctd_salinity NaN? If it is and bottle_salinity isn't NaN, use it
-    # See if all ctd_salinity are NaN, if not, use it and
-    # drop bottle salinity column
-    is_ctd_sal_empty = True
-    is_ctd_sal_column = 'psal' in df_meas.columns
-    if is_ctd_sal_column:
-        is_ctd_sal_empty = df_meas['psal'].isnull().all()
+    #  https://stackoverflow.com/questions/5501810/join-two-lists-of-dictionaries-on-a-single-key
 
-    is_bottle_sal_empty = True
-    is_bottle_sal_column = 'salinity' in df_meas.columns
-    if is_bottle_sal_column:
-        # Check if not all NaN
-        is_bottle_sal_empty = df_meas['salinity'].isnull().all()
+    profile_dict = defaultdict(dict)
+    for elem in itertools.chain(meta_profiles, bgc_profiles,  meas_profiles, meas_source_profiles):
+        profile_dict[elem['station_cast']].update(elem)
 
-    if is_ctd_sal_column and not is_ctd_sal_empty and is_bottle_sal_column:
-        use_ctd_psal = True
-        use_bottle_salinity = False
-        df_meas = df_meas.drop(['salinity'], axis=1)
-    elif is_ctd_sal_column and not is_ctd_sal_empty and not is_bottle_sal_column:
-        use_ctd_psal = True
-        use_bottle_salinity = False
-    elif is_ctd_sal_column and is_ctd_sal_empty and is_bottle_sal_column and not is_bottle_sal_empty:
-        use_ctd_psal = False
-        use_bottle_salinity = True
-        df_meas = df_meas.drop(['psal'], axis=1)
-    elif not is_ctd_sal_column and is_bottle_sal_column and not is_bottle_sal_empty:
-        use_ctd_psal = False
-        use_bottle_salinity = True
-    else:
-        use_ctd_psal = False
-        use_bottle_salinity = False
+    all_profiles = []
+    for key, val in profile_dict.items():
+        new_obj = {}
+        new_obj['station_cast'] = key
+        val['type'] = type
+        # Insert a mapping dict
+        val = {**val, **mapping_dict}
+        # Add stationCast to the dict itself
+        val['stationCast'] = key
+        new_obj['profile_dict'] = val
+        all_profiles.append(new_obj)
 
-    # ctd_temp_cols = ['ctd_temperature', 'ctd_temperature_68']
-    # is_ctd_temp_col = any(
-    #     [True if col in df_meas.columns else False for col in ctd_temp_cols])
-    #is_ctd_temp_col = 'temp' in df_meas.columns
-    # Don't want to match variables with temp in name
-    is_ctd_temp = next(
-        (True for col in df_meas.columns if col == 'temp'), False)
-
-    if is_ctd_temp:
-        is_ctd_temp_empty = df_meas['temp'].isnull().all()
-    else:
-        is_ctd_temp_empty = True
-
-    # if is_ctd_temp_col:
-    #     is_ctd_temp_empty = next(
-    #         (df_meas[col].isnull().all() for col in df_meas.columns), False)
-
-    if is_ctd_temp_empty:
-        flag = None
-    elif not is_ctd_temp_empty and use_ctd_psal and not use_bottle_salinity:
-        flag = 'CTD'
-    elif not is_ctd_temp_empty and not use_ctd_psal and use_bottle_salinity:
-        flag = 'BTL'
-    elif type == 'ctd' and not is_ctd_temp_empty and not use_ctd_psal and not use_bottle_salinity:
-        flag = 'CTD'
-    elif type == 'btl' and not is_ctd_temp_empty and not use_ctd_psal and not use_bottle_salinity:
-        flag = 'BTL'
-    else:
-        flag = None
-
-    # json_str = df_meas.to_json(orient='records')
-
-    # data_dict_list = json.loads(json_str)
-
-    measurements_source = flag
-
-    measurements_source_qc = {}
-    measurements_source_qc['qc'] = temp_qc
-    measurements_source_qc['use_ctd_temp'] = not is_ctd_temp_empty
-    measurements_source_qc['use_ctd_psal'] = use_ctd_psal
-    if use_bottle_salinity:
-        measurements_source_qc['use_bottle_salinity'] = use_bottle_salinity
-
-    # For json_str, convert True, False to 'true','false'
-    measurements_source_qc = fp.convert_boolean(measurements_source_qc)
-
-    return measurements_source, measurements_source_qc
+    return all_profiles
 
 
-def find_temp_qc_val(df, type):
+def apply_c_format_to_num(name, num, dtype_mapping, c_format_mapping):
 
-    # Check if have temp_{type}_qc with qc = 0 or qc = 2 values
-    has_ctd_temp_qc = f"temp_{type}_qc" in df.columns
+    # Now get str in C_format. e.g. "%9.1f"
+    # dtype = mapping['dtype'][name]
+    # c_format = mapping['c_format'][name]
 
-    if has_ctd_temp_qc:
+    float_types = ['float64', 'float32']
 
-        temp_qc = df[f"temp_{type}_qc"]
-        temp_qc = list(temp_qc.array)
+    try:
 
-        if 0 in temp_qc:
-            qc = 0
-        elif 2 in temp_qc:
-            qc = 2
+        dtype = dtype_mapping[name]
+        c_format = c_format_mapping[name]
+
+        if dtype in float_types and c_format:
+            f_format = c_format.lstrip('%')
+            return float(f"{num:{f_format}}")
+
         else:
-            qc = None
+            return num
 
+    except:
+        return num
+
+
+def apply_c_format(json_str, name, c_format):
+
+    number_dict = json.loads(json_str)
+
+    number_obj = number_dict[name]
+
+    # Now get str in C_format. e.g. "%9.1f"
+    # print(f'{val:.2f}') where val is a #
+    f_format = c_format.lstrip('%')
+
+    new_obj = {}
+
+    if isinstance(number_obj, float):
+        new_val = float(f"{number_obj:{f_format}}")
+        new_obj[name] = new_val
+        json_str = json.dumps(new_obj)
+        return json_str
+    elif isinstance(number_obj, list):
+        new_val = [float(f"{item:{f_format}}") for item in number_obj]
+        new_obj[name] = new_val
+        json_str = json.dumps(new_obj)
+        return json_str
     else:
-        qc = None
-
-    return qc
+        return json_str
 
 
-def check_if_temp_qc(nc, type):
+# def create_bgc_meas_list(df):
 
-    # Now check so see if there is a 'temp_{type}'  column and a corresponding
-    # qc col. 'temp_{type}_qc'. If not, add a 'temp' qc col. with values 0
+#     json_str = df.to_json(orient='records')
 
-    has_ctd_temp = f"temp_{type}" in nc.keys()
-    has_ctd_temp_qc = f"temp_{type}_qc" in nc.keys()
+#     # _qc":2.0
+#     # If tgoship_argovis_name_mapping_btl is '.0' in qc value, remove it to get an int
+#     json_str = re.sub(r'(_qc":\s?\d)\.0', r"\1", json_str)
 
-    if has_ctd_temp and not has_ctd_temp_qc:
-        temp_shape = np.shape(nc[f"temp_{type}"])
-        shape = np.transpose(temp_shape)
-        temp_qc = np.zeros(shape)
+#     data_dict_list = json.loads(json_str)
 
-        nc[f"temp_{type}_qc"] = (['N_PROF', 'N_LEVELS'], temp_qc)
-
-    return nc
+#     return data_dict_list
 
 
-def create_geolocation_dict(lat, lon):
+# def get_measurements_source(df_meas, temp_qc, type):
 
-    # "geoLocation": {
-    #     "coordinates": [
-    #         -158.2927,
-    #         21.3693
-    #     ],
-    #     "type": "Point"
-    # },
+#     # See if using ctd_salinty or bottle_salinity
+#     # Is ctd_salinity NaN? If it is and bottle_salinity isn't NaN, use it
+#     # See if all ctd_salinity are NaN, if not, use it and
+#     # drop bottle salinity column
+#     is_ctd_sal_empty = True
+#     is_ctd_sal_column = 'psal' in df_meas.columns
+#     if is_ctd_sal_column:
+#         is_ctd_sal_empty = df_meas['psal'].isnull().all()
 
-    coordinates = [lon, lat]
+#     is_bottle_sal_empty = True
+#     is_bottle_sal_column = 'salinity' in df_meas.columns
+#     if is_bottle_sal_column:
+#         # Check if not all NaN
+#         is_bottle_sal_empty = df_meas['salinity'].isnull().all()
 
-    geo_dict = {}
-    geo_dict['coordinates'] = coordinates
-    geo_dict['type'] = 'Point'
+#     if is_ctd_sal_column and not is_ctd_sal_empty and is_bottle_sal_column:
+#         use_ctd_psal = True
+#         use_bottle_salinity = False
+#         df_meas = df_meas.drop(['salinity'], axis=1)
+#     elif is_ctd_sal_column and not is_ctd_sal_empty and not is_bottle_sal_column:
+#         use_ctd_psal = True
+#         use_bottle_salinity = False
+#     elif is_ctd_sal_column and is_ctd_sal_empty and is_bottle_sal_column and not is_bottle_sal_empty:
+#         use_ctd_psal = False
+#         use_bottle_salinity = True
+#         df_meas = df_meas.drop(['psal'], axis=1)
+#     elif not is_ctd_sal_column and is_bottle_sal_column and not is_bottle_sal_empty:
+#         use_ctd_psal = False
+#         use_bottle_salinity = True
+#     else:
+#         use_ctd_psal = False
+#         use_bottle_salinity = False
 
-    # geolocation_dict = {}
-    # geolocation_dict['geoLocation'] = geo_dict
+#     # ctd_temp_cols = ['ctd_temperature', 'ctd_temperature_68']
+#     # is_ctd_temp_col = any(
+#     #     [True if col in df_meas.columns else False for col in ctd_temp_cols])
+#     #is_ctd_temp_col = 'temp' in df_meas.columns
+#     # Don't want to match variables with temp in name
+#     is_ctd_temp = next(
+#         (True for col in df_meas.columns if col == 'temp'), False)
 
-    return geo_dict
+#     if is_ctd_temp:
+#         is_ctd_temp_empty = df_meas['temp'].isnull().all()
+#     else:
+#         is_ctd_temp_empty = True
 
+#     # if is_ctd_temp_col:
+#     #     is_ctd_temp_empty = next(
+#     #         (df_meas[col].isnull().all() for col in df_meas.columns), False)
 
-def add_extra_general_coords(nc, file_info):
+#     if is_ctd_temp_empty:
+#         flag = None
+#     elif not is_ctd_temp_empty and use_ctd_psal and not use_bottle_salinity:
+#         flag = 'CTD'
+#     elif not is_ctd_temp_empty and not use_ctd_psal and use_bottle_salinity:
+#         flag = 'BTL'
+#     elif type == 'ctd' and not is_ctd_temp_empty and not use_ctd_psal and not use_bottle_salinity:
+#         flag = 'CTD'
+#     elif type == 'btl' and not is_ctd_temp_empty and not use_ctd_psal and not use_bottle_salinity:
+#         flag = 'BTL'
+#     else:
+#         flag = None
 
-    # Use cruise expocode because file one could be different than cruise page
-    # Drop existing expocode
-    # nc = nc.reset_coords(names=['expocode'], drop=True)
+#     # json_str = df_meas.to_json(orient='records')
 
-    nc = nc.rename({'expocode':  'file_expocode'})
+#     # data_dict_list = json.loads(json_str)
 
-    filename = file_info['filename']
-    data_path = file_info['data_path']
-    expocode = file_info['cruise_expocode']
+#     measurements_source = flag
 
-    if '/' in expocode:
-        expocode = expocode.replace('/', '_')
-        cruise_url = f"https://cchdo.ucsd.edu/cruise/{expocode}"
-    elif expocode == 'None':
-        logging.info(filename)
-        logging.info('expocode is None')
-        cruise_url = ''
-    else:
-        cruise_url = f"https://cchdo.ucsd.edu/cruise/{expocode}"
+#     measurements_source_qc = {}
+#     measurements_source_qc['qc'] = temp_qc
+#     measurements_source_qc['use_ctd_temp'] = not is_ctd_temp_empty
+#     measurements_source_qc['use_ctd_psal'] = use_ctd_psal
+#     if use_bottle_salinity:
+#         measurements_source_qc['use_bottle_salinity'] = use_bottle_salinity
 
-    data_url = f"https://cchdo.ucsd.edu{data_path}"
+#     # For json_str, convert True, False to 'true','false'
+#     measurements_source_qc = fp.convert_boolean(measurements_source_qc)
 
-    coord_length = nc.dims['N_PROF']
-
-    new_coord_list = ['GPS']*coord_length
-    new_coord_np = np.array(new_coord_list, dtype=object)
-    nc = nc.assign_coords(POSITIONING_SYSTEM=('N_PROF', new_coord_np))
-
-    new_coord_list = ['CCHDO']*coord_length
-    new_coord_np = np.array(new_coord_list, dtype=object)
-    nc = nc.assign_coords(DATA_CENTRE=('N_PROF', new_coord_np))
-
-    new_coord_list = [cruise_url]*coord_length
-    new_coord_np = np.array(new_coord_list, dtype=object)
-    nc = nc.assign_coords(cruise_url=('N_PROF', new_coord_np))
-
-    new_coord_list = [data_url]*coord_length
-    new_coord_np = np.array(new_coord_list, dtype=object)
-    nc = nc.assign_coords(netcdf_url=('N_PROF', new_coord_np))
-
-    new_coord_list = [filename]*coord_length
-    new_coord_np = np.array(new_coord_list, dtype=object)
-    nc = nc.assign_coords(data_filename=('N_PROF', new_coord_np))
-
-    new_coord_list = [expocode]*coord_length
-    new_coord_np = np.array(new_coord_list, dtype=object)
-    nc = nc.assign_coords(expocode=('N_PROF', new_coord_np))
-
-    # The station number is a string
-    station_list = nc['station'].values
-
-   # cast_number is an integer
-    cast_list = nc['cast'].values
-
-    def create_station_cast(x, y):
-        station = str(x).zfill(3)
-        cast = str(y).zfill(3)
-        return f"{station}_{cast}"
-
-    station_cast = list(
-        map(create_station_cast, station_list, cast_list))
-
-    nc = nc.assign_coords(station_cast=('N_PROF', station_cast))
-
-    #expocode_list = [expocode]*coord_length
-
-    def create_id(x, y):
-        station = str(x).zfill(3)
-        cast = str(y).zfill(3)
-        return f"expo_{expocode}_sta_{station}_cast_{cast}"
-
-    id = list(map(create_id, station_list, cast_list))
-
-    nc = nc.assign_coords(id=('N_PROF', id))
-    nc = nc.assign_coords(_id=('N_PROF', id))
-
-    # Convert times
-    xr.apply_ufunc(lambda x: pd.to_datetime(x), nc['time'], dask='allowed')
-
-    time = nc['time'].values
-    new_date = list(
-        map(lambda x: pd.to_datetime(x).strftime("%Y-%m-%d"), time))
-
-    nc = nc.assign_coords(date_formatted=('N_PROF', new_date))
-
-    time = nc['time'].values
-    new_date = list(
-        map(lambda x: pd.to_datetime(x).isoformat(), time))
-
-    nc = nc.assign_coords(date=('N_PROF', new_date))
-
-    # Drop time
-    nc = nc.drop('time')
-
-    latitude = nc['latitude'].values
-    longitude = nc['longitude'].values
-
-    round_lat = list(map(lambda x: np.round(x, 3), latitude))
-    round_lon = list(map(lambda x: np.round(x, 3), longitude))
-
-    nc = nc.assign_coords(roundLat=('N_PROF', round_lat))
-    nc = nc.assign_coords(roundLon=('N_PROF', round_lon))
-
-    str_lat = list(map(lambda x: f"{x} N", round_lat))
-    str_lon = list(map(lambda x: f"{x} E", round_lon))
-
-    nc = nc.assign_coords(strLat=('N_PROF', str_lat))
-    nc = nc.assign_coords(strLon=('N_PROF', str_lon))
-
-    return nc
+#     return measurements_source, measurements_source_qc
 
 
-def modify_nc(nc, file_info):
+# def create_measurements_df_all(df,  type):
+
+#     # core values includes '_qc' vars
+#     core_values = gvm.get_argovis_core_values_per_type(type)
+#     table_columns = list(df.columns)
+#     core_cols = [col for col in table_columns if col in core_values]
+
+#     core_non_qc = [elem for elem in core_cols if '_qc' not in elem]
+
+#     df_meas = df[core_cols].copy()
+
+#     # here
+
+#     def check_qc(row):
+#         if pd.notnull(row[1]) and int(row[1]) == 0:
+#             return row[0]
+#         elif pd.notnull(row[1]) and int(row[1]) == 2:
+#             return row[0]
+#         else:
+#             return np.nan
+
+#     # If qc != 2, set corresponding value to np.nan
+#     for col in core_non_qc:
+
+#         qc_key = f"{col}_qc"
+
+#         try:
+#             df_meas[col] = df_meas[[col, qc_key]].apply(
+#                 check_qc, axis=1)
+#         except:
+#             pass
+
+#     # drop qc columns now that have marked non_qc column values
+#     for col in df_meas.columns:
+#         if '_qc' in col:
+#             df_meas = df_meas.drop([col], axis=1)
+
+#     # If all core values have nan, drop row
+#     # This won't work since
+#     df_meas = df_meas.dropna(how='all')
+
+#     df_meas = df_meas.sort_values(by=['pres'])
+
+#     # Remove type ('btl', 'ctd') from  variable names
+#     column_mapping = {}
+#     column_mapping[f"psal_{type}"] = 'psal'
+#     column_mapping[f"temp_{type}"] = 'temp'
+#     column_mapping[f"salinity_btl"] = 'salinity'
+
+#     df_meas = df_meas.rename(columns=column_mapping)
+
+#     return df_meas
+
+
+# def create_meta_param_profiles_df(all_df_meta, all_df_param):
+
+#     frames_meta = [obj['df_nc'] for obj in all_df_meta]
+#     keys_meta = [obj['station_cast'] for obj in all_df_meta]
+#     df_metas = pd.concat(frames_meta, keys=keys_meta)
+
+#     frames_param = [frame['df_nc'] for frame in all_df_param]
+#     keys_param = [frame['station_cast'] for frame in all_df_param]
+#     df_params = pd.concat(frames_param, keys=keys_param)
+
+#     return df_metas, df_params
+
+
+def remove_empty_rows(df):
+
+    # Count # of non empty elems in each row and save to new column
+    def count_elems(row):
+
+        result = [0 if pd.isnull(
+            cell) or cell == '' or cell == 'NaT' else 1 for cell in row]
+
+        return sum(result)
+
+    orig_cols = df.columns
+
+    df_columns = list(df.columns)
+    df_columns.remove('N_PROF')
+    df_columns.remove('station_cast')
+    df_columns.remove('index')
+    df_subset = df[df_columns]
+
+    new_df = df_subset.apply(count_elems, axis=1)
+
+    new_df.columns = ['num_elems']
+
+    df_end = pd.concat([df, new_df], axis=1)
+
+    # name last column so know what to delete
+    df_end.columns = [*df_end.columns[:-1], 'num_elems']
+
+    # Then drop rows where num_elems is 0
+    df_end = df_end.drop(df_end[df_end['num_elems'] == 0].index)
+
+    df_end = df_end[orig_cols]
+
+    return df_end
+
+
+# def apply_c_format_per_elem(val, c_format):
+
+#     # print(f'{val:.2f}') where val is a #
+#     f_format = c_format.lstrip('%')
+
+#     return f"{float(val):{f_format}}"
+
+
+# def apply_c_format_to_nc(nc_val, c_format):
+
+#     #  This work but not saved correctly in nc
+
+#     # Now get str in C_format. e.g. "%9.1f"
+#     # print(f'{val:.2f}') where val is a #
+#     f_format = c_format.lstrip('%')
+
+#     func_vec = np.vectorize(apply_c_format_per_elem)
+#     result = func_vec(nc_val, f_format)
+
+#     # print(new_val)
+
+#     # if isinstance(val, float):
+#     #     new_val = float(f"{val:{f_format}}")
+#     # elif isinstance(val, list):
+#     #     new_val = [float(f"{item:{f_format}}") for item in val]
+#     # else:
+#     #     new_val = val
+
+
+# def find_temp_qc_val(df, type):
+
+#     # Check if have temp_{type}_qc with qc = 0 or qc = 2 values
+#     has_ctd_temp_qc = f"temp_{type}_qc" in df.columns
+
+#     if has_ctd_temp_qc:
+
+#         temp_qc = df[f"temp_{type}_qc"]
+#         temp_qc = list(temp_qc.array)
+
+#         if 0 in temp_qc:
+#             qc = 0
+#         elif 2 in temp_qc:
+#             qc = 2
+#         else:
+#             qc = None
+
+#     else:
+#         qc = None
+
+#     return qc
+
+
+# def check_if_temp_qc(nc, type):
+
+#     # Now check so see if there is a 'temp_{type}'  column and a corresponding
+#     # qc col. 'temp_{type}_qc'. If not, add a 'temp' qc col. with values 0
+
+#     has_ctd_temp = f"temp_{type}" in nc.keys()
+#     has_ctd_temp_qc = f"temp_{type}_qc" in nc.keys()
+
+#     if has_ctd_temp and not has_ctd_temp_qc:
+#         temp_shape = np.shape(nc[f"temp_{type}"])
+#         shape = np.transpose(temp_shape)
+#         temp_qc = np.zeros(shape)
+
+#         nc[f"temp_{type}_qc"] = (['N_PROF', 'N_LEVELS'], temp_qc)
+
+#     return nc
+
+
+# def apply_equations_and_ref_scale(nc):
+
+#     # Rename converted temperature later.
+#     # Keep 68 in name and show it maps to temp_ctd
+#     # and ref scale show what scale it was converted to
+
+#     # Converting to argovis ref scale if needed
+#     nc = pmc.convert_goship_to_argovis_ref_scale(nc)
+
+#     # Apply equations to convert units
+#     nc = pmc.convert_goship_to_argovis_units(nc)
+
+#     return nc
+
+
+# def create_geolocation_dict(lat, lon):
+
+#     # "geoLocation": {
+#     #     "coordinates": [
+#     #         -158.2927,
+#     #         21.3693
+#     #     ],
+#     #     "type": "Point"
+#     # },
+
+#     coordinates = [lon, lat]
+
+#     geo_dict = {}
+#     geo_dict['coordinates'] = coordinates
+#     geo_dict['type'] = 'Point'
+
+#     # geolocation_dict = {}
+#     # geolocation_dict['geoLocation'] = geo_dict
+
+#     return geo_dict
+
+
+# def add_extra_general_coords(nc, file_info):
+
+#     # Use cruise expocode because file one could be different than cruise page
+#     # Drop existing expocode
+#     # nc = nc.reset_coords(names=['expocode'], drop=True)
+
+#     nc = nc.rename({'expocode':  'file_expocode'})
+
+#     filename = file_info['filename']
+#     data_path = file_info['data_path']
+#     expocode = file_info['cruise_expocode']
+
+#     if '/' in expocode:
+#         expocode = expocode.replace('/', '_')
+#         cruise_url = f"https://cchdo.ucsd.edu/cruise/{expocode}"
+#     elif expocode == 'None':
+#         logging.info(filename)
+#         logging.info('expocode is None')
+#         cruise_url = ''
+#     else:
+#         cruise_url = f"https://cchdo.ucsd.edu/cruise/{expocode}"
+
+#     data_url = f"https://cchdo.ucsd.edu{data_path}"
+
+#     coord_length = nc.dims['N_PROF']
+
+#     new_coord_list = ['GPS']*coord_length
+#     new_coord_np = np.array(new_coord_list, dtype=object)
+#     nc = nc.assign_coords(POSITIONING_SYSTEM=('N_PROF', new_coord_np))
+
+#     new_coord_list = ['CCHDO']*coord_length
+#     new_coord_np = np.array(new_coord_list, dtype=object)
+#     nc = nc.assign_coords(DATA_CENTRE=('N_PROF', new_coord_np))
+
+#     new_coord_list = [cruise_url]*coord_length
+#     new_coord_np = np.array(new_coord_list, dtype=object)
+#     nc = nc.assign_coords(cruise_url=('N_PROF', new_coord_np))
+
+#     new_coord_list = [data_url]*coord_length
+#     new_coord_np = np.array(new_coord_list, dtype=object)
+#     nc = nc.assign_coords(netcdf_url=('N_PROF', new_coord_np))
+
+#     new_coord_list = [filename]*coord_length
+#     new_coord_np = np.array(new_coord_list, dtype=object)
+#     nc = nc.assign_coords(data_filename=('N_PROF', new_coord_np))
+
+#     new_coord_list = [expocode]*coord_length
+#     new_coord_np = np.array(new_coord_list, dtype=object)
+#     nc = nc.assign_coords(expocode=('N_PROF', new_coord_np))
+
+#     # The station number is a string
+#     station_list = nc['station'].values
+
+#    # cast_number is an integer
+#     cast_list = nc['cast'].values
+
+#     def create_station_cast(x, y):
+#         station = str(x).zfill(3)
+#         cast = str(y).zfill(3)
+#         return f"{station}_{cast}"
+
+#     station_cast = list(
+#         map(create_station_cast, station_list, cast_list))
+
+#     nc = nc.assign_coords(station_cast=('N_PROF', station_cast))
+
+#     #expocode_list = [expocode]*coord_length
+
+#     def create_id(x, y):
+#         station = str(x).zfill(3)
+#         cast = str(y).zfill(3)
+#         return f"expo_{expocode}_sta_{station}_cast_{cast}"
+
+#     id = list(map(create_id, station_list, cast_list))
+
+#     nc = nc.assign_coords(id=('N_PROF', id))
+#     nc = nc.assign_coords(_id=('N_PROF', id))
+
+#     # Convert times
+#     xr.apply_ufunc(lambda x: pd.to_datetime(x), nc['time'], dask='allowed')
+
+#     time = nc['time'].values
+#     new_date = list(
+#         map(lambda x: pd.to_datetime(x).strftime("%Y-%m-%d"), time))
+
+#     nc = nc.assign_coords(date_formatted=('N_PROF', new_date))
+
+#     time = nc['time'].values
+#     new_date = list(
+#         map(lambda x: pd.to_datetime(x).isoformat(), time))
+
+#     nc = nc.assign_coords(date=('N_PROF', new_date))
+
+#     # Drop time
+#     nc = nc.drop('time')
+
+#     latitude = nc['latitude'].values
+#     longitude = nc['longitude'].values
+
+#     round_lat = list(map(lambda x: np.round(x, 3), latitude))
+#     round_lon = list(map(lambda x: np.round(x, 3), longitude))
+
+#     nc = nc.assign_coords(roundLat=('N_PROF', round_lat))
+#     nc = nc.assign_coords(roundLon=('N_PROF', round_lon))
+
+#     str_lat = list(map(lambda x: f"{x} N", round_lat))
+#     str_lon = list(map(lambda x: f"{x} E", round_lon))
+
+#     nc = nc.assign_coords(strLat=('N_PROF', str_lat))
+#     nc = nc.assign_coords(strLon=('N_PROF', str_lon))
+
+#     return nc
+
+
+def modify_nc(nc):
 
     # move pressure from coordinate to variable
     nc = nc.reset_coords(names=['pressure'], drop=False)
-
-    # Add extra coordinates for ArgoVis
-    nc = add_extra_general_coords(nc, file_info)
 
     # move section_id  and btm_depth to coordinates
     try:
@@ -819,15 +697,6 @@ def modify_nc(nc, file_info):
     return nc
 
 
-def to_int_qc(obj):
-    # _qc":2.0
-    # If float qc with '.0' in qc value, remove it to get an int
-    json_str = json.dumps(obj,  default=dtjson)
-    json_str = re.sub(r'(_qc":\s?\d)\.0', r"\1", json_str)
-    obj = json.loads(json_str)
-    return obj
-
-
 def create_profiles_one_type(data_obj):
 
     start_time = datetime.now()
@@ -839,6 +708,8 @@ def create_profiles_one_type(data_obj):
     file_info['filename'] = data_obj['filename']
     file_info['data_path'] = data_obj['data_path']
     file_info['cruise_expocode'] = data_obj['cruise_expocode']
+    file_info['cruise_id'] = data_obj['cruise_id']
+    file_info['woce_lines'] = data_obj['woce_lines']
 
     logging.info('---------------------------')
     logging.info(f'Start processing {type} profiles')
@@ -847,7 +718,10 @@ def create_profiles_one_type(data_obj):
     nc = data_obj['nc']
 
     logging.info('Start modify_nc')
-    nc = modify_nc(nc, file_info)
+    nc = modify_nc(nc)
+
+    # Add extra coordinates for ArgoVis
+    nc = pmd.add_extra_general_coords(nc, file_info)
 
     logging.info('Start get_goship_mappings')
     meta_mapping, param_mapping = gvm.get_goship_mappings(nc)
@@ -880,7 +754,7 @@ def create_profiles_one_type(data_obj):
     logging.info('start apply_equations_and_ref_scale')
     # TODO
     # Get formula for Oxygen unit conversion
-    nc = apply_equations_and_ref_scale(nc)
+    nc = ppd.apply_equations_and_ref_scale(nc)
 
     # Rename columns to argovis_names
     # Create mapping from goship_col names to argovis names
@@ -892,18 +766,14 @@ def create_profiles_one_type(data_obj):
 
     # Now check so see if there is a 'temp_{type}'  column and a corresponding
     # qc col. 'temp_{type}_qc'. If not, add a 'temp' qc col. with values 0
-    nc = check_if_temp_qc(nc, type)
+    nc = ppd.check_if_temp_qc(nc, type)
 
     # --------
-
-    # nc = nc.groupby("N_PROF").map(remove_rows)
-    # nc_groups = [obj[1] for obj in nc.groupby('N_PROF')]
 
     # Removing rows in xarray is too slow with groupby
     # since using a big loop. faster in pandas
 
     # for nc_group in nc_groups:
-    #     #remove_rows(nc_group)
     #     nc_group = nc_group.apply_ufunc(remove_rows)
 
     # separate param variables to a pandas dataframe and
@@ -911,30 +781,9 @@ def create_profiles_one_type(data_obj):
     meta_keys = list(nc.coords)
     param_keys = list(nc.keys())
 
-    # logging.info('start get_nc_dtypes')
-    # meta_dtype, param_dtype = get_nc_dtypes(nc)
-
     logging.info('start nc to dataframe')
-    # nc.to_dask_dataframe causes strange df
-    # with ... as entries
-    # Maybe that's how dask represents things
-    # ddf = nc.to_dataframe()
 
-    # No longer has N_PROF or N_LEVELS to group over
     ddf = nc.to_dask_dataframe(dim_order=['N_PROF', 'N_LEVELS'])
-
-    # # Rename cols to argovis_names
-    # argovis_col_mapping = rn.rename_cols_to_argovis(ddf.columns)
-    # ddf = ddf.rename(columns=argovis_col_mapping)
-
-    # Reset index so not multi-index
-    # add N_PROF AND N_LEVELS to both
-    # and add station_cast to param
-    # Add station_cast column so can
-    # later combine on station_cast instead
-    # of profile number
-
-    # ------
 
     meta_keys.extend(['N_PROF', 'N_LEVELS'])
     param_keys.extend(['N_PROF', 'N_LEVELS', 'station_cast'])
@@ -994,10 +843,10 @@ def create_profiles_one_type(data_obj):
 
     # df_meas = create_measurements_df_all(df_param)
 
-    temp_qc = find_temp_qc_val(df_param, type)
+    temp_qc = ppd.find_temp_qc_val(df_param, type)
 
     df_meas = df_param.groupby('N_PROF').apply(
-        create_measurements_df_all, type)
+        ppd.create_measurements_df_all, type)
 
     # Put N_PROF and station_cast in cols
     # df_meas = df_meas.reset_index()
@@ -1010,6 +859,7 @@ def create_profiles_one_type(data_obj):
     # For each dataframe, separate into dictionaries
     logging.info('Start converting df to large dict')
     large_meta_dict = dict(tuple(df_meta.groupby('N_PROF')))
+
     large_bgc_dict = dict(tuple(df_bgc.groupby('N_PROF')))
     large_meas_dict = dict(tuple(df_meas.groupby('N_PROF')))
 
@@ -1041,7 +891,7 @@ def create_profiles_one_type(data_obj):
         lat = meta_dict['lat']
         lon = meta_dict['lon']
 
-        geo_dict = create_geolocation_dict(lat, lon)
+        geo_dict = pmd.create_geolocation_dict(lat, lon)
         meta_dict['geoLocation'] = geo_dict
 
         meta_obj = {}
@@ -1049,6 +899,16 @@ def create_profiles_one_type(data_obj):
         meta_obj['dict'] = meta_dict
 
         all_meta.append(meta_obj)
+
+    logging.info('start create all_meta_profiles')
+    all_meta_profiles = []
+    for obj in all_meta:
+
+        meta_profile = {}
+        meta_profile['station_cast'] = obj['station_cast']
+        meta_profile['meta'] = obj['dict']
+
+        all_meta_profiles.append(meta_profile)
 
     logging.info('create all_bgc list')
 
@@ -1079,6 +939,18 @@ def create_profiles_one_type(data_obj):
         bgc_obj['list'] = formatted_list
         all_bgc.append(bgc_obj)
 
+    logging.info('start create all_bgc_profiles')
+    all_bgc_profiles = []
+    for obj in all_bgc:
+
+        bgc_list = obj['list']
+
+        bgc_profile = {}
+        bgc_profile['station_cast'] = obj['station_cast']
+        bgc_profile['bgcMeas'] = list(map(to_int_qc, bgc_list))
+
+        all_bgc_profiles.append(bgc_profile)
+
     logging.info('create all_meas list')
     all_meas = []
     for key, val in large_meas_dict.items():
@@ -1087,7 +959,7 @@ def create_profiles_one_type(data_obj):
         station_cast = val['station_cast'].values[0]
         val = val.drop(['station_cast', 'N_PROF'],  axis=1)
 
-        measurements_source, measurements_source_qc = get_measurements_source(
+        measurements_source, measurements_source_qc = ppd.get_measurements_source(
             val, temp_qc, type)
 
         meas_dict = val.to_dict('records')
@@ -1114,30 +986,6 @@ def create_profiles_one_type(data_obj):
         meas_obj['list'] = formatted_list
 
         all_meas.append(meas_obj)
-
-    logging.info('start create all_meta_profiles')
-    # TODO
-    # do this earlier?
-    all_meta_profiles = []
-    for obj in all_meta:
-
-        meta_profile = {}
-        meta_profile['station_cast'] = obj['station_cast']
-        meta_profile['meta'] = obj['dict']
-
-        all_meta_profiles.append(meta_profile)
-
-    logging.info('start create all_bgc_profiles')
-    all_bgc_profiles = []
-    for obj in all_bgc:
-
-        bgc_list = obj['list']
-
-        bgc_profile = {}
-        bgc_profile['station_cast'] = obj['station_cast']
-        bgc_profile['bgcMeas'] = list(map(to_int_qc, bgc_list))
-
-        all_bgc_profiles.append(bgc_profile)
 
     logging.info('start create all_meas_profiles')
     all_meas_profiles = []

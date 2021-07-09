@@ -144,12 +144,20 @@ def get_information_one_cruise_test(session):
 
     # ctd file
     # has both ctd temp and ctd temp 68
-    expocode = '49K6KY9606_1'
-    file_id = 17365
+    # expocode = '49K6KY9606_1'
+    # file_id = 17365
 
     # # # ctd file
     # expocode = '325020210420'
     # file_id = 19427
+
+    # ctd temp unknown
+    # expocode = '33RO20070710
+    # file_id = 17772
+
+    # ctd file
+    expocode = '90VE43_1'
+    file_id = 17879
 
     query = f"{API_END_POINT}/file/{file_id}"
     response = session.get(query)
@@ -211,6 +219,8 @@ def get_information_one_cruise_test(session):
         btl_obj['file_id'] = file_info['btl_id']
         btl_obj['file_hash'] = file_info['btl_hash']
         btl_obj['cruise_expocode'] = expocode
+        btl_obj['cruise_id'] = ''
+        btl_obj['woce_lines'] = ''
 
         cruise_info['btl'] = btl_obj
 
@@ -223,6 +233,8 @@ def get_information_one_cruise_test(session):
         ctd_obj['file_id'] = file_info['ctd_id']
         ctd_obj['file_hash'] = file_info['ctd_hash']
         ctd_obj['cruise_expocode'] = expocode
+        ctd_obj['cruise_id'] = ''
+        ctd_obj['woce_lines'] = ''
 
         cruise_info['ctd'] = ctd_obj
 
@@ -246,7 +258,7 @@ def get_information_one_cruise_test(session):
 
         # cruise_info['start_datetime'] = cruise_datetime
         cruise_info['expocode'] = expocode
-        # cruise_info['cruise_id'] = cruise['id']
+        #cruise_info['cruise_id'] = cruise['id']
         # cruise_info['start_date'] = cruise['startDate']
         cruise_info['type'] = type
 
@@ -274,6 +286,8 @@ def get_information_one_cruise(cruise, all_file_ids, file_id_hash_mapping, start
     programs = cruise['collections']['programs']
     programs = [x.lower() for x in programs]
     expocode = cruise['expocode']
+    cruise_id = cruise['id']
+    woce_lines = cruise['collections']['woce_lines']
 
     # TESTING
     # Find cruise 32MW9508 to check for ctd_temperature_68 case
@@ -315,6 +329,8 @@ def get_information_one_cruise(cruise, all_file_ids, file_id_hash_mapping, start
         btl_obj['file_id'] = file_info['btl_id']
         btl_obj['file_hash'] = file_info['btl_hash']
         btl_obj['cruise_expocode'] = expocode
+        btl_obj['cruise_id'] = cruise_id
+        btl_obj['woce_lines'] = woce_lines
 
         cruise_info['btl'] = btl_obj
 
@@ -327,6 +343,8 @@ def get_information_one_cruise(cruise, all_file_ids, file_id_hash_mapping, start
         ctd_obj['file_id'] = file_info['ctd_id']
         ctd_obj['file_hash'] = file_info['ctd_hash']
         ctd_obj['cruise_expocode'] = expocode
+        ctd_obj['cruise_id'] = cruise_id
+        ctd_obj['woce_lines'] = woce_lines
 
         cruise_info['ctd'] = ctd_obj
 

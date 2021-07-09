@@ -1,7 +1,7 @@
 import pandas as pd
 
-import rename_objects as r
-import get_profile_mapping_and_conversions as pm
+
+import get_profile_mapping_and_conversions as pmc
 import get_variable_mappings as gvm
 import rename_objects as rn
 
@@ -173,12 +173,9 @@ def create_goship_argovis_core_values_mapping(type):
 
 def create_goship_c_format_mapping(nc):
 
-    meta_names, param_names = pm.get_meta_param_names(nc)
+    meta_names, param_names = pmc.get_meta_param_names(nc)
 
     goship_c_format = {}
-
-    # TODO
-    # What about bottom depth?
 
     for var in meta_names:
 
@@ -205,7 +202,7 @@ def create_goship_c_format_mapping(nc):
 
 def create_goship_unit_mapping(nc):
 
-    meta_names, param_names = pm.get_meta_param_names(nc)
+    meta_names, param_names = pmc.get_meta_param_names(nc)
 
     goship_units = {}
 
