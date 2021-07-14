@@ -144,8 +144,11 @@ def get_information_one_cruise_test(session):
 
     # ctd file
     # has both ctd temp and ctd temp 68
-    # expocode = '49K6KY9606_1'
-    # file_id = 17365
+    # And has case where no temp in measurements (all NaN because no qc=0 or 2)
+    # Case is where using diff scale of ctd temp, so one is null while 68 is not
+    # Look at station: 021 and cast: 001
+    expocode = '49K6KY9606_1'
+    file_id = 17365
 
     # # # ctd file
     # expocode = '325020210420'
@@ -155,9 +158,9 @@ def get_information_one_cruise_test(session):
     # expocode = '33RO20070710
     # file_id = 17772
 
-    # ctd file
-    expocode = '90VE43_1'
-    file_id = 17879
+    # ctd file (very large)
+    # expocode = '90VE43_1'
+    # file_id = 17879
 
     query = f"{API_END_POINT}/file/{file_id}"
     response = session.get(query)

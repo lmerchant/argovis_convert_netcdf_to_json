@@ -2,29 +2,220 @@
 
 import pandas as pd
 import numpy as np
+from decimal import Decimal
 import json
 import re
 import logging
+from datetime import datetime
 
-import filter_profiles as fp
+import filter_measurements as fm
 import get_variable_mappings as gvm
 import get_profile_mapping_and_conversions as pmc
 
 
-# def create_bgc_meas_list(df):
-
-#     json_str = df.to_json(orient='records')
-
-#     # _qc":2.0
-#     # If tgoship_argovis_name_mapping_btl is '.0' in qc value, remove it to get an int
-#     json_str = re.sub(r'(_qc":\s?\d)\.0', r"\1", json_str)
-
-#     data_dict_list = json.loads(json_str)
-
-#     return data_dict_list
+def dtjson(o):
+    if isinstance(o, datetime):
+        return o.isoformat()
 
 
-def get_measurements_source(df_meas, temp_qc, type):
+def to_int_qc(obj):
+    # _qc":2.0
+    # If float qc with '.0' in qc value, remove it to get an int
+    json_str = json.dumps(obj,  default=dtjson)
+    json_str = re.sub(r'(_qc":\s?\d)\.0', r"\1", json_str)
+    obj = json.loads(json_str)
+    return obj
+
+
+def apply_c_format_to_num(name, num, dtype_mapping, c_format_mapping):
+
+    # Now get str in C_format. e.g. "%9.1f"
+    # dtype = mapping['dtype'][name]
+    # c_format = mapping['c_format'][name]
+
+    float_types = ['float64', 'float32']
+
+    try:
+
+        dtype = dtype_mapping[name]
+        c_format = c_format_mapping[name]
+
+        if dtype in float_types and c_format:
+            f_format = c_format.lstrip('%')
+            return float(f"{num:{f_format}}")
+
+        else:
+            return num
+
+    except:
+        return num
+
+
+def create_bgc_profile(df_param, param_mapping_argovis_btl, param_mapping_argovis_ctd, type):
+
+    df_bgc = df_param
+    df_bgc = df_bgc.reset_index()
+    df_bgc = df_bgc.drop('index', axis=1)
+
+    bgc_df_groups = dict(tuple(df_bgc.groupby('N_PROF')))
+
+    if type == 'btl':
+        param_mapping = param_mapping_argovis_btl
+    elif type == 'ctd':
+        param_mapping = param_mapping_argovis_ctd
+
+    all_bgc = []
+    for key, val_df in bgc_df_groups.items():
+        val_df = val_df.reset_index()
+        station_cast = val_df['station_cast'].values[0]
+        val_df = val_df.drop(['station_cast', 'N_PROF', 'index'],  axis=1)
+
+        # Change NaN to None so in json, converted to null
+        val_df = val_df.where(pd.notnull(val_df), None)
+
+        val_df = val_df.sort_values(by=['pres'])
+
+        bgc_dict_list = val_df.to_dict('records')
+
+        formatted_list = []
+        dtype_mapping = param_mapping['dtype']
+        c_format_mapping = param_mapping['c_format']
+        for obj in bgc_dict_list:
+            new_obj = {name: apply_c_format_to_num(name, val, dtype_mapping, c_format_mapping)
+                       for name, val in obj.items()}
+
+            formatted_list.append(new_obj)
+
+        bgc_obj = {}
+        bgc_obj['station_cast'] = station_cast
+        bgc_obj['list'] = formatted_list
+        all_bgc.append(bgc_obj)
+
+    logging.info('start create all_bgc_profiles')
+    all_bgc_profiles = []
+    for obj in all_bgc:
+
+        bgc_list = obj['list']
+
+        bgc_profile = {}
+        bgc_profile['station_cast'] = obj['station_cast']
+        bgc_profile['bgcMeas'] = list(map(to_int_qc, bgc_list))
+
+        all_bgc_profiles.append(bgc_profile)
+
+    return all_bgc_profiles
+
+
+def create_measurements_profile(df_param, param_mapping_argovis_btl, param_mapping_argovis_ctd, type):
+
+    df_meas = df_param.groupby('N_PROF').apply(
+        create_measurements_df_all, type)
+
+    meas_df_groups = dict(tuple(df_meas.groupby('N_PROF')))
+
+    if type == 'btl':
+        param_mapping = param_mapping_argovis_btl
+    elif type == 'ctd':
+        param_mapping = param_mapping_argovis_ctd
+
+    all_meas = []
+    for key, val_df in meas_df_groups.items():
+
+        measurements_source, measurements_source_qc = get_measurements_source(
+            val_df, type)
+
+        val_df = val_df.reset_index()
+        station_cast = val_df['station_cast'].values[0]
+
+        # Drop any columns except temp, psal, and pres
+        # TODO probably easier just to select columns than drop them
+
+        val_df = val_df[['pres', 'psal', 'temp']]
+
+        # Change NaN to None so in json, converted to null
+        val_df = val_df.where(pd.notnull(val_df), None)
+
+        # val_df = val_df.drop(['station_cast', 'N_PROF',
+        #                'qc_temp'],  axis=1)
+
+        # if 'qc_psal' in val_df.columns:
+        #     val_df = val_df.drop(['qc_psal'], axis=1)
+
+        # if 'qc_salinity' in val_df.columns:
+        #     val_df = val_df.drop(['qc_salinity'], axis=1)
+
+        meas_dict = val_df.to_dict('records')
+
+        # For mapping, param_mapping has suffix and
+        # measurements don't
+        c_format_mapping = {name.replace(
+            f"_{type}", ''): val for name, val in param_mapping['c_format'].items()}
+        dtype_mapping = {name.replace(
+            f"_{type}", ''): val for name, val in param_mapping['dtype'].items()}
+
+        formatted_list = []
+        for obj in meas_dict:
+
+            new_obj = {name: apply_c_format_to_num(name, val, dtype_mapping, c_format_mapping)
+                       for name, val in obj.items()}
+
+            formatted_list.append(new_obj)
+
+        meas_obj = {}
+        meas_obj['station_cast'] = station_cast
+        meas_obj['source'] = measurements_source
+        meas_obj['qc'] = measurements_source_qc
+        meas_obj['list'] = formatted_list
+
+        all_meas.append(meas_obj)
+
+    logging.info('start create all_meas_profiles')
+    all_meas_profiles = []
+    all_meas_source_profiles = []
+    for obj in all_meas:
+
+        meas_list = obj['list']
+
+        meas_profile = {}
+        meas_profile['station_cast'] = obj['station_cast']
+        meas_profile['measurements'] = list(map(to_int_qc, meas_list))
+        all_meas_profiles.append(meas_profile)
+
+        meas_source_profile = {}
+        meas_source_profile['station_cast'] = obj['station_cast']
+        meas_source_profile['measurementsSource'] = obj['source']
+        all_meas_source_profiles.append(meas_source_profile)
+
+        meas_source_profile_qc = {}
+        meas_source_profile_qc['station_cast'] = obj['station_cast']
+        meas_source_profile_qc['measurementsSourceQC'] = obj['qc']
+        all_meas_source_profiles.append(meas_source_profile_qc)
+
+    return all_meas_profiles, all_meas_source_profiles
+
+
+def get_measurements_source(df_meas, type):
+
+    temp_qc_df = df_meas['qc_temp']
+    temp_qc = pd.unique(temp_qc_df)[0]
+
+    # psal_qc_df = df_meas['qc_psal']
+    # psal_qc = pd.unique(psal_qc_df)[0]
+
+    # salinity_qc_df = df_meas['qc_salinity']
+    # salinity_qc = pd.unique(salinity_qc_df)[0]
+
+    if 'qc_psal' in df_meas.columns:
+        psal_qc_df = df_meas['qc_psal']
+        psal_qc = pd.unique(psal_qc_df)[0]
+    else:
+        psal_qc = None
+
+    if 'qc_salinity' in df_meas.columns:
+        salinity_qc_df = df_meas['qc_salinity']
+        salinity_qc = pd.unique(salinity_qc_df)[0]
+    else:
+        salinity_qc = None
 
     # See if using ctd_salinty or bottle_salinity
     # Is ctd_salinity NaN? If it is and bottle_salinity isn't NaN, use it
@@ -92,34 +283,44 @@ def get_measurements_source(df_meas, temp_qc, type):
     # json_str = df_meas.to_json(orient='records')
 
     # data_dict_list = json.loads(json_str)
+    if temp_qc:
+        qc = temp_qc
+    elif psal_qc:
+        qc = psal_qc
+    elif salinity_qc:
+        qc = salinity_qc
+    else:
+        qc = None
 
     measurements_source = flag
 
     measurements_source_qc = {}
-    measurements_source_qc['qc'] = temp_qc
+    measurements_source_qc['qc'] = qc
     measurements_source_qc['use_ctd_temp'] = not is_ctd_temp_empty
     measurements_source_qc['use_ctd_psal'] = use_ctd_psal
     if use_bottle_salinity:
         measurements_source_qc['use_bottle_salinity'] = use_bottle_salinity
 
     # For json_str, convert True, False to 'true','false'
-    measurements_source_qc = fp.convert_boolean(measurements_source_qc)
+    measurements_source_qc = fm.convert_boolean(measurements_source_qc)
 
     return measurements_source, measurements_source_qc
 
 
 def create_measurements_df_all(df,  type):
 
+    # For measurements, keep core vars pres, temp, psal, salinity
+    # Later when filter measurements, if salinity is used,
+    # it will be renamed to psal
+
     # core values includes '_qc' vars
-    core_values = gvm.get_argovis_core_values_per_type(type)
+    core_values = gvm.get_argovis_core_meas_values_per_type(type)
     table_columns = list(df.columns)
     core_cols = [col for col in table_columns if col in core_values]
 
     core_non_qc = [elem for elem in core_cols if '_qc' not in elem]
 
     df_meas = df[core_cols].copy()
-
-    # here
 
     def check_qc(row):
         if pd.notnull(row[1]) and int(row[1]) == 0:
@@ -129,7 +330,7 @@ def create_measurements_df_all(df,  type):
         else:
             return np.nan
 
-    # If qc != 2, set corresponding value to np.nan
+    # If qc != 2, set corresponding non_qc value to np.nan
     for col in core_non_qc:
 
         qc_key = f"{col}_qc"
@@ -140,9 +341,55 @@ def create_measurements_df_all(df,  type):
         except:
             pass
 
+    # Check if qc = 0 or 2 for measurements source or None
+    # Add qc column back in because need to know qc for
+    # measurements source
+
+    temp_qc = None
+    psal_qc = None
+    salinity_qc = None
+
+    # Assume temp_qc is one value
+    temperature_df = df_meas[[f"temp_{type}", f"temp_{type}_qc"]]
+    temp_subset = temperature_df[temperature_df[f"temp_{type}"].notnull()]
+    temp_qc = pd.unique(temp_subset[f"temp_{type}_qc"])
+
+    if len(temp_qc):
+        temp_qc = int(temp_qc[0])
+    else:
+        temp_qc = None
+
+    df_meas['qc_temp'] = temp_qc
+
+    # Assume psal_qc has one value
+    if f"psal_{type}" in core_cols and f"psal_{type}_qc" in core_cols:
+        psal_df = df_meas[[f"psal_{type}", f"psal_{type}_qc"]]
+        psal_subset = psal_df[psal_df[f"psal_{type}"].notnull()]
+        psal_qc = pd.unique(psal_subset[f"psal_{type}_qc"])
+
+        if len(psal_qc):
+            psal_qc = int(psal_qc[0])
+        else:
+            psal_qc = None
+
+        df_meas['qc_psal'] = psal_qc
+
+    # Assume salinity_btl_qc has one value
+    if "salinity_btl" in core_cols and "salinity_btl_qc" in core_cols:
+        psal_df = df_meas[["salinity_btl", "salinity_btl_qc"]]
+        psal_subset = psal_df[psal_df["salinity_btl"].notnull()]
+        salinity_qc = pd.unique(psal_subset["salinity_btl_qc"])
+
+        if len(salinity_qc):
+            salinity_qc = int(salinity_qc[0])
+        else:
+            salinity_qc = None
+
+        df_meas['qc_salinity'] = salinity_qc
+
     # drop qc columns now that have marked non_qc column values
     for col in df_meas.columns:
-        if '_qc' in col:
+        if col.endswith('_qc'):
             df_meas = df_meas.drop([col], axis=1)
 
     # If all core values have nan, drop row
@@ -203,6 +450,132 @@ def check_if_temp_qc(nc, type):
     return nc
 
 
+def convert_oxygen(nc, var, var_goship_units, argovis_units):
+
+    if var_goship_units == 'ml/l' and argovis_units == 'micromole/kg':
+
+        # https://www.nodc.noaa.gov/OC5/WOD/wod18-notes.html
+        # 1 ml/l of O2 is approximately 43.570 µmol/kg
+        # (assumes a molar volume of O2 of 22.392 l/mole and a
+        # constant seawater potential density of 1025 kg/m3).
+
+        # Convert to micromole/kg
+        oxygen = nc[var].data
+        converted_oxygen = oxygen * 43.570
+
+        try:
+            c_format = nc[var].attrs['C_format']
+            f_format = c_format.lstrip('%')
+            new_oxygen = [float(f"{item:{f_format}}")
+                          for item in converted_oxygen]
+
+        except:
+            # Use num decimal places of var
+            num_decimal_places = abs(
+                Decimal(str(oxygen)).as_tuple().exponent)
+
+            new_oxygen = round(converted_oxygen, num_decimal_places)
+
+        # Set oxygen value in nc because use it later to
+        # create profile dict
+        nc[var].data = new_oxygen
+        nc[var].attrs['units'] = 'micromole/kg'
+
+    return nc
+
+
+def convert_goship_to_argovis_units(nc):
+
+    params = nc.keys()
+
+    # If goship units aren't the same as argovis units, convert
+    # So far, just converting oxygen
+
+    goship_argovis_units_mapping = gvm.get_goship_argovis_unit_mapping()
+
+    for var in params:
+        if 'oxygen' in var:
+
+            try:
+                var_goship_units = nc[var].attrs['units']
+                argovis_units = goship_argovis_units_mapping[var]
+
+                is_unit_same = var_goship_units == argovis_units
+
+                if not is_unit_same:
+                    nc = convert_oxygen(
+                        nc, var, var_goship_units, argovis_units)
+            except:
+                pass
+
+    return nc
+
+
+def convert_sea_water_temp(nc, var, var_goship_ref_scale, argovis_ref_scale):
+
+    # Check sea_water_temperature to have goship_reference_scale be ITS-90
+
+    if var_goship_ref_scale == 'IPTS-68' and argovis_ref_scale == 'ITS-90':
+
+        # Convert to ITS-90 scal
+        temperature = nc[var].data
+
+        converted_temperature = temperature/1.00024
+
+        # Set nc var of temp to this value
+        try:
+            c_format = nc[var].attrs['C_format']
+            f_format = c_format.lstrip('%')
+            new_temperature = [float(f"{item:{f_format}}")
+                               for item in converted_temperature]
+
+        except:
+            # Use num decimal places of var
+            num_decimal_places = abs(
+                Decimal(str(temperature)).as_tuple().exponent)
+
+            new_temperature = round(converted_temperature, num_decimal_places)
+
+        # Set temperature value in nc because use it later to
+        # create profile dict
+        nc[var].data = new_temperature
+        nc[var].attrs['reference_scale'] = 'ITS-90'
+
+    return nc
+
+
+def convert_goship_to_argovis_ref_scale(nc):
+
+    params = nc.keys()
+
+    # If argo ref scale not equal to goship ref scale, convert
+
+    # So far, it's only the case for temperature
+
+    # loop through variables and look at reference scale,
+    # if it is IPTS-68 then convert
+
+    argovis_ref_scale_per_type = gvm.get_argovis_reference_scale_per_type()
+
+    for var in params:
+        if 'temperature' in var:
+
+            try:
+                # Get goship reference scale of var
+                var_goship_ref_scale = nc[var].attrs['reference_scale']
+
+                argovis_ref_scale = argovis_ref_scale_per_type['temperature']
+                is_same_scale = var_goship_ref_scale == argovis_ref_scale
+
+                if not is_same_scale:
+                    nc = convert_sea_water_temp(
+                        nc, var, var_goship_ref_scale, argovis_ref_scale)
+            except:
+                pass
+
+    return nc
+
+
 def apply_equations_and_ref_scale(nc):
 
     # Rename converted temperature later.
@@ -210,9 +583,9 @@ def apply_equations_and_ref_scale(nc):
     # and ref scale show what scale it was converted to
 
     # Converting to argovis ref scale if needed
-    nc = pmc.convert_goship_to_argovis_ref_scale(nc)
+    nc = convert_goship_to_argovis_ref_scale(nc)
 
     # Apply equations to convert units
-    nc = pmc.convert_goship_to_argovis_units(nc)
+    nc = convert_goship_to_argovis_units(nc)
 
     return nc

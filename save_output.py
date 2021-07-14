@@ -60,8 +60,14 @@ def prepare_profile_json(profile_dict):
     # If want to remove goshipNames list, do it here
     # profile_dict.pop('goshipNames', None)
 
+    # Remove station cast var used to group data
     profile_dict.pop('stationCast', None)
+    profile_dict.pop('station_cast', None)
+
     profile_dict.pop('type', None)
+
+    # Remove station_cast var used to group data
+    #profile_dict['meta'].pop('station_cast', None)
 
     # Remove  time from meta since it was just used to create date variable
     profile_dict['meta'].pop('time', None)
@@ -75,7 +81,7 @@ def prepare_profile_json(profile_dict):
     return data_dict
 
 
-def write_profile_json(cruise_expocode, json_dir, profile_dict):
+def write_profile_json(json_dir, profile_dict):
 
     data_dict = prepare_profile_json(profile_dict)
 
@@ -118,45 +124,44 @@ def write_profile_json(cruise_expocode, json_dir, profile_dict):
         json.dump(data_dict, f, indent=4, sort_keys=False, default=convert)
 
 
-def save_profile_one_type(ctd_var_check, logging_dir, json_directory):
+def save_profile_one_type(ctd_var_check, json_directory):
 
     has_all_ctd_vars = ctd_var_check['has_all_ctd_vars']
     type = ctd_var_check['type']
-    station_cast = ctd_var_check['station_cast']
+    #station_cast = ctd_var_check['station_cast']
+
     profile = ctd_var_check['profile_checked']
     profile_dict = profile['profile_dict']
     expocode = profile_dict['meta']['expocode']
 
     if has_all_ctd_vars[type]:
-        write_profile_json(
-            expocode, json_directory, profile_dict)
+        write_profile_json(json_directory, profile_dict)
 
 
-def save_all_profiles_one_type(checked_ctd_variables, logging_dir, json_directory):
+def save_all_profiles_one_type(checked_ctd_variables, json_directory):
 
     for checked_vars in checked_ctd_variables:
-        save_profile_one_type(checked_vars, logging_dir, json_directory)
+        save_profile_one_type(checked_vars, json_directory)
 
 
-def save_one_btl_ctd_profile(ctd_var_check, logging_dir, json_directory):
+def save_one_btl_ctd_profile(ctd_var_check,  json_directory):
 
     has_all_ctd_vars = ctd_var_check['has_all_ctd_vars']
-    has_ctd_vars_no_qc = ctd_var_check['has_ctd_vars_no_qc']
-    has_ctd_vars_unk_ref_scale = ctd_var_check['has_ctd_temp_unk']
-    type = ctd_var_check['type']
+    # has_ctd_vars_no_qc = ctd_var_check['has_ctd_vars_no_qc']
+    # has_ctd_vars_unk_ref_scale = ctd_var_check['has_ctd_temp_unk']
+    # type = ctd_var_check['type']
 
     profile = ctd_var_check['profile_checked']
 
     profile_dict = profile['profile_dict']
-    station_cast = profile['station_cast']
-    expocode = profile_dict['meta']['expocode']
+    #station_cast = profile['station_cast']
+    #expocode = profile_dict['meta']['expocode']
 
     if has_all_ctd_vars['btl'] or has_all_ctd_vars['ctd']:
-        write_profile_json(
-            expocode, json_directory, profile_dict)
+        write_profile_json(json_directory, profile_dict)
 
 
-def save_all_btl_ctd_profiles(checked_ctd_variables, logging_dir, json_directory):
+def save_all_btl_ctd_profiles(checked_ctd_variables, json_directory):
 
     for checked_vars in checked_ctd_variables:
-        save_one_btl_ctd_profile(checked_vars, logging_dir, json_directory)
+        save_one_btl_ctd_profile(checked_vars, json_directory)

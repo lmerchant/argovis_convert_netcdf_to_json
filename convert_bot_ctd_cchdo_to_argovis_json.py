@@ -16,7 +16,7 @@ import ctypes
 
 
 import check_if_has_ctd_vars as ckvar
-import filter_profiles as fp
+import filter_measurements as fm
 import get_cruise_information as gi
 import get_profile_mapping_and_conversions as pm
 import create_profiles_one_type as op
@@ -103,7 +103,7 @@ def read_file_test(data_obj):
 
 def read_file(data_obj):
 
-    flag = ''
+    err_flag = ''
 
     data_path = data_obj['data_path']
 
@@ -125,33 +125,30 @@ def read_file(data_obj):
     except Exception as e:
         logging.warning(f"Error reading in file {data_url}")
         logging.warning(f"Error {e}")
-        flag = 'error'
-        return data_obj, flag
+        err_flag = 'error'
+        return data_obj, err_flag
 
     #nc = nc.to_dask_dataframe()
 
     data_obj['nc'] = nc
 
     # TODO skip this
-    meta_names, param_names = pm.get_meta_param_names(nc)
+    # meta_names, param_names = pm.get_meta_param_names(nc)
 
-    # ds_nc = nc.to_dask_dataframe()
+    # # ds_nc = nc.to_dask_dataframe()
 
-    # data_obj['ds_nc'] = ds_nc
+    # # data_obj['ds_nc'] = ds_nc
 
-    # file_expocode = ds_nc['expocode'].compute()[0]
+    # # file_expocode = ds_nc['expocode'].compute()[0]
 
-    data_obj['meta'] = meta_names
-    data_obj['param'] = param_names
+    # data_obj['meta'] = meta_names
+    # data_obj['param'] = param_names
 
-    # TODO
-    # need to add compute to this
-    # Do I use data or just straight compute?
-    file_expocode = nc.coords['expocode'].data.compute()[0]
+    file_expocode = nc.coords['expocode'].data[0]
 
     data_obj['file_expocode'] = file_expocode
 
-    return data_obj, flag
+    return data_obj, err_flag
 
 
 def setup_test_obj(dir, filename, type):
@@ -416,7 +413,7 @@ def main(start_year, end_year, append):
                 sv.write_profile_goship_units(
                     checked_ctd_variables, logging_dir)
                 sv.save_all_btl_ctd_profiles(checked_ctd_variables,
-                                             logging_dir, json_directory)
+                                             json_directory)
 
             else:
                 logging.info(
@@ -428,7 +425,7 @@ def main(start_year, end_year, append):
 
         elif btl_found:
             # filter measurements for qc=0, qc=2
-            profiles_btl = fp.filter_measurements(profiles_btl, 'btl')
+            profiles_btl = fm.filter_measurements(profiles_btl, 'btl')
 
             checked_ctd_variables, ctd_vars_flag = ckvar.check_of_ctd_variables(
                 profiles_btl, logging_dir)
@@ -440,7 +437,7 @@ def main(start_year, end_year, append):
                 sv.write_profile_goship_units(
                     checked_ctd_variables, logging_dir)
                 sv.save_all_profiles_one_type(
-                    checked_ctd_variables, logging_dir, json_directory)
+                    checked_ctd_variables, json_directory)
 
             else:
                 logging.info(
@@ -452,7 +449,7 @@ def main(start_year, end_year, append):
 
         elif ctd_found:
             # filter measurements for qc=0, qc=2
-            profiles_ctd = fp.filter_measurements(profiles_ctd, 'ctd')
+            profiles_ctd = fm.filter_measurements(profiles_ctd, 'ctd')
 
             checked_ctd_variables, ctd_vars_flag = ckvar.check_of_ctd_variables(
                 profiles_ctd, logging_dir)
@@ -465,7 +462,7 @@ def main(start_year, end_year, append):
                     checked_ctd_variables, logging_dir)
 
                 sv.save_all_profiles_one_type(
-                    checked_ctd_variables, logging_dir, json_directory)
+                    checked_ctd_variables, json_directory)
 
             else:
                 logging.info(
