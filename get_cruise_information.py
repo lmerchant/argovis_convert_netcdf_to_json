@@ -147,8 +147,8 @@ def get_information_one_cruise_test(session):
     # And has case where no temp in measurements (all NaN because no qc=0 or 2)
     # Case is where using diff scale of ctd temp, so one is null while 68 is not
     # Look at station: 021 and cast: 001
-    expocode = '49K6KY9606_1'
-    file_id = 17365
+    # expocode = '49K6KY9606_1'
+    # file_id = 17365
 
     # # # ctd file
     # expocode = '325020210420'
@@ -159,8 +159,18 @@ def get_information_one_cruise_test(session):
     # file_id = 17772
 
     # ctd file (very large)
-    # expocode = '90VE43_1'
-    # file_id = 17879
+    # has ctd temp 68 and ctd temp unk
+    # also has both oxygen units
+    expocode = '90VE43_1'
+    file_id = 17879
+
+    # btl file
+    # expocode = '33KI20180723'
+    # file_id = 19095
+
+    # error  for ctd temp unk
+    # expocode = '33RO20070710'
+    # file_id = 17772
 
     query = f"{API_END_POINT}/file/{file_id}"
     response = session.get(query)
@@ -237,7 +247,7 @@ def get_information_one_cruise_test(session):
         ctd_obj['file_hash'] = file_info['ctd_hash']
         ctd_obj['cruise_expocode'] = expocode
         ctd_obj['cruise_id'] = ''
-        ctd_obj['woce_lines'] = ''
+        ctd_obj['woce_lines'] = ','.join(['A22'])
 
         cruise_info['ctd'] = ctd_obj
 
@@ -291,6 +301,7 @@ def get_information_one_cruise(cruise, all_file_ids, file_id_hash_mapping, start
     expocode = cruise['expocode']
     cruise_id = cruise['id']
     woce_lines = cruise['collections']['woce_lines']
+    woce_lines = ','.join(woce_lines)
 
     # TESTING
     # Find cruise 32MW9508 to check for ctd_temperature_68 case

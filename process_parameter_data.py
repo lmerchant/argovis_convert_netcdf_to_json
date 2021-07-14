@@ -35,6 +35,7 @@ def apply_c_format_to_num(name, num, dtype_mapping, c_format_mapping):
 
     float_types = ['float64', 'float32']
 
+    # Could have number be NaN so use try except
     try:
 
         dtype = dtype_mapping[name]
@@ -75,7 +76,37 @@ def create_bgc_profile(df_param, param_mapping_argovis_btl, param_mapping_argovi
 
         val_df = val_df.sort_values(by=['pres'])
 
+        # TODO
+        # Can I run apply_c_format_to_num in df and have
+        # it saved as float of limited decimal places?
+
+        # TODO
+        # Can I run apply_c_format_to_num in df and have
+        # it saved as float of limited decimal places?
+        # dtype_mapping = param_mapping['dtype']
+        # c_format_mapping = param_mapping['c_format']
+        # float_types = ['float64', 'float32']
+
+        # float_cols = [name for name,
+        #               dtype in dtype_mapping.items() if dtype in float_types]
+
+        # c_format_cols = [
+        #     name for name in c_format_mapping.keys() if name in float_cols]
+
+        # def apply_c_format(num, c_format):
+        #     if pd.notnull(num):
+        #         f_format = c_format.lstrip('%')
+        #         return float(f"{num:{f_format}}")
+        #     else:
+        #         return num
+
+        # for col in c_format_cols:
+        #     c_format = c_format_mapping[col]
+        #     val_df[col] = np.vectorize(apply_c_format)(val_df[col], c_format)
+
         bgc_dict_list = val_df.to_dict('records')
+
+        # start_time = datetime.now()
 
         formatted_list = []
         dtype_mapping = param_mapping['dtype']
@@ -86,12 +117,15 @@ def create_bgc_profile(df_param, param_mapping_argovis_btl, param_mapping_argovi
 
             formatted_list.append(new_obj)
 
+        # logging.info("Time to run c_format on obj")
+        # logging.info(datetime.now() - start_time)
+
         bgc_obj = {}
         bgc_obj['station_cast'] = station_cast
         bgc_obj['list'] = formatted_list
+        # bgc_obj['list'] = bgc_dict_list
         all_bgc.append(bgc_obj)
 
-    logging.info('start create all_bgc_profiles')
     all_bgc_profiles = []
     for obj in all_bgc:
 
@@ -127,10 +161,15 @@ def create_measurements_profile(df_param, param_mapping_argovis_btl, param_mappi
         val_df = val_df.reset_index()
         station_cast = val_df['station_cast'].values[0]
 
-        # Drop any columns except temp, psal, and pres
+        # Drop any columns except core meas cols
         # TODO probably easier just to select columns than drop them
+        # When filter later, will see if use psal or salinity if it exists
 
-        val_df = val_df[['pres', 'psal', 'temp']]
+        columns = val_df.columns
+        core_cols = ['pres', 'psal', 'temp', 'salinity']
+        cols = [col for col in columns if col in core_cols]
+
+        val_df = val_df[cols]
 
         # Change NaN to None so in json, converted to null
         val_df = val_df.where(pd.notnull(val_df), None)
@@ -143,6 +182,10 @@ def create_measurements_profile(df_param, param_mapping_argovis_btl, param_mappi
 
         # if 'qc_salinity' in val_df.columns:
         #     val_df = val_df.drop(['qc_salinity'], axis=1)
+
+        # TODO
+        # Can I run apply_c_format_to_num in df and have
+        # it saved as float of limited decimal places?
 
         meas_dict = val_df.to_dict('records')
 
@@ -169,7 +212,6 @@ def create_measurements_profile(df_param, param_mapping_argovis_btl, param_mappi
 
         all_meas.append(meas_obj)
 
-    logging.info('start create all_meas_profiles')
     all_meas_profiles = []
     all_meas_source_profiles = []
     for obj in all_meas:
@@ -196,8 +238,11 @@ def create_measurements_profile(df_param, param_mapping_argovis_btl, param_mappi
 
 def get_measurements_source(df_meas, type):
 
-    temp_qc_df = df_meas['qc_temp']
-    temp_qc = pd.unique(temp_qc_df)[0]
+    if 'qc_temp' in df_meas.columns:
+        temp_qc_df = df_meas['qc_temp']
+        temp_qc = pd.unique(temp_qc_df)[0]
+    else:
+        temp_qc = None
 
     # psal_qc_df = df_meas['qc_psal']
     # psal_qc = pd.unique(psal_qc_df)[0]
@@ -253,7 +298,7 @@ def get_measurements_source(df_meas, type):
     # ctd_temp_cols = ['ctd_temperature', 'ctd_temperature_68']
     # is_ctd_temp_col = any(
     #     [True if col in df_meas.columns else False for col in ctd_temp_cols])
-    #is_ctd_temp_col = 'temp' in df_meas.columns
+    # is_ctd_temp_col = 'temp' in df_meas.columns
     # Don't want to match variables with temp in name
     is_ctd_temp = next(
         (True for col in df_meas.columns if col == 'temp'), False)
@@ -322,24 +367,36 @@ def create_measurements_df_all(df,  type):
 
     df_meas = df[core_cols].copy()
 
-    def check_qc(row):
-        if pd.notnull(row[1]) and int(row[1]) == 0:
-            return row[0]
-        elif pd.notnull(row[1]) and int(row[1]) == 2:
-            return row[0]
-        else:
-            return np.nan
+    # def check_qc(row):
+    #     if pd.notnull(row[1]) and int(row[1]) == 0:
+    #         return row[0]
+    #     elif pd.notnull(row[1]) and int(row[1]) == 2:
+    #         return row[0]
+    #     else:
+    #         return np.nan
 
-    # If qc != 2, set corresponding non_qc value to np.nan
+    # If qc != 0 or 2, set corresponding non_qc value to np.nan
     for col in core_non_qc:
 
-        qc_key = f"{col}_qc"
+        qc_col = f"{col}_qc"
 
         try:
-            df_meas[col] = df_meas[[col, qc_key]].apply(
-                check_qc, axis=1)
-        except:
+            df_meas.loc[(df_meas[qc_col] != 0) &
+                        (df_meas[qc_col] != 2), col] = np.nan
+        except KeyError:
             pass
+
+        # try:
+        #     df[col] = np.where((df[qc_col] != 0) & (
+        #         df[qc_col] != 2), df[col], np.nan)
+        # except KeyError:
+        #     pass
+
+        # try:
+        #     df_meas[col] = df_meas[[col, qc_col]].apply(
+        #         check_qc, axis=1)
+        # except:
+        #     pass
 
     # Check if qc = 0 or 2 for measurements source or None
     # Add qc column back in because need to know qc for
@@ -350,16 +407,19 @@ def create_measurements_df_all(df,  type):
     salinity_qc = None
 
     # Assume temp_qc is one value
-    temperature_df = df_meas[[f"temp_{type}", f"temp_{type}_qc"]]
-    temp_subset = temperature_df[temperature_df[f"temp_{type}"].notnull()]
-    temp_qc = pd.unique(temp_subset[f"temp_{type}_qc"])
 
-    if len(temp_qc):
-        temp_qc = int(temp_qc[0])
-    else:
-        temp_qc = None
+    # may not have ctd temp with ref scale
+    if f"temp_{type}" in core_cols and f"temp_{type}_qc" in core_cols:
+        temperature_df = df_meas[[f"temp_{type}", f"temp_{type}_qc"]]
+        temp_subset = temperature_df[temperature_df[f"temp_{type}"].notnull()]
+        temp_qc = pd.unique(temp_subset[f"temp_{type}_qc"])
 
-    df_meas['qc_temp'] = temp_qc
+        if len(temp_qc):
+            temp_qc = int(temp_qc[0])
+        else:
+            temp_qc = None
+
+        df_meas['qc_temp'] = temp_qc
 
     # Assume psal_qc has one value
     if f"psal_{type}" in core_cols and f"psal_{type}_qc" in core_cols:
@@ -398,6 +458,8 @@ def create_measurements_df_all(df,  type):
 
     df_meas = df_meas.sort_values(by=['pres'])
 
+    # if all none, return empty datafeame
+
     # Remove type ('btl', 'ctd') from  variable names
     column_mapping = {}
     column_mapping[f"psal_{type}"] = 'psal'
@@ -432,20 +494,35 @@ def find_temp_qc_val(df, type):
     return qc
 
 
-def check_if_temp_qc(nc, type):
+def add_qc_if_no_temp_qc(nc):
 
-    # Now check so see if there is a 'temp_{type}'  column and a corresponding
-    # qc col. 'temp_{type}_qc'. If not, add a 'temp' qc col. with values 0
+    # Now check so see if there is a ctd temperature  column and a corresponding
+    # qc column. If not, add a ctd temperature qc column with values 0
 
-    has_ctd_temp = f"temp_{type}" in nc.keys()
-    has_ctd_temp_qc = f"temp_{type}_qc" in nc.keys()
+    is_ctd_temperature = any(
+        [True if key == 'ctd_temperature' else False for key in nc.keys()])
 
-    if has_ctd_temp and not has_ctd_temp_qc:
-        temp_shape = np.shape(nc[f"temp_{type}"])
+    is_ctd_temperature_68 = any(
+        [True if key == 'ctd_temperature_68' else False for key in nc.keys()])
+
+    if is_ctd_temperature and is_ctd_temperature_68:
+        temperature_var = 'ctd_temperature'
+    elif is_ctd_temperature and not is_ctd_temperature_68:
+        temperature_var = 'ctd_temperature'
+    elif not is_ctd_temperature and is_ctd_temperature_68:
+        temperature_var = 'ctd_temperature_68'
+    else:
+        temperature_var = ''
+
+    qc_name = f"{temperature_var}_qc"
+
+    has_ctd_temp_qc = qc_name in nc.keys()
+
+    if temperature_var and not has_ctd_temp_qc and qc_name != '_qc':
+        temp_shape = np.shape(nc[temperature_var])
         shape = np.transpose(temp_shape)
         temp_qc = np.zeros(shape)
-
-        nc[f"temp_{type}_qc"] = (['N_PROF', 'N_LEVELS'], temp_qc)
+        nc[qc_name] = (['N_PROF', 'N_LEVELS'], temp_qc)
 
     return nc
 

@@ -1,8 +1,9 @@
 # Create profiles for one type
 
-#from pandas.core.arrays import boolean
+# from pandas.core.arrays import boolean
 import pandas as pd
-#from decimal import Decimal
+import numpy as np
+# from decimal import Decimal
 import logging
 import re
 # import dask
@@ -64,6 +65,11 @@ def combine_profiles(meta_profiles, bgc_profiles, meas_profiles, meas_source_pro
 
 def remove_empty_rows(df):
 
+    #  TODO
+    # Can I make a map of where NaT, '' are
+    # Replace with NaN, and remove null rows
+    # Finally use map to replace NaT and '' values
+
     # Count # of non empty elems in each row and save to new column
     def count_elems(row):
 
@@ -95,6 +101,26 @@ def remove_empty_rows(df):
     df_end = df_end[orig_cols]
 
     return df_end
+
+
+def remove_empty_rows_ver2(df):
+
+    df_copy = df.copy()
+
+    # Replace 'NaT' and '' with  NaN but first
+    # make a copy of df so after remove null rows,
+    # can substitute back in any 'NaT' or '' values
+
+    df = df.replace(r'^\s*$', np.NaN, regex=True)
+
+    df = df.replace(r'^NaT$', np.NaN, regex=True)
+
+    exclude_columns = ['N_PROF', 'station_cast', 'index']
+    df = df.dropna(subset=df.columns.difference(exclude_columns), how='all')
+
+    df.update(df_copy)
+
+    return df
 
 
 def arrange_coords_vars_nc(nc):
@@ -152,6 +178,7 @@ def create_profiles_one_type(data_obj):
     file_info['cruise_expocode'] = data_obj['cruise_expocode']
     file_info['cruise_id'] = data_obj['cruise_id']
     file_info['woce_lines'] = data_obj['woce_lines']
+    file_info['file_hash'] = data_obj['file_hash']
 
     # ****** Modify nc and create mappings ********
 
@@ -162,19 +189,25 @@ def create_profiles_one_type(data_obj):
     # data stored in variables section
     nc = arrange_coords_vars_nc(nc)
 
+    # Get goship_names before add extra_coords
+    meta_goship_names = [coord for coord in nc.coords]
+
     # Add extra coordinates for ArgoVis metadata
     nc = proc_meta.add_extra_coords(nc, file_info)
 
-    logging.info('start apply_equations_and_ref_scale')
     # TODO
     # Get formula for Oxygen unit conversion
     # Apply equations before rename
     nc = proc_param.apply_equations_and_ref_scale(nc)
 
+    # Now check so see if there is a 'temp_{type}'  column and a corresponding
+    # qc col. 'temp_{type}_qc'. If not, add a 'temp' qc col. with values 0
+    nc = proc_param.add_qc_if_no_temp_qc(nc)
+
     # Create mapping object of goship names to nc attributes
     # mapping obj: names (list), units (obj), ref_scale (obj)
     # c_format (obj), dtype (obj)
-    meta_mapping = gvm.get_goship_mappings_meta(nc)
+    meta_mapping = gvm.get_goship_mappings_meta(nc, meta_goship_names)
     param_mapping = gvm.get_goship_mappings_param(nc)
 
     # TODO
@@ -209,10 +242,6 @@ def create_profiles_one_type(data_obj):
         list(nc.keys()), type)
     nc = nc.rename_vars(goship_argovis_col_mapping)
 
-    # Now check so see if there is a 'temp_{type}'  column and a corresponding
-    # qc col. 'temp_{type}_qc'. If not, add a 'temp' qc col. with values 0
-    nc = proc_param.check_if_temp_qc(nc, type)
-
     # ****** Convert to Dask dataframe ********
 
     # Removing rows in xarray is too slow with groupby
@@ -229,30 +258,48 @@ def create_profiles_one_type(data_obj):
     meta_keys.extend(['N_PROF', 'N_LEVELS'])
     param_keys.extend(['N_PROF', 'N_LEVELS', 'station_cast'])
 
-    df_meta = ddf[meta_keys].copy()
-    df_param = ddf[param_keys].copy()
+    ddf_meta = ddf[meta_keys].copy()
+    ddf_param = ddf[param_keys].copy()
 
     # -----
 
-    df_param = df_param.reset_index()
-    df_param = df_param.drop('N_LEVELS', axis=1)
+    ddf_param = ddf_param.reset_index()
+    ddf_param = ddf_param.drop('N_LEVELS', axis=1)
 
-    logging.info('start apply removing empty rows')
+    logging.info('Remove empty rows')
 
-    meta_dask = df_param.dtypes.to_dict()
-    df_param = df_param.groupby("N_PROF").apply(
-        remove_empty_rows, meta=meta_dask)
+    meta_dask = ddf_param.dtypes.to_dict()
+    # ddf_param = ddf_param.groupby("N_PROF").apply(
+    #     remove_empty_rows, meta=meta_dask)
 
-    df_param = df_param.set_index('station_cast')
+    ddf_param = ddf_param.groupby("N_PROF").apply(
+        remove_empty_rows_ver2, meta=meta_dask)
 
-    df_param = df_param.compute()
+    # data = [[2, 1, 'NaT', '', 4], [3, 2, 'NaT', '', np.NaN], [
+    #     4, 3, 'time1', '', 5], [5, 4, 'NaT', '', np.NaN], [6, 5, 'NaT', '', np.NaN]]
+
+    # df_test = pd.DataFrame(
+    #     data, columns=['N_PROF', 'index', 'time', 'empty', 'value'])
+
+    # df_test['station_cast'] = 'sta_cast'
+
+    # print('before')
+    # print(df_test)
+
+    # df_test = df_test.groupby("N_PROF").apply(remove_empty_rows_ver2)
+
+    # print(df_test)
+
+    ddf_param = ddf_param.set_index('station_cast')
+
+    df_param = ddf_param.compute()
 
     # Sort columns so qc next to its var
     df_param = df_param.reindex(sorted(df_param.columns), axis=1)
 
     logging.info('create all_meta profile')
     all_meta_profiles = proc_meta.create_meta_profile(
-        df_meta, meta_mapping_argovis)
+        ddf_meta, meta_mapping_argovis)
 
     logging.info('create all_bgc profile')
     all_bgc_profiles = proc_param.create_bgc_profile(df_param, param_mapping_argovis_btl,

@@ -282,20 +282,27 @@ def create_meta_col_name_mapping(cols):
 
 def create_param_col_name_mapping_w_type(cols, type):
 
-    # names without '_qc'
+    # names including '_qc'
     core_values_mapping = get_goship_argovis_core_values_mapping(type)
-
-    core_values = [core for core in core_values_mapping.keys() if core in cols]
 
     # check if both ctd_temperature  and ctd_temperature_68 are
     # in the file, if it is, only rename ctd_temperature as core.
+    # If not, rename ctd_temperature_68
     # Same for oxygen, check for ctd_oxygen and ctd_oxygen_ml_l
 
     has_both_temp = 'ctd_temperature' in cols and 'ctd_temperature_68' in cols
     has_both_oxygen = 'ctd_oxygen' in cols and 'ctd_oxygen_ml_l' in cols
 
-    primary_core = ['ctd_temperature', 'ctd_oxygen']
-    secondary_core = ['ctd_temperature_68', 'ctd_oxygen_ml_l']
+    primary_temp = ['ctd_temperature']
+    primary_oxygen = ['ctd_oxygen']
+
+    if has_both_temp:
+        core_values_mapping.pop('ctd_temperature_68', None)
+
+    if has_both_oxygen:
+        core_values_mapping.pop('ctd_oxygen_ml_l', None)
+
+    core_values = [core for core in core_values_mapping.keys() if core in cols]
 
     col_mapping = {}
 
@@ -304,23 +311,23 @@ def create_param_col_name_mapping_w_type(cols, type):
         if name.endswith('_qc'):
             non_qc_name = name.replace('_qc', '')
 
-            if has_both_temp and non_qc_name in primary_core:
+            if has_both_temp and non_qc_name in primary_temp:
                 new_name = f"{core_values_mapping[non_qc_name]}_qc"
 
-            elif has_both_oxygen and non_qc_name in primary_core:
+            elif has_both_oxygen and non_qc_name in primary_oxygen:
                 new_name = f"{core_values_mapping[non_qc_name]}_qc"
 
-            elif non_qc_name in core_values and non_qc_name not in secondary_core:
+            elif non_qc_name in core_values:
                 new_name = f"{core_values_mapping[non_qc_name]}_qc"
             else:
                 new_name = f"{non_qc_name}_{type}_qc"
 
-        elif has_both_temp and name in primary_core:
+        elif has_both_temp and name in primary_temp:
             new_name = core_values_mapping[name]
-        elif has_both_oxygen and name in primary_core:
+        elif has_both_oxygen and name in primary_oxygen:
             new_name = core_values_mapping[name]
 
-        elif name in core_values and name not in secondary_core:
+        elif name in core_values:
             new_name = core_values_mapping[name]
         else:
             new_name = f"{name}_{type}"
@@ -340,45 +347,69 @@ def get_goship_mappings_param(nc):
     param_dtype = {}
 
     # Param: Save units, ref_scale, and c_format, dtype
+
     for var in nc.keys():
         try:
             param_units[var] = nc[var].attrs['units']
-        except:
-            param_units[var] = None
+        except KeyError:
+            pass
 
         try:
             param_ref_scale[var] = nc[var].attrs['reference_scale']
-        except:
-            param_ref_scale[var] = None
+        except KeyError:
+            pass
 
         try:
             param_c_format[var] = nc[var].attrs['C_format']
-        except:
-            param_c_format[var] = None
+        except KeyError:
+            pass
 
         try:
             param_dtype[var] = nc[var].dtype
         except KeyError:
-            param_dtype[var] = None
-
-    # Using station_cast for program use to keep track of each
-    # station_cast group
-    # Using dtype for program use when apply c_format to floats
+            pass
 
     param_mapping['names'] = list(nc.keys())
-    param_mapping['units'] = {key: val for key,
-                              val in param_units.items() if val}
-    param_mapping['ref_scale'] = {
-        key: val for key, val in param_ref_scale.items() if val}
-    param_mapping['c_format'] = {key: val for key,
-                                 val in param_c_format.items() if val}
-    param_mapping['dtype'] = {key: val for key,
-                              val in param_dtype.items() if val}
+    param_mapping['units'] = param_units
+    param_mapping['ref_scale'] = param_ref_scale
+    param_mapping['c_format'] = param_c_format
+    param_mapping['dtype'] = param_dtype
 
     return param_mapping
 
+    # for var in nc.keys():
+    #     try:
+    #         param_units[var] = nc[var].attrs['units']
+    #     except:
+    #         param_units[var] = None
 
-def get_goship_mappings_meta(nc):
+    #     try:
+    #         param_ref_scale[var] = nc[var].attrs['reference_scale']
+    #     except:
+    #         param_ref_scale[var] = None
+
+    #     try:
+    #         param_c_format[var] = nc[var].attrs['C_format']
+    #     except:
+    #         param_c_format[var] = None
+
+    #     try:
+    #         param_dtype[var] = nc[var].dtype
+    #     except KeyError:
+    #         param_dtype[var] = None
+
+    # param_mapping['names'] = list(nc.keys())
+    # param_mapping['units'] = {key: val for key,
+    #                           val in param_units.items() if val}
+    # param_mapping['ref_scale'] = {
+    #     key: val for key, val in param_ref_scale.items() if val}
+    # param_mapping['c_format'] = {key: val for key,
+    #                              val in param_c_format.items() if val}
+    # param_mapping['dtype'] = {key: val for key,
+    #                           val in param_dtype.items() if val}
+
+
+def get_goship_mappings_meta(nc, meta_goship_names):
 
     meta_mapping = {}
 
@@ -391,39 +422,63 @@ def get_goship_mappings_meta(nc):
     for var in nc.coords:
         try:
             meta_units[var] = nc[var].attrs['units']
-        except:
-            meta_units[var] = None
+        except KeyError:
+            pass
 
         try:
             meta_ref_scale[var] = nc[var].attrs['reference_scale']
-        except:
-            meta_ref_scale[var] = None
+        except KeyError:
+            pass
 
         try:
             meta_c_format[var] = nc[var].attrs['C_format']
-        except:
-            meta_c_format[var] = None
+        except KeyError:
+            pass
 
         try:
             meta_dtype[var] = nc[var].dtype
         except KeyError:
-            meta_dtype[var] = None
+            pass
 
-    # Using station_cast for program use to keep track of each
-    # station_cast group
-    # Using dtype for program use when apply c_format to floats
-    meta_mapping['names'] = [
-        coord for coord in nc.coords if coord != 'station_cast']
-    meta_mapping['units'] = {key: val for key,
-                             val in meta_units.items() if val}
-    meta_mapping['ref_scale'] = {key: val for key,
-                                 val in meta_ref_scale.items() if val}
-    meta_mapping['c_format'] = {key: val for key,
-                                val in meta_c_format.items() if val and val != 'station_cast'}
-    meta_mapping['dtype'] = {key: val for key,
-                             val in meta_dtype.items() if val}
+    meta_mapping['names'] = meta_goship_names
+    meta_mapping['units'] = meta_units
+    meta_mapping['ref_scale'] = meta_ref_scale
+    meta_mapping['c_format'] = meta_c_format
+    meta_mapping['dtype'] = meta_dtype
 
     return meta_mapping
+
+    # for var in nc.coords:
+    #     try:
+    #         meta_units[var] = nc[var].attrs['units']
+    #     except:
+    #         meta_units[var] = None
+
+    #     try:
+    #         meta_ref_scale[var] = nc[var].attrs['reference_scale']
+    #     except:
+    #         meta_ref_scale[var] = None
+
+    #     try:
+    #         meta_c_format[var] = nc[var].attrs['C_format']
+    #     except:
+    #         meta_c_format[var] = None
+
+    #     try:
+    #         meta_dtype[var] = nc[var].dtype
+    #     except KeyError:
+    #         meta_dtype[var] = None
+
+    # meta_mapping['units'] = {key: val for key,
+    #                          val in meta_units.items() if val}
+    # meta_mapping['ref_scale'] = {key: val for key,
+    #                              val in meta_ref_scale.items() if val}
+    # # meta_mapping['c_format'] = {key: val for key,
+    # #                             val in meta_c_format.items() if val and val != 'station_cast'}
+    # meta_mapping['c_format'] = {key: val for key,
+    #                             val in meta_c_format.items() if val}
+    # meta_mapping['dtype'] = {key: val for key,
+    #                          val in meta_dtype.items() if val}
 
 
 def create_goship_argovis_mapping(goship_names, type):

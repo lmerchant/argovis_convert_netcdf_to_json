@@ -109,16 +109,8 @@ def read_file(data_obj):
 
     data_url = f"https://cchdo.ucsd.edu{data_path}"
 
-    # http://xarray.pydata.org/en/stable/user-guide/dask.html
-    # ds = xr.open_dataset("example-data.nc", chunks={"time": 10})
     try:
-        # with fsspec.open(data_url) as fobj:
-        #     #nc = xr.open_dataset(fobj)
-        #     nc = xr.open_dataset(fobj, engine='h5netcdf',
-        #                          chunks={"N_PROF": 10})
-
         with fsspec.open(data_url) as fobj:
-            #nc = xr.open_dataset(fobj)
             nc = xr.open_dataset(fobj, engine='h5netcdf',
                                  chunks={"N_PROF": 20})
 
@@ -127,8 +119,6 @@ def read_file(data_obj):
         logging.warning(f"Error {e}")
         err_flag = 'error'
         return data_obj, err_flag
-
-    #nc = nc.to_dask_dataframe()
 
     data_obj['nc'] = nc
 
@@ -231,6 +221,7 @@ def setup_logging(append_logs):
         remove_file('found_cruises_with_coords_netcdf.txt', logging_dir)
         remove_file('diff_cruise_and_file_expocodes.txt', logging_dir)
         remove_file('cruises_not_converted.txt', logging_dir)
+        remove_file('cruises_w_ctd_temp_unk.txt', logging_dir)
 
     filename = 'output.log'
     logging_path = os.path.join(logging_dir, filename)
@@ -295,11 +286,11 @@ def main(start_year, end_year, append):
 
     else:
         # Loop through all cruises and grap NetCDF files
-        # all_cruises_info = gi.get_cruise_information(
-        #     session, logging_dir, start_datetime, end_datetime)
+        all_cruises_info = gi.get_cruise_information(
+            session, logging_dir, start_datetime, end_datetime)
 
-        cruise_info = gi.get_information_one_cruise_test(session)
-        all_cruises_info = [cruise_info]
+        # cruise_info = gi.get_information_one_cruise_test(session)
+        # all_cruises_info = [cruise_info]
 
         if not all_cruises_info:
             logging.info('No cruises within dates selected')
@@ -528,7 +519,7 @@ if __name__ == '__main__':
     #client = Client()
 
     # https://github.com/dask/dask-jobqueue/issues/391
-    # Set dashboard too none
+    # Set dashboard to none
 
     # For debugging, use single-threaded
     #client = Client(scheduler='single-threaded')
@@ -543,15 +534,8 @@ if __name__ == '__main__':
     #  --------------------
 
     # client = Client(n_workers=4, threads_per_worker=1)
-    # client = Client('127.0.0.1:8786')
+    # client = Client('127.0.0.1:8787')
     # client = Client(processes=False)
-
-    # Using 1 thread per worker hangs for me
-    # client = Client(n_workers=3, threads_per_worker=1)
-
-    # Try multiple threads per worker
-    # client = Client(n_workers=2, threads_per_worker=4)
-    #client = Client(n_workers=7, threads_per_worker=1)
 
     # client.run(trim_memory)
 
@@ -568,8 +552,6 @@ if __name__ == '__main__':
 
     # By default a single Worker runs many computations in parallel using as many threads as your compute node has cores. When using pure Python functions this may not be optimal and you may instead want to run several separate worker processes on each node, each using one thread. When configuring your cluster you may want to use the options to the dask-worker executable as follows:
     # dask-worker ip:port --nprocs 8 --nthreads 1
-
-    # client = Client()
 
     # https://www.javaer101.com/en/article/18616059.html
     # However, if you are spending most of your compute time manipulating Pure Python objects like strings or dictionaries then you may want to avoid GIL issues by having more processes with fewer threads each

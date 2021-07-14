@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 import logging
+from datetime import datetime
 
 
 def apply_c_format_to_num(name, num, dtype_mapping, c_format_mapping):
@@ -30,18 +31,18 @@ def apply_c_format_to_num(name, num, dtype_mapping, c_format_mapping):
         return num
 
 
-def create_meta_profile(df_meta, meta_mapping_argovis):
+def create_meta_profile(ddf_meta, meta_mapping_argovis):
 
     # With meta columns, pandas exploded them
     # for all levels. Only keep one Level
     # since they repeat
     logging.info('Get level = 0 meta rows')
 
-    df_meta = df_meta[df_meta['N_LEVELS'] == 0]
-    df_meta = df_meta.reset_index()
-    df_meta = df_meta.drop('index', axis=1)
-    df_meta = df_meta.drop('N_LEVELS', axis=1)
-    df_meta = df_meta.compute()
+    ddf_meta = ddf_meta[ddf_meta['N_LEVELS'] == 0]
+    ddf_meta = ddf_meta.reset_index()
+    ddf_meta = ddf_meta.drop('index', axis=1)
+    ddf_meta = ddf_meta.drop('N_LEVELS', axis=1)
+    df_meta = ddf_meta.compute()
 
     logging.info('create all_meta list')
     large_meta_dict = dict(tuple(df_meta.groupby('N_PROF')))
@@ -53,9 +54,9 @@ def create_meta_profile(df_meta, meta_mapping_argovis):
         val_df = val_df.reset_index()
         station_cast = val_df['station_cast'].values[0]
         val_df = val_df.drop(['station_cast', 'N_PROF', 'index'],  axis=1)
+
         meta_dict = val_df.to_dict('records')[0]
 
-        # Apply c_format for decimal places
         dtype_mapping = meta_mapping_argovis['dtype']
         c_format_mapping = meta_mapping_argovis['c_format']
 
@@ -81,6 +82,7 @@ def create_meta_profile(df_meta, meta_mapping_argovis):
         all_meta.append(meta_obj)
 
     logging.info('start create all_meta_profiles')
+
     all_meta_profiles = []
     for obj in all_meta:
 
@@ -128,6 +130,7 @@ def add_extra_coords(nc, file_info):
     expocode = file_info['cruise_expocode']
     cruise_id = file_info['cruise_id']
     woce_lines = file_info['woce_lines']
+    file_hash = file_info['file_hash']
 
     if '/' in expocode:
         expocode = expocode.replace('/', '_')
@@ -142,6 +145,10 @@ def add_extra_coords(nc, file_info):
     data_url = f"https://cchdo.ucsd.edu{data_path}"
 
     coord_length = nc.dims['N_PROF']
+
+    new_coord_list = [file_hash]*coord_length
+    new_coord_np = np.array(new_coord_list, dtype=object)
+    nc = nc.assign_coords(file_hash=('N_PROF', new_coord_np))
 
     new_coord_list = [cruise_id]*coord_length
     new_coord_np = np.array(new_coord_list, dtype=object)

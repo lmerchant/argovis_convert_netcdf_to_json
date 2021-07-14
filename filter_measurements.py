@@ -105,7 +105,6 @@ def filter_btl_ctd_combined_measurements(btl_measurements, ctd_measurements, use
 
     measurements_sources = {}
     #measurements_source['source'] = flag
-    measurements_source = flag
 
     measurements_sources['qc'] = 2
     measurements_sources['use_temp_ctd'] = use_temp_ctd
@@ -118,6 +117,7 @@ def filter_btl_ctd_combined_measurements(btl_measurements, ctd_measurements, use
     measurements_sources = convert_boolean(measurements_sources)
 
     measurements_source = flag
+
     return combined_measurements, measurements_source, measurements_sources
 
 

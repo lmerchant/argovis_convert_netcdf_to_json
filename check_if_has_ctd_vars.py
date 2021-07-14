@@ -134,11 +134,13 @@ def check_missing_variables(profile, variables_check, logging_dir):
 
         # Look for ctd_temperature_unk
         if has_ctd_temp_unk_ctd:
+            cruise_date = profile_dict['meta']['date_formatted']
             filename = 'cruises_w_ctd_temp_unk.txt'
             filepath = os.path.join(logging_dir, filename)
             with open(filepath, 'a') as f:
                 f.write('-----------\n')
                 f.write(f"expocode {expocode}\n")
+                f.write(f"cruise date {cruise_date}\n")
                 f.write(f"collection type {type} and indiv type CTD\n")
                 f.write(f"station cast {station_cast}\n")
 
