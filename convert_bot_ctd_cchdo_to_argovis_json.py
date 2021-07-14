@@ -16,7 +16,7 @@ import ctypes
 
 
 import check_if_has_ctd_vars as ckvar
-import filter_profiles as fp
+import filter_measurements as fm
 import get_cruise_information as gi
 import get_profile_mapping_and_conversions as pm
 import create_profiles_one_type as op
@@ -428,7 +428,7 @@ def main(start_year, end_year, append):
 
         elif btl_found:
             # filter measurements for qc=0, qc=2
-            profiles_btl = fp.filter_measurements(profiles_btl, 'btl')
+            profiles_btl = fm.filter_measurements(profiles_btl, 'btl')
 
             checked_ctd_variables, ctd_vars_flag = ckvar.check_of_ctd_variables(
                 profiles_btl, logging_dir)
@@ -452,7 +452,7 @@ def main(start_year, end_year, append):
 
         elif ctd_found:
             # filter measurements for qc=0, qc=2
-            profiles_ctd = fp.filter_measurements(profiles_ctd, 'ctd')
+            profiles_ctd = fm.filter_measurements(profiles_ctd, 'ctd')
 
             checked_ctd_variables, ctd_vars_flag = ckvar.check_of_ctd_variables(
                 profiles_ctd, logging_dir)

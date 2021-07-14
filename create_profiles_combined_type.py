@@ -1,16 +1,16 @@
 # Create profiles for combined type (btl_ctd)
 import logging
 
-import filter_profiles as fp
+import filter_measurements as fm
 import rename_objects as rn
 
 
 def combine_btl_ctd_measurements(btl_measurements, ctd_measurements):
 
-    use_elems, flag = fp.find_measurements_hierarchy_btl_ctd(
+    use_elems, flag = fm.find_measurements_hierarchy_btl_ctd(
         btl_measurements, ctd_measurements)
 
-    combined_btl_ctd_measurements, measurements_source, measurements_source_qc = fp.filter_btl_ctd_combined_measurements(
+    combined_btl_ctd_measurements, measurements_source, measurements_source_qc = fm.filter_btl_ctd_combined_measurements(
         btl_measurements, ctd_measurements, use_elems, flag)
 
     return combined_btl_ctd_measurements, measurements_source, measurements_source_qc

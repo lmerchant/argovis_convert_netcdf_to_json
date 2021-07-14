@@ -2,135 +2,94 @@
 
 import numpy as np
 import pandas as pd
-import xarray as xr
 import logging
 
 
-# def remove_empty_rows5(df):
+def apply_c_format_to_num(name, num, dtype_mapping, c_format_mapping):
 
-#     # TODO
-#     # use np.where to speed it up
+    # Now get str in C_format. e.g. "%9.1f"
+    # dtype = mapping['dtype'][name]
+    # c_format = mapping['c_format'][name]
 
-#     # n[89]: cond1 = df.Close > df.Close.shift(1)
-#     # # In[90]: cond2 = df.High < 12
-#     # # In[91]: df['New_Close'] = np.where(cond1, 'A', 'B')
+    float_types = ['float64', 'float32']
 
-#     # df.loc[df['B'].isin(['one','three'])]
+    try:
 
-#     # a = df.loc[df[cols].isin(['', np.nan, 'NaT'])]
+        dtype = dtype_mapping[name]
+        c_format = c_format_mapping[name]
 
-#     # df['test'] = pd.np.where(df[['col1', 'col2', 'col3']].eq('Y').any(1, skipna=True), 'Y',
-#     #                          pd.np.where(df[['col1', 'col2', 'col3']].isnull().all(1), None, 'N'))
+        if dtype in float_types and c_format:
+            f_format = c_format.lstrip('%')
+            return float(f"{num:{f_format}}")
 
-#     # a = pd.np.where(df[cols].isnull().all(1), None, False)
+        else:
+            return num
 
-#     # df['test'] = pd.np.where(df[cols].eq('').any(1), 'N', 'Y',
-#     #                          pd.np.where(df[cols].isnull().any(1), 'N', 'Y'),
-#     #                          pd.np.where(df[cols].eq('NaT').any(1), 'N', 'Y'))
-
-#     # df['empty'] = pd.np.where(df[cols].eq(
-#     #     '').any(1, skipna=True), 'Y', 'N')
-
-#     # df['empty'] = pd.np.where(df[cols].eq(
-#     #     'NaT').any(1, skipna=True), 'Y', df['empty'])
-
-#     # df['empty'] = pd.np.where(df[cols].isnull().any(
-#     #     1, skipna=True), 'Y', df['empty'])
-
-#    # Remove station cast for now since
-#     # it is filled
-#     # Need original order for dask compute  meta
-#     df = orig_cols = df.columns
-
-#     station_cast_col = df['station_cast']
-#     df = df.drop(['station_cast'], axis=1)
-
-#     cols = df.columns
-
-#     df['string'] = np.where(df[cols].eq(
-#         '').any(1), False, True)
-
-#     df['time_check'] = np.where(df[cols].eq(
-#         'NaT').any(1), False, True)
-
-#     df['null'] = np.where(df[cols].isnull().any(1), False, True)
-
-#     df["num_elems"] = df[['null', 'string', 'time_check']].sum(axis=1)
-
-#     df = df.join(station_cast_col)
-
-#     # Then drop rows where num_elems is 0
-#     df = df.drop(df[df['num_elems'] == 0].index)
-
-#     # # And drop num_elems column
-#     df = df.drop(columns=['null', 'string', 'time_check', 'num_elems'])
-
-#     df = df[orig_cols]
-
-#     return df
-
-#     # df = df.drop(df[df['empty'] == 'Y'].index)
-
-#     # # And drop num_elems column
-#     # df = df.drop(columns=['empty'])
+    except:
+        return num
 
 
-# def remove_rows(nc):
+def create_meta_profile(df_meta, meta_mapping_argovis):
 
-#     # Once remove variables like profile that exist
-#     # in all array values, can create array that
-#     # holds Boolean values of whether all array
-#     # values at a Level are empty
-#     # And then remove these in Pandas
-#     # Can I use np.where?
+    # With meta columns, pandas exploded them
+    # for all levels. Only keep one Level
+    # since they repeat
+    logging.info('Get level = 0 meta rows')
 
-#     # Want to compare arrays for null values
-#     # Since arrays could be of different
-#     # length, create one padded with False and length N_LEVELS
+    df_meta = df_meta[df_meta['N_LEVELS'] == 0]
+    df_meta = df_meta.reset_index()
+    df_meta = df_meta.drop('index', axis=1)
+    df_meta = df_meta.drop('N_LEVELS', axis=1)
+    df_meta = df_meta.compute()
 
-#     nc_length = nc.dims['N_LEVELS']
+    logging.info('create all_meta list')
+    large_meta_dict = dict(tuple(df_meta.groupby('N_PROF')))
 
-#     # padded_array = np.pad(array, (0, width), mode='constant', constant_values=False)
-#     # where array is the boolean array and width is nc_length - boolean_length
+    all_meta = []
+    all_meta_profiles = []
+    for key, val_df in large_meta_dict.items():
 
-#     vars = nc.keys()
+        val_df = val_df.reset_index()
+        station_cast = val_df['station_cast'].values[0]
+        val_df = val_df.drop(['station_cast', 'N_PROF', 'index'],  axis=1)
+        meta_dict = val_df.to_dict('records')[0]
 
-#     print(nc.sizes)
+        # Apply c_format for decimal places
+        dtype_mapping = meta_mapping_argovis['dtype']
+        c_format_mapping = meta_mapping_argovis['c_format']
 
-#     all_vars = []
+        for name, value in meta_dict.items():
 
-#     for var in vars:
+            try:
+                new_val = apply_c_format_to_num(
+                    name, value, dtype_mapping, c_format_mapping)
+                meta_dict[name] = new_val
+            except KeyError:
+                pass
 
-#         print(var)
+        lat = meta_dict['lat']
+        lon = meta_dict['lon']
 
-#         is_null = np.isnan(nc[var])
+        geo_dict = create_geolocation_dict(lat, lon)
+        meta_dict['geoLocation'] = geo_dict
 
-#         is_empty_str = operator.eq(nc[var], '')
+        meta_obj = {}
+        meta_obj['station_cast'] = station_cast
+        meta_obj['dict'] = meta_dict
 
-#         is_nat = operator.eq(nc[var], 'NaT')
+        all_meta.append(meta_obj)
 
-#         is_empty_array = np.logical_or.reduce(
-#             (is_null, is_empty_str, is_nat))
+    logging.info('start create all_meta_profiles')
+    all_meta_profiles = []
+    for obj in all_meta:
 
-#         # padded_array = np.pad(array, (0, width), mode='constant', constant_values=False)
-#         # where array is the boolean array and width is nc_length - boolean_length
-#         padded_length = nc_length - np.size(is_empty_array)
+        meta_profile = {}
+        meta_profile['station_cast'] = obj['station_cast']
+        meta_profile['meta'] = obj['dict']
 
-#         padded_array = np.pad(
-#             is_empty_array, (0, padded_length), mode='constant', constant_values=True)
+        all_meta_profiles.append(meta_profile)
 
-#         all_vars.append(padded_array)
-
-#     not_empty_arr = np.logical_not(np.logical_and.reduce(all_vars))
-
-#     nc['not_empty'] = (['N_LEVELS'], not_empty_arr)
-
-#     # Now trim each array where boolean True
-#     nc = nc.where(nc['not_empty'], drop=True)
-
-#     nc = nc.drop('not_empty')
-
-#     return nc
+    return all_meta_profiles
 
 
 def create_geolocation_dict(lat, lon):
@@ -155,7 +114,7 @@ def create_geolocation_dict(lat, lon):
     return geo_dict
 
 
-def add_extra_general_coords(nc, file_info):
+def add_extra_coords(nc, file_info):
 
     # Use cruise expocode because file one could be different than cruise page
     # Drop existing expocode
@@ -166,6 +125,8 @@ def add_extra_general_coords(nc, file_info):
     filename = file_info['filename']
     data_path = file_info['data_path']
     expocode = file_info['cruise_expocode']
+    cruise_id = file_info['cruise_id']
+    woce_lines = file_info['woce_lines']
 
     if '/' in expocode:
         expocode = expocode.replace('/', '_')
@@ -180,6 +141,14 @@ def add_extra_general_coords(nc, file_info):
     data_url = f"https://cchdo.ucsd.edu{data_path}"
 
     coord_length = nc.dims['N_PROF']
+
+    new_coord_list = ['cruise_id']*coord_length
+    new_coord_np = np.array(new_coord_list, dtype=object)
+    nc = nc.assign_coords(cruise_id=('N_PROF', new_coord_np))
+
+    new_coord_list = ['woce_lines']*coord_length
+    new_coord_np = np.array(new_coord_list, dtype=object)
+    nc = nc.assign_coords(woce_lines=('N_PROF', new_coord_np))
 
     new_coord_list = ['GPS']*coord_length
     new_coord_np = np.array(new_coord_list, dtype=object)
