@@ -7,7 +7,11 @@ import get_variable_mappings as gvm
 # Rename objects
 
 
+<<<<<<< HEAD
 def rename_keys_to_argovis(obj, core_values_mapping):
+=======
+def rename_keys_to_argovis(mapping):
+>>>>>>> d173410f0ec63e443fffd372ec14191d12f16968
 
     # Get mapping including qc
     #core_values_mapping = gvm.get_goship_argovis_name_mapping()
@@ -38,6 +42,7 @@ def rename_vars_to_argovis(mapping):
 
     goship_argovis_name_mapping = gvm.get_goship_argovis_name_mapping()
 
+<<<<<<< HEAD
     # What if both ctd temps or oxygens in mapping argument,
     # Use primary first
 
@@ -56,6 +61,8 @@ def rename_vars_to_argovis(mapping):
         if 'ctd_oxygen_ml_l_qc' in goship_names_list:
             goship_argovis_name_mapping.pop('ctd_oxygen_ml_l_qc')
 
+=======
+>>>>>>> d173410f0ec63e443fffd372ec14191d12f16968
     goship_names_to_map = [
         key for key in goship_argovis_name_mapping.keys() if key in goship_names_list]
 
@@ -63,6 +70,7 @@ def rename_vars_to_argovis(mapping):
                           if name in goship_names_to_map else name for name in goship_names_list]
 
     renamed_units_mapping = rename_keys_to_argovis(
+<<<<<<< HEAD
         goship_units_mapping, goship_argovis_name_mapping)
 
     renamed_ref_scale_mapping = rename_keys_to_argovis(
@@ -73,6 +81,18 @@ def rename_vars_to_argovis(mapping):
 
     renamed_dtype_mapping = rename_keys_to_argovis(
         goship_dtype_mapping, goship_argovis_name_mapping)
+=======
+        goship_units_mapping)
+
+    renamed_ref_scale_mapping = rename_keys_to_argovis(
+        goship_ref_scale_mapping)
+
+    renamed_c_format_mapping = rename_keys_to_argovis(
+        goship_c_format_mapping)
+
+    renamed_dtype_mapping = rename_keys_to_argovis(
+        goship_dtype_mapping)
+>>>>>>> d173410f0ec63e443fffd372ec14191d12f16968
 
     argovis_mapping = {}
     argovis_mapping['names'] = renamed_names_list
@@ -113,21 +133,36 @@ def rename_goship_name_list_by_type(goship_names_list, type):
     return new_names_list
 
 
+<<<<<<< HEAD
 def rename_keys_to_argovis_by_type(obj, core_values_mapping, type):
 
     # Get mapping including qc
 
     #core_values_mapping = gvm.get_goship_argovis_name_mapping_per_type(type)
+=======
+def rename_keys_to_argovis_by_type(obj, type):
+
+    core_values_mapping = gvm.get_goship_argovis_name_mapping_per_type(type)
+>>>>>>> d173410f0ec63e443fffd372ec14191d12f16968
 
     core_values = [key for key in core_values_mapping.keys()
                    if key in obj.keys()]
 
+<<<<<<< HEAD
     # has_both_temp = 'ctd_temperature' in obj.keys(
     # ) and 'ctd_temperature_68' in obj.keys()
     # has_both_oxygen = 'ctd_oxygen' in obj.keys() and 'ctd_oxygen_ml_l' in obj.keys()
 
     # primary_core = ['ctd_temperature', 'ctd_oxygen']
     # secondary_core = ['ctd_temperature_68', 'ctd_oxygen_ml_l']
+=======
+    has_both_temp = 'ctd_temperature' in obj.keys(
+    ) and 'ctd_temperature_68' in obj.keys()
+    has_both_oxygen = 'ctd_oxygen' in obj.keys() and 'ctd_oxygen_ml_l' in obj.keys()
+
+    primary_core = ['ctd_temperature', 'ctd_oxygen']
+    secondary_core = ['ctd_temperature_68', 'ctd_oxygen_ml_l']
+>>>>>>> d173410f0ec63e443fffd372ec14191d12f16968
 
     new_obj = {}
 
@@ -136,18 +171,38 @@ def rename_keys_to_argovis_by_type(obj, core_values_mapping, type):
         if name.endswith('_qc'):
             non_qc_name = name.replace('_qc', '')
 
+<<<<<<< HEAD
             if non_qc_name in core_values:
+=======
+            if has_both_temp and non_qc_name in primary_core:
+                new_name = f"{core_values_mapping[non_qc_name]}_qc"
+
+            elif has_both_oxygen and non_qc_name in primary_core:
+                new_name = f"{core_values_mapping[non_qc_name]}_qc"
+
+            elif non_qc_name in core_values and non_qc_name not in secondary_core:
+>>>>>>> d173410f0ec63e443fffd372ec14191d12f16968
                 new_name = f"{core_values_mapping[non_qc_name]}_qc"
             else:
                 new_name = f"{non_qc_name}_{type}_qc"
 
+<<<<<<< HEAD
         elif name in core_values:
+=======
+        elif has_both_temp and name in primary_core:
+            new_name = core_values_mapping[name]
+        elif has_both_oxygen and name in primary_core:
+            new_name = core_values_mapping[name]
+
+        elif name in core_values and name not in secondary_core:
+>>>>>>> d173410f0ec63e443fffd372ec14191d12f16968
             new_name = core_values_mapping[name]
         else:
             new_name = f"{name}_{type}"
 
         new_obj[new_name] = val
 
+<<<<<<< HEAD
     # for name, val in obj.items():
 
     #     if name.endswith('_qc'):
@@ -176,6 +231,8 @@ def rename_keys_to_argovis_by_type(obj, core_values_mapping, type):
 
     #     new_obj[new_name] = val
 
+=======
+>>>>>>> d173410f0ec63e443fffd372ec14191d12f16968
     return new_obj
 
 
@@ -187,6 +244,7 @@ def rename_vars_to_argovis_by_type(mapping, type):
     goship_c_format_mapping = mapping['c_format']
     goship_dtype_mapping = mapping['dtype']
 
+<<<<<<< HEAD
     goship_argovis_name_mapping = gvm.get_goship_argovis_name_mapping_per_type(
         type)
 
@@ -206,6 +264,8 @@ def rename_vars_to_argovis_by_type(mapping, type):
         if 'ctd_oxygen_ml_l_qc' in goship_names_list:
             goship_argovis_name_mapping.pop('ctd_oxygen_ml_l_qc')
 
+=======
+>>>>>>> d173410f0ec63e443fffd372ec14191d12f16968
     renamed_names_list = rename_goship_name_list_by_type(
         goship_names_list, type)
 
@@ -213,6 +273,7 @@ def rename_vars_to_argovis_by_type(mapping, type):
     argovis_mapping['names'] = renamed_names_list
 
     renamed_units_mapping = rename_keys_to_argovis_by_type(
+<<<<<<< HEAD
         goship_units_mapping, goship_argovis_name_mapping, type)
 
     renamed_ref_scale_mapping = rename_keys_to_argovis_by_type(
@@ -223,6 +284,18 @@ def rename_vars_to_argovis_by_type(mapping, type):
 
     renamed_dtype_mapping = rename_keys_to_argovis_by_type(
         goship_dtype_mapping, goship_argovis_name_mapping, type)
+=======
+        goship_units_mapping, type)
+
+    renamed_ref_scale_mapping = rename_keys_to_argovis_by_type(
+        goship_ref_scale_mapping, type)
+
+    renamed_c_format_mapping = rename_keys_to_argovis_by_type(
+        goship_c_format_mapping, type)
+
+    renamed_dtype_mapping = rename_keys_to_argovis_by_type(
+        goship_dtype_mapping, type)
+>>>>>>> d173410f0ec63e443fffd372ec14191d12f16968
 
     argovis_mapping['units'] = renamed_units_mapping
     argovis_mapping['ref_scale'] = renamed_ref_scale_mapping

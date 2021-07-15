@@ -436,7 +436,7 @@ def get_goship_mappings_meta(nc, meta_goship_names):
             pass
 
         try:
-            meta_dtype[var] = nc[var].dtype
+            param_dtype[var] = nc[var].dtype
         except KeyError:
             pass
 

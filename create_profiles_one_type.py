@@ -210,6 +210,7 @@ def create_profiles_one_type(data_obj):
     meta_mapping = gvm.get_goship_mappings_meta(nc, meta_goship_names)
     param_mapping = gvm.get_goship_mappings_param(nc)
 
+    logging.info('start apply_equations_and_ref_scale')
     # TODO
     # Following could be a one-off error
 
