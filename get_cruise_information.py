@@ -139,8 +139,8 @@ def get_information_one_cruise_test(session):
     # expocode = '316N154_2'
 
     # btl file
-    # expocode = '325020210420'
-    # file_id = 19429
+    expocode = '325020210420'
+    file_id = 19429
 
     # ctd file
     # has both ctd temp and ctd temp 68
@@ -161,8 +161,8 @@ def get_information_one_cruise_test(session):
     # ctd file (very large)
     # has ctd temp 68 and ctd temp unk
     # also has both oxygen units
-    expocode = '90VE43_1'
-    file_id = 17879
+    # expocode = '90VE43_1'
+    # file_id = 17879
 
     # btl file
     # expocode = '33KI20180723'

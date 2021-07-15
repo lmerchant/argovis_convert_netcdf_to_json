@@ -18,7 +18,6 @@ import ctypes
 import check_if_has_ctd_vars as ckvar
 import filter_measurements as fm
 import get_cruise_information as gi
-import get_profile_mapping_and_conversions as pm
 import create_profiles_one_type as op
 import create_profiles_combined_type as cbp
 import save_output as sv
@@ -121,22 +120,6 @@ def read_file(data_obj):
         return data_obj, err_flag
 
     data_obj['nc'] = nc
-
-    # TODO skip this
-    # meta_names, param_names = pm.get_meta_param_names(nc)
-
-    # # ds_nc = nc.to_dask_dataframe()
-
-    # # data_obj['ds_nc'] = ds_nc
-
-    # # file_expocode = ds_nc['expocode'].compute()[0]
-
-    # data_obj['meta'] = meta_names
-    # data_obj['param'] = param_names
-
-    file_expocode = nc.coords['expocode'].data[0]
-
-    data_obj['file_expocode'] = file_expocode
 
     return data_obj, err_flag
 
@@ -286,11 +269,11 @@ def main(start_year, end_year, append):
 
     else:
         # Loop through all cruises and grap NetCDF files
-        all_cruises_info = gi.get_cruise_information(
-            session, logging_dir, start_datetime, end_datetime)
+        # all_cruises_info = gi.get_cruise_information(
+        #     session, logging_dir, start_datetime, end_datetime)
 
-        # cruise_info = gi.get_information_one_cruise_test(session)
-        # all_cruises_info = [cruise_info]
+        cruise_info = gi.get_information_one_cruise_test(session)
+        all_cruises_info = [cruise_info]
 
         if not all_cruises_info:
             logging.info('No cruises within dates selected')
@@ -332,22 +315,8 @@ def main(start_year, end_year, append):
                     data_file_read_errors.append(data_url)
                     continue
 
-                # Check if file expocode is None
-                # TODO Do we want to skip these?
-                # Or were they all fixed?
-
-                cruise_expocode = btl_obj['cruise_expocode']
-                file_expocode = btl_obj['file_expocode']
-                if file_expocode == 'None':
-                    logging.info(f'No file expocode for {cruise_expocode}')
-                    filename = 'files_no_expocode.txt'
-                    filepath = os.path.join(logging_dir, filename)
-                    with open(filepath, 'a') as f:
-                        f.write('-----------\n')
-                        f.write(f"expocode {cruise_expocode}\n")
-                        f.write(f"file type BTL\n")
-
-                profiles_btl = op.create_profiles_one_type(btl_obj)
+                profiles_btl = op.create_profiles_one_type(
+                    btl_obj, logging_dir)
 
         if ctd_found:
 
@@ -366,25 +335,13 @@ def main(start_year, end_year, append):
                     data_file_read_errors.append(data_url)
                     continue
 
-                # Check if file expocode is None
-                # TODO Do we want to skip these?
-                cruise_expocode = ctd_obj['cruise_expocode']
-                file_expocode = ctd_obj['file_expocode']
-                if file_expocode == 'None':
-                    logging.info(f'No file expocode for {cruise_expocode}')
-                    filename = 'files_no_expocode.txt'
-                    filepath = os.path.join(logging_dir, filename)
-                    with open(filepath, 'a') as f:
-                        f.write('-----------\n')
-                        f.write(f"expocode {cruise_expocode}\n")
-                        f.write(f"file type CTD\n")
-
-                profiles_ctd = op.create_profiles_one_type(ctd_obj)
+                profiles_ctd = op.create_profiles_one_type(
+                    ctd_obj, logging_dir)
 
         if btl_found and ctd_found:
 
             # filter measurements when combine btl and ctd profiles
-            # filter  btl_ctd first in case need
+            # don't filter btl or ctd first in case need
             # a variable from both before they are filtered out
             profiles_btl_ctd = cbp.combine_btl_ctd_profiles(
                 profiles_btl, profiles_ctd)
@@ -415,7 +372,7 @@ def main(start_year, end_year, append):
                     f.write(f"{cruise_expocode}\n")
 
         elif btl_found:
-            # filter measurements for qc=0, qc=2
+            # filter measurements for core
             profiles_btl = fm.filter_measurements(profiles_btl, 'btl')
 
             checked_ctd_variables, ctd_vars_flag = ckvar.check_of_ctd_variables(
@@ -439,7 +396,7 @@ def main(start_year, end_year, append):
                     f.write(f"{cruise_expocode}\n")
 
         elif ctd_found:
-            # filter measurements for qc=0, qc=2
+            # filter measurements for core
             profiles_ctd = fm.filter_measurements(profiles_ctd, 'ctd')
 
             checked_ctd_variables, ctd_vars_flag = ckvar.check_of_ctd_variables(
@@ -466,32 +423,14 @@ def main(start_year, end_year, append):
         if btl_found or ctd_found:
 
             if btl_found:
-                file_expocode = btl_obj['file_expocode']
                 cruise_expocode = btl_obj['cruise_expocode']
 
             if ctd_found:
-                file_expocode = ctd_obj['file_expocode']
                 cruise_expocode = ctd_obj['cruise_expocode']
-
-            # Write the following to a file to keep track of when
-            # the cruise expocode is different from the file expocode
-            if cruise_expocode != file_expocode:
-                filename = 'diff_cruise_and_file_expocodes.txt'
-                filepath = os.path.join(logging_dir, filename)
-                with open(filepath, 'a') as f:
-                    f.write(
-                        f"Cruise: {cruise_expocode} File: {file_expocode}\n")
-
-            # TODO
-            # could turn info a  function and also
-            # check if file expocode exists and has
-            # different ship, country, and expocode
-            # Would need cruise id to find cruise json
 
             logging.info('---------------------------')
             logging.info(
                 f"Finished for cruise {cruise_expocode}")
-            # logging.info(f"Expocode inside file: {file_expocode}")
             logging.info('---------------------------')
 
             logging.info("*****************************\n")
@@ -519,7 +458,7 @@ if __name__ == '__main__':
     #client = Client()
 
     # https://github.com/dask/dask-jobqueue/issues/391
-    # Set dashboard to none
+    # Set dashboard to none to prevent program freezing
 
     # For debugging, use single-threaded
     #client = Client(scheduler='single-threaded')

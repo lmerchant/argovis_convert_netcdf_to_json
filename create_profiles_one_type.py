@@ -1,6 +1,7 @@
 # Create profiles for one type
 
 # from pandas.core.arrays import boolean
+import xarray as xr
 import pandas as pd
 import numpy as np
 # from decimal import Decimal
@@ -16,12 +17,14 @@ from datetime import datetime
 from collections import defaultdict
 # from operator import itemgetter
 import itertools
+import os
 
 
 import get_variable_mappings as gvm
 import rename_objects as rn
 import process_meta_data as proc_meta
 import process_parameter_data as proc_param
+import conversions as conv
 
 
 # class fakefloat(float):
@@ -38,6 +41,31 @@ import process_parameter_data as proc_param
 #         # Subclass float with custom repr?
 #         return fakefloat(o)
 #     raise TypeError(repr(o) + " is not JSON serializable")
+
+def write_logs(all_meta_profiles, logging_dir):
+
+    # Write the following to a file to keep track of when
+    # the cruise expocode is different from the file expocode
+
+    meta_profile_dict = all_meta_profiles[0]['meta']
+    cruise_expocode = meta_profile_dict['expocode']
+    file_expocode = meta_profile_dict['file_expocode']
+
+    if file_expocode == 'None':
+        logging.info(f'No file expocode for {cruise_expocode}')
+        filename = 'files_no_expocode.txt'
+        filepath = os.path.join(logging_dir, filename)
+        with open(filepath, 'a') as f:
+            f.write('-----------\n')
+            f.write(f"expocode {cruise_expocode}\n")
+            f.write(f"file type BTL\n")
+
+    if cruise_expocode != file_expocode:
+        filename = 'diff_cruise_and_file_expocodes.txt'
+        filepath = os.path.join(logging_dir, filename)
+        with open(filepath, 'a') as f:
+            f.write(
+                f"Cruise: {cruise_expocode} File: {file_expocode}\n")
 
 
 def combine_profiles(meta_profiles, bgc_profiles, meas_profiles, meas_source_profiles, mapping_dict, type):
@@ -161,7 +189,7 @@ def arrange_coords_vars_nc(nc):
     return nc
 
 
-def create_profiles_one_type(data_obj):
+def create_profiles_one_type(data_obj, logging_dir):
 
     start_time = datetime.now()
 
@@ -190,15 +218,18 @@ def create_profiles_one_type(data_obj):
     nc = arrange_coords_vars_nc(nc)
 
     # Get goship_names before add extra_coords
-    meta_goship_names = [coord for coord in nc.coords]
+    meta_goship_names = nc.coords
 
     # Add extra coordinates for ArgoVis metadata
     nc = proc_meta.add_extra_coords(nc, file_info)
 
+    # print(nc['ctd_salinity'].compute())
+    # exit(1)
+
     # TODO
     # Get formula for Oxygen unit conversion
     # Apply equations before rename
-    nc = proc_param.apply_equations_and_ref_scale(nc)
+    nc = conv.apply_equations_and_ref_scale(nc)
 
     # Now check so see if there is a 'temp_{type}'  column and a corresponding
     # qc col. 'temp_{type}_qc'. If not, add a 'temp' qc col. with values 0
@@ -206,11 +237,10 @@ def create_profiles_one_type(data_obj):
 
     # Create mapping object of goship names to nc attributes
     # mapping obj: names (list), units (obj), ref_scale (obj)
-    # c_format (obj), dtype (obj)
+    # c_format (obj), and dtype (obj)
     meta_mapping = gvm.get_goship_mappings_meta(nc, meta_goship_names)
     param_mapping = gvm.get_goship_mappings_param(nc)
 
-    logging.info('start apply_equations_and_ref_scale')
     # TODO
     # Following could be a one-off error
 
@@ -251,6 +281,21 @@ def create_profiles_one_type(data_obj):
     # process metadata and parameter data separately
     meta_keys = list(nc.coords)
     param_keys = list(nc.keys())
+
+    # Apply compute to partially apply ufunc
+    # If keep as dask, it combines chunks
+    nc = nc.load()
+
+    nc = proc_meta.apply_c_format_meta(nc, meta_mapping_argovis)
+
+    if type == 'btl':
+        param_mapping = param_mapping_argovis_btl
+    elif type == 'ctd':
+        param_mapping = param_mapping_argovis_ctd
+
+    nc = proc_param.apply_c_format_param(nc, param_mapping)
+
+    # ------ Convert xarray to dask dataframe ----------
 
     # nc was read in with Dask xarray, so now save to dask dataframe
     ddf = nc.to_dask_dataframe(dim_order=['N_PROF', 'N_LEVELS'])
@@ -293,6 +338,10 @@ def create_profiles_one_type(data_obj):
 
     ddf_param = ddf_param.set_index('station_cast')
 
+    # TODO
+    # apply c_format while in pandas
+    # Can I apply it in xarray?
+
     df_param = ddf_param.compute()
 
     # Sort columns so qc next to its var
@@ -303,17 +352,18 @@ def create_profiles_one_type(data_obj):
         ddf_meta, meta_mapping_argovis)
 
     logging.info('create all_bgc profile')
-    all_bgc_profiles = proc_param.create_bgc_profile(df_param, param_mapping_argovis_btl,
-                                                     param_mapping_argovis_ctd, type)
+    all_bgc_profiles = proc_param.create_bgc_profile(df_param)
 
     logging.info('create all_meas profile')
     all_meas_profiles, all_meas_source_profiles = proc_param.create_measurements_profile(
-        df_param, param_mapping_argovis_btl, param_mapping_argovis_ctd, type)
+        df_param, type)
 
     # Combine
     logging.info('start combining profiles')
     all_profiles = combine_profiles(all_meta_profiles, all_bgc_profiles,
                                     all_meas_profiles, all_meas_source_profiles, goship_argovis_mapping_for_profile, type)
+
+    write_logs(all_meta_profiles, logging_dir)
 
     logging.info("Time to run function create_profiles_one_type")
     logging.info(datetime.now() - start_time)

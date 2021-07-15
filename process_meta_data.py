@@ -1,9 +1,11 @@
 # Process meta data
 
+import xarray as xr
 import numpy as np
 import pandas as pd
 import logging
 from datetime import datetime
+from functools import partial
 
 
 def apply_c_format_to_num(name, num, dtype_mapping, c_format_mapping):
@@ -241,5 +243,88 @@ def add_extra_coords(nc, file_info):
 
     nc = nc.assign_coords(strLat=('N_PROF', str_lat))
     nc = nc.assign_coords(strLon=('N_PROF', str_lon))
+
+    return nc
+
+
+class FormatFloat(float):
+    def __format__(self, format_spec):
+        return 'nan' if pd.isnull(self) else float.__format__(self, format_spec)
+
+
+def apply_c_format_meta(nc, meta_mapping):
+
+    # apply c_format while in xarray
+    float_types = ['float64', 'float32']
+
+    c_format_mapping = meta_mapping['c_format']
+    dtype_mapping = meta_mapping['dtype']
+
+    float_vars = [name for name,
+                  dtype in dtype_mapping.items() if dtype in float_types]
+
+    c_format_vars = [
+        name for name in c_format_mapping.keys() if name in float_vars]
+
+    def format_float(val, f_format):
+        return float(f"{FormatFloat(val):{f_format}}")
+
+    def apply_c_format(var, f_format):
+        vfunc = np.vectorize(format_float)
+        return vfunc(var, f_format)
+
+    # # Use apply_ufunc to meta
+    # def apply_c_format(var, f_format):
+    #     try:
+    #         new_var = np.array([float(f"{num:{f_format}}") for num in var])
+    #         return new_var
+    #     except:
+    #         return var
+
+        # partial(apply_c_format),
+        #x.chunk({'N_PROF': -1}),
+        # x.chunk(),
+
+    # def apply_c_format_xr(x, f_format, dtype):
+    #     return xr.apply_ufunc(
+    #         apply_c_format,
+    #         x.chunk({'N_PROF': -1}),
+    #         f_format,
+    #         input_core_dims=[['N_PROF'], []],
+    #         output_core_dims=[['N_PROF']],
+    #         vectorize=True,
+    #         dask='allowed',
+    #         output_dtypes=[dtype],
+    #         keep_attrs=True,
+    #         dask_gufunc_kwargs={'allowRechunk': True}
+    #     )
+
+    def apply_c_format_xr(x, f_format, dtype):
+        return xr.apply_ufunc(
+            apply_c_format,
+            x,
+            f_format,
+            input_core_dims=[['N_PROF'], []],
+            output_core_dims=[['N_PROF']],
+            output_dtypes=[dtype],
+            keep_attrs=True
+        )
+
+    for var in c_format_vars:
+        c_format = c_format_mapping[var]
+        f_format = c_format.lstrip('%')
+        dtype = dtype_mapping[var]
+        nc[var] = apply_c_format_xr(nc[var], f_format, dtype)
+
+    # for var in nc.coords:
+    #     dtype = dtype_mapping[var]
+    #     print(dtype)
+    #     try:
+    #         c_format = c_format_mapping[var]
+    #         f_format = c_format.lstrip('%')
+    #     except:
+    #         f_format = None
+
+    #nc[var] = apply_c_format_xr(nc[var], f_format, dtype)
 
     return nc

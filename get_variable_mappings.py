@@ -1,7 +1,6 @@
 import pandas as pd
 
 
-import get_profile_mapping_and_conversions as pmc
 import rename_objects as rn
 
 # Objects storing core Objects
@@ -420,6 +419,7 @@ def get_goship_mappings_meta(nc, meta_goship_names):
 
     # Meta: Save units, ref_scale, c_format, dtype
     for var in nc.coords:
+
         try:
             meta_units[var] = nc[var].attrs['units']
         except KeyError:
@@ -436,7 +436,7 @@ def get_goship_mappings_meta(nc, meta_goship_names):
             pass
 
         try:
-            param_dtype[var] = nc[var].dtype
+            meta_dtype[var] = nc[var].dtype
         except KeyError:
             pass
 

@@ -1,16 +1,14 @@
 # process parameter data
 
+import xarray as xr
 import pandas as pd
 import numpy as np
-from decimal import Decimal
 import json
 import re
-import logging
 from datetime import datetime
 
 import filter_measurements as fm
 import get_variable_mappings as gvm
-import get_profile_mapping_and_conversions as pmc
 
 
 def dtjson(o):
@@ -52,18 +50,13 @@ def apply_c_format_to_num(name, num, dtype_mapping, c_format_mapping):
         return num
 
 
-def create_bgc_profile(df_param, param_mapping_argovis_btl, param_mapping_argovis_ctd, type):
+def create_bgc_profile(df_param):
 
     df_bgc = df_param
     df_bgc = df_bgc.reset_index()
     df_bgc = df_bgc.drop('index', axis=1)
 
     bgc_df_groups = dict(tuple(df_bgc.groupby('N_PROF')))
-
-    if type == 'btl':
-        param_mapping = param_mapping_argovis_btl
-    elif type == 'ctd':
-        param_mapping = param_mapping_argovis_ctd
 
     all_bgc = []
     for key, val_df in bgc_df_groups.items():
@@ -83,6 +76,7 @@ def create_bgc_profile(df_param, param_mapping_argovis_btl, param_mapping_argovi
         # TODO
         # Can I run apply_c_format_to_num in df and have
         # it saved as float of limited decimal places?
+
         # dtype_mapping = param_mapping['dtype']
         # c_format_mapping = param_mapping['c_format']
         # float_types = ['float64', 'float32']
@@ -108,22 +102,22 @@ def create_bgc_profile(df_param, param_mapping_argovis_btl, param_mapping_argovi
 
         # start_time = datetime.now()
 
-        formatted_list = []
-        dtype_mapping = param_mapping['dtype']
-        c_format_mapping = param_mapping['c_format']
-        for obj in bgc_dict_list:
-            new_obj = {name: apply_c_format_to_num(name, val, dtype_mapping, c_format_mapping)
-                       for name, val in obj.items()}
+        # formatted_list = []
+        # dtype_mapping = param_mapping['dtype']
+        # c_format_mapping = param_mapping['c_format']
+        # for obj in bgc_dict_list:
+        #     new_obj = {name: apply_c_format_to_num(name, val, dtype_mapping, c_format_mapping)
+        #                for name, val in obj.items()}
 
-            formatted_list.append(new_obj)
+        #     formatted_list.append(new_obj)
 
         # logging.info("Time to run c_format on obj")
         # logging.info(datetime.now() - start_time)
 
         bgc_obj = {}
         bgc_obj['station_cast'] = station_cast
-        bgc_obj['list'] = formatted_list
-        # bgc_obj['list'] = bgc_dict_list
+        #bgc_obj['list'] = formatted_list
+        bgc_obj['list'] = bgc_dict_list
         all_bgc.append(bgc_obj)
 
     all_bgc_profiles = []
@@ -140,17 +134,12 @@ def create_bgc_profile(df_param, param_mapping_argovis_btl, param_mapping_argovi
     return all_bgc_profiles
 
 
-def create_measurements_profile(df_param, param_mapping_argovis_btl, param_mapping_argovis_ctd, type):
+def create_measurements_profile(df_param, type):
 
     df_meas = df_param.groupby('N_PROF').apply(
         create_measurements_df_all, type)
 
     meas_df_groups = dict(tuple(df_meas.groupby('N_PROF')))
-
-    if type == 'btl':
-        param_mapping = param_mapping_argovis_btl
-    elif type == 'ctd':
-        param_mapping = param_mapping_argovis_ctd
 
     all_meas = []
     for key, val_df in meas_df_groups.items():
@@ -187,28 +176,29 @@ def create_measurements_profile(df_param, param_mapping_argovis_btl, param_mappi
         # Can I run apply_c_format_to_num in df and have
         # it saved as float of limited decimal places?
 
-        meas_dict = val_df.to_dict('records')
+        meas_dict_list = val_df.to_dict('records')
 
         # For mapping, param_mapping has suffix and
         # measurements don't
-        c_format_mapping = {name.replace(
-            f"_{type}", ''): val for name, val in param_mapping['c_format'].items()}
-        dtype_mapping = {name.replace(
-            f"_{type}", ''): val for name, val in param_mapping['dtype'].items()}
+        # c_format_mapping = {name.replace(
+        #     f"_{type}", ''): val for name, val in param_mapping['c_format'].items()}
+        # dtype_mapping = {name.replace(
+        #     f"_{type}", ''): val for name, val in param_mapping['dtype'].items()}
 
-        formatted_list = []
-        for obj in meas_dict:
+        # formatted_list = []
+        # for obj in meas_dict_list:
 
-            new_obj = {name: apply_c_format_to_num(name, val, dtype_mapping, c_format_mapping)
-                       for name, val in obj.items()}
+        #     new_obj = {name: apply_c_format_to_num(name, val, dtype_mapping, c_format_mapping)
+        #                for name, val in obj.items()}
 
-            formatted_list.append(new_obj)
+        #     formatted_list.append(new_obj)
 
         meas_obj = {}
         meas_obj['station_cast'] = station_cast
         meas_obj['source'] = measurements_source
         meas_obj['qc'] = measurements_source_qc
-        meas_obj['list'] = formatted_list
+        #meas_obj['list'] = formatted_list
+        meas_obj['list'] = meas_dict_list
 
         all_meas.append(meas_obj)
 
@@ -527,268 +517,312 @@ def add_qc_if_no_temp_qc(nc):
     return nc
 
 
-def convert_oxygen(nc, var, var_goship_units, argovis_units):
+# def convert_oxygen(nc, var, var_goship_units, argovis_units):
 
-    if var_goship_units == 'ml/l' and argovis_units == 'micromole/kg':
+#     if var_goship_units == 'ml/l' and argovis_units == 'micromole/kg':
 
-        # https://www.nodc.noaa.gov/OC5/WOD/wod18-notes.html
-        # 1 ml/l of O2 is approximately 43.570 µmol/kg
-        # (assumes a molar volume of O2 of 22.392 l/mole and a
-        # constant seawater potential density of 1025 kg/m3).
+#         # https://www.nodc.noaa.gov/OC5/WOD/wod18-notes.html
+#         # 1 ml/l of O2 is approximately 43.570 µmol/kg
+#         # (assumes a molar volume of O2 of 22.392 l/mole and a
+#         # constant seawater potential density of 1025 kg/m3).
 
-        # Convert to micromole/kg
-        oxygen = nc[var].data
-        converted_oxygen = oxygen * 43.570
+#         # Convert to micromole/kg
+#         oxygen = nc[var].data
+#         converted_oxygen = oxygen * 43.570
 
-        try:
-            c_format = nc[var].attrs['C_format']
-            f_format = c_format.lstrip('%')
-            new_oxygen = [float(f"{item:{f_format}}")
-                          for item in converted_oxygen]
+#         try:
+#             c_format = nc[var].attrs['C_format']
+#             f_format = c_format.lstrip('%')
+#             new_oxygen = [float(f"{item:{f_format}}")
+#                           for item in converted_oxygen]
 
-        except:
-            # Use num decimal places of var
-            num_decimal_places = abs(
-                Decimal(str(oxygen)).as_tuple().exponent)
+#         except:
+#             # Use num decimal places of var
+#             num_decimal_places = abs(
+#                 Decimal(str(oxygen)).as_tuple().exponent)
 
-            new_oxygen = round(converted_oxygen, num_decimal_places)
+#             new_oxygen = round(converted_oxygen, num_decimal_places)
 
-        # Set oxygen value in nc because use it later to
-        # create profile dict
-        nc[var].data = new_oxygen
-        nc[var].attrs['units'] = 'micromole/kg'
+#         # Set oxygen value in nc because use it later to
+#         # create profile dict
+#         nc[var].data = new_oxygen
+#         nc[var].attrs['units'] = 'micromole/kg'
 
-    return nc
+#     return nc
 
 
-def convert_goship_to_argovis_units(nc):
+# def convert_goship_to_argovis_units(nc):
 
-    params = nc.keys()
+#     params = nc.keys()
 
-    # If goship units aren't the same as argovis units, convert
-    # So far, just converting oxygen
+#     # If goship units aren't the same as argovis units, convert
+#     # So far, just converting oxygen
 
-    goship_argovis_units_mapping = gvm.get_goship_argovis_unit_mapping()
+#     goship_argovis_units_mapping = gvm.get_goship_argovis_unit_mapping()
 
-    for var in params:
-        if 'oxygen' in var:
+#     for var in params:
+#         if 'oxygen' in var:
 
-            try:
-                var_goship_units = nc[var].attrs['units']
-                argovis_units = goship_argovis_units_mapping[var]
+#             try:
+#                 var_goship_units = nc[var].attrs['units']
+#                 argovis_units = goship_argovis_units_mapping[var]
 
-                is_unit_same = var_goship_units == argovis_units
+#                 is_unit_same = var_goship_units == argovis_units
 
-                if not is_unit_same:
-                    nc = convert_oxygen(
-                        nc, var, var_goship_units, argovis_units)
-            except:
-                pass
+#                 if not is_unit_same:
+#                     nc = convert_oxygen(
+#                         nc, var, var_goship_units, argovis_units)
+#             except:
+#                 pass
 
-    return nc
+#     return nc
 
 
-def convert_sea_water_temp(nc, var, var_goship_ref_scale, argovis_ref_scale):
+# def convert_sea_water_temp(nc, var, var_goship_ref_scale, argovis_ref_scale):
 
-    # Check sea_water_temperature to have goship_reference_scale be ITS-90
+#     # Check sea_water_temperature to have goship_reference_scale be ITS-90
 
-    if var_goship_ref_scale == 'IPTS-68' and argovis_ref_scale == 'ITS-90':
+#     if var_goship_ref_scale == 'IPTS-68' and argovis_ref_scale == 'ITS-90':
 
-        # Convert to ITS-90 scal
-        temperature = nc[var].data
+#         # Convert to ITS-90 scal
+#         temperature = nc[var].data
 
-        converted_temperature = temperature/1.00024
+#         converted_temperature = temperature/1.00024
 
-        # Set nc var of temp to this value
-        try:
-            c_format = nc[var].attrs['C_format']
-            f_format = c_format.lstrip('%')
-            new_temperature = [float(f"{item:{f_format}}")
-                               for item in converted_temperature]
+#         # Set nc var of temp to this value
+#         try:
+#             c_format = nc[var].attrs['C_format']
+#             f_format = c_format.lstrip('%')
+#             new_temperature = [float(f"{item:{f_format}}")
+#                                for item in converted_temperature]
 
-        except:
-            # Use num decimal places of var
-            num_decimal_places = abs(
-                Decimal(str(temperature)).as_tuple().exponent)
+#         except:
+#             # Use num decimal places of var
+#             num_decimal_places = abs(
+#                 Decimal(str(temperature)).as_tuple().exponent)
 
-            new_temperature = round(converted_temperature, num_decimal_places)
+#             new_temperature = round(converted_temperature, num_decimal_places)
 
-        # Set temperature value in nc because use it later to
-        # create profile dict
-        nc[var].data = new_temperature
-        nc[var].attrs['reference_scale'] = 'ITS-90'
+#         # Set temperature value in nc because use it later to
+#         # create profile dict
+#         nc[var].data = new_temperature
+#         nc[var].attrs['reference_scale'] = 'ITS-90'
 
-    return nc
+#     return nc
 
 
-def convert_goship_to_argovis_ref_scale(nc):
+# def convert_goship_to_argovis_ref_scale(nc):
 
-    params = nc.keys()
+#     params = nc.keys()
 
-    # If argo ref scale not equal to goship ref scale, convert
+#     # If argo ref scale not equal to goship ref scale, convert
 
-    # So far, it's only the case for temperature
+#     # So far, it's only the case for temperature
 
-    # loop through variables and look at reference scale,
-    # if it is IPTS-68 then convert
+#     # loop through variables and look at reference scale,
+#     # if it is IPTS-68 then convert
 
-    argovis_ref_scale_per_type = gvm.get_argovis_reference_scale_per_type()
+#     argovis_ref_scale_per_type = gvm.get_argovis_reference_scale_per_type()
 
-    for var in params:
-        if 'temperature' in var:
+#     for var in params:
+#         if 'temperature' in var:
 
-            try:
-                # Get goship reference scale of var
-                var_goship_ref_scale = nc[var].attrs['reference_scale']
+#             try:
+#                 # Get goship reference scale of var
+#                 var_goship_ref_scale = nc[var].attrs['reference_scale']
 
-                argovis_ref_scale = argovis_ref_scale_per_type['temperature']
-                is_same_scale = var_goship_ref_scale == argovis_ref_scale
+#                 argovis_ref_scale = argovis_ref_scale_per_type['temperature']
+#                 is_same_scale = var_goship_ref_scale == argovis_ref_scale
 
-                if not is_same_scale:
-                    nc = convert_sea_water_temp(
-                        nc, var, var_goship_ref_scale, argovis_ref_scale)
-            except:
-                pass
+#                 if not is_same_scale:
+#                     nc = convert_sea_water_temp(
+#                         nc, var, var_goship_ref_scale, argovis_ref_scale)
+#             except:
+#                 pass
 
-    return nc
+#     return nc
 
 
-def convert_oxygen(nc, var, var_goship_units, argovis_units):
+# def convert_oxygen(nc, var, var_goship_units, argovis_units):
 
-    if var_goship_units == 'ml/l' and argovis_units == 'micromole/kg':
+#     if var_goship_units == 'ml/l' and argovis_units == 'micromole/kg':
 
-        # https://www.nodc.noaa.gov/OC5/WOD/wod18-notes.html
-        # 1 ml/l of O2 is approximately 43.570 µmol/kg
-        # (assumes a molar volume of O2 of 22.392 l/mole and a
-        # constant seawater potential density of 1025 kg/m3).
+#         # https://www.nodc.noaa.gov/OC5/WOD/wod18-notes.html
+#         # 1 ml/l of O2 is approximately 43.570 µmol/kg
+#         # (assumes a molar volume of O2 of 22.392 l/mole and a
+#         # constant seawater potential density of 1025 kg/m3).
 
-        # Convert to micromole/kg
-        oxygen = nc[var].data
-        converted_oxygen = oxygen * 43.570
+#         # Convert to micromole/kg
+#         oxygen = nc[var].data
+#         converted_oxygen = oxygen * 43.570
 
-        try:
-            c_format = nc[var].attrs['C_format']
-            f_format = c_format.lstrip('%')
-            new_oxygen = [float(f"{item:{f_format}}")
-                          for item in converted_oxygen]
+#         try:
+#             c_format = nc[var].attrs['C_format']
+#             f_format = c_format.lstrip('%')
+#             new_oxygen = [float(f"{item:{f_format}}")
+#                           for item in converted_oxygen]
 
-        except:
-            # Use num decimal places of var
-            num_decimal_places = abs(
-                Decimal(str(oxygen)).as_tuple().exponent)
+#         except:
+#             # Use num decimal places of var
+#             num_decimal_places = abs(
+#                 Decimal(str(oxygen)).as_tuple().exponent)
 
-            new_oxygen = round(converted_oxygen, num_decimal_places)
+#             new_oxygen = round(converted_oxygen, num_decimal_places)
 
-        # Set oxygen value in nc because use it later to
-        # create profile dict
-        nc[var].data = new_oxygen
-        nc[var].attrs['units'] = 'micromole/kg'
+#         # Set oxygen value in nc because use it later to
+#         # create profile dict
+#         nc[var].data = new_oxygen
+#         nc[var].attrs['units'] = 'micromole/kg'
 
-    return nc
+#     return nc
 
 
-def convert_goship_to_argovis_units(nc):
+# def convert_goship_to_argovis_units(nc):
 
-    params = nc.keys()
+#     params = nc.keys()
 
-    # If goship units aren't the same as argovis units, convert
-    # So far, just converting oxygen
+#     # If goship units aren't the same as argovis units, convert
+#     # So far, just converting oxygen
 
-    goship_argovis_units_mapping = gvm.get_goship_argovis_unit_mapping()
+#     goship_argovis_units_mapping = gvm.get_goship_argovis_unit_mapping()
 
-    for var in params:
-        if 'oxygen' in var:
+#     for var in params:
+#         if 'oxygen' in var:
 
-            try:
-                var_goship_units = nc[var].attrs['units']
-                argovis_units = goship_argovis_units_mapping[var]
+#             try:
+#                 var_goship_units = nc[var].attrs['units']
+#                 argovis_units = goship_argovis_units_mapping[var]
 
-                is_unit_same = var_goship_units == argovis_units
+#                 is_unit_same = var_goship_units == argovis_units
 
-                if not is_unit_same:
-                    nc = convert_oxygen(
-                        nc, var, var_goship_units, argovis_units)
-            except:
-                pass
+#                 if not is_unit_same:
+#                     nc = convert_oxygen(
+#                         nc, var, var_goship_units, argovis_units)
+#             except:
+#                 pass
 
-    return nc
+#     return nc
 
 
-def convert_sea_water_temp(nc, var, var_goship_ref_scale, argovis_ref_scale):
+# def convert_sea_water_temp(nc, var, var_goship_ref_scale, argovis_ref_scale):
 
-    # Check sea_water_temperature to have goship_reference_scale be ITS-90
+#     # Check sea_water_temperature to have goship_reference_scale be ITS-90
 
-    if var_goship_ref_scale == 'IPTS-68' and argovis_ref_scale == 'ITS-90':
+#     if var_goship_ref_scale == 'IPTS-68' and argovis_ref_scale == 'ITS-90':
 
-        # Convert to ITS-90 scal
-        temperature = nc[var].data
+#         # Convert to ITS-90 scal
+#         temperature = nc[var].data
 
-        converted_temperature = temperature/1.00024
+#         converted_temperature = temperature/1.00024
 
-        # Set nc var of temp to this value
-        try:
-            c_format = nc[var].attrs['C_format']
-            f_format = c_format.lstrip('%')
-            new_temperature = [float(f"{item:{f_format}}")
-                               for item in converted_temperature]
+#         # Set nc var of temp to this value
+#         try:
+#             c_format = nc[var].attrs['C_format']
+#             f_format = c_format.lstrip('%')
+#             new_temperature = [float(f"{item:{f_format}}")
+#                                for item in converted_temperature]
 
-        except:
-            # Use num decimal places of var
-            num_decimal_places = abs(
-                Decimal(str(temperature)).as_tuple().exponent)
+#         except:
+#             # Use num decimal places of var
+#             num_decimal_places = abs(
+#                 Decimal(str(temperature)).as_tuple().exponent)
 
-            new_temperature = round(converted_temperature, num_decimal_places)
+#             new_temperature = round(converted_temperature, num_decimal_places)
 
-        # Set temperature value in nc because use it later to
-        # create profile dict
-        nc[var].data = new_temperature
-        nc[var].attrs['reference_scale'] = 'ITS-90'
+#         # Set temperature value in nc because use it later to
+#         # create profile dict
+#         nc[var].data = new_temperature
+#         nc[var].attrs['reference_scale'] = 'ITS-90'
 
-    return nc
+#     return nc
 
 
-def convert_goship_to_argovis_ref_scale(nc):
+# def convert_goship_to_argovis_ref_scale(nc):
 
-    params = nc.keys()
+#     params = nc.keys()
 
-    # If argo ref scale not equal to goship ref scale, convert
+#     # If argo ref scale not equal to goship ref scale, convert
 
-    # So far, it's only the case for temperature
+#     # So far, it's only the case for temperature
 
-    # loop through variables and look at reference scale,
-    # if it is IPTS-68 then convert
+#     # loop through variables and look at reference scale,
+#     # if it is IPTS-68 then convert
 
-    argovis_ref_scale_per_type = gvm.get_argovis_reference_scale_per_type()
+#     argovis_ref_scale_per_type = gvm.get_argovis_reference_scale_per_type()
 
-    for var in params:
-        if 'temperature' in var:
+#     for var in params:
+#         if 'temperature' in var:
 
-            try:
-                # Get goship reference scale of var
-                var_goship_ref_scale = nc[var].attrs['reference_scale']
+#             try:
+#                 # Get goship reference scale of var
+#                 var_goship_ref_scale = nc[var].attrs['reference_scale']
 
-                argovis_ref_scale = argovis_ref_scale_per_type['temperature']
-                is_same_scale = var_goship_ref_scale == argovis_ref_scale
+#                 argovis_ref_scale = argovis_ref_scale_per_type['temperature']
+#                 is_same_scale = var_goship_ref_scale == argovis_ref_scale
 
-                if not is_same_scale:
-                    nc = convert_sea_water_temp(
-                        nc, var, var_goship_ref_scale, argovis_ref_scale)
-            except:
-                pass
+#                 if not is_same_scale:
+#                     nc = convert_sea_water_temp(
+#                         nc, var, var_goship_ref_scale, argovis_ref_scale)
+#             except:
+#                 pass
 
-    return nc
+#     return nc
 
 
-def apply_equations_and_ref_scale(nc):
+# def apply_equations_and_ref_scale(nc):
 
-    # Rename converted temperature later.
-    # Keep 68 in name and show it maps to temp_ctd
-    # and ref scale show what scale it was converted to
+#     # Rename converted temperature later.
+#     # Keep 68 in name and show it maps to temp_ctd
+#     # and ref scale show what scale it was converted to
 
-    # Converting to argovis ref scale if needed
-    nc = convert_goship_to_argovis_ref_scale(nc)
+#     # Converting to argovis ref scale if needed
+#     nc = convert_goship_to_argovis_ref_scale(nc)
 
-    # Apply equations to convert units
-    nc = convert_goship_to_argovis_units(nc)
+#     # Apply equations to convert units
+#     nc = convert_goship_to_argovis_units(nc)
+
+#     return nc
+
+class FormatFloat(float):
+    def __format__(self, format_spec):
+        return 'nan' if pd.isnull(self) else float.__format__(self, format_spec)
+
+
+def apply_c_format_param(nc, param_mapping):
+
+    float_types = ['float64', 'float32']
+
+    c_format_mapping = param_mapping['c_format']
+    dtype_mapping = param_mapping['dtype']
+
+    float_vars = [name for name,
+                  dtype in dtype_mapping.items() if dtype in float_types]
+
+    c_format_vars = [
+        name for name in c_format_mapping.keys() if name in float_vars]
+
+    def format_float(num, f_format):
+        return float(f"{FormatFloat(num):{f_format}}")
+
+    def apply_c_format(var, f_format):
+        vfunc = np.vectorize(format_float)
+        return vfunc(var, f_format)
+
+    def apply_c_format_xr(x, f_format, dtype):
+        return xr.apply_ufunc(
+            apply_c_format,
+            x,
+            f_format,
+            input_core_dims=[['N_PROF', 'N_LEVELS'], []],
+            output_core_dims=[['N_PROF', 'N_LEVELS']],
+            output_dtypes=[dtype],
+            keep_attrs=True
+        )
+
+    for var in c_format_vars:
+        c_format = c_format_mapping[var]
+        f_format = c_format.lstrip('%')
+        dtype = dtype_mapping[var]
+        nc[var] = apply_c_format_xr(nc[var], f_format, dtype)
 
     return nc
