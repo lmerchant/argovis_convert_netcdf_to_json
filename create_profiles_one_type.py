@@ -1,21 +1,11 @@
 # Create profiles for one type
 
-# from pandas.core.arrays import boolean
-import xarray as xr
+
 import pandas as pd
 import numpy as np
-# from decimal import Decimal
 import logging
-import re
-# import dask
-# import dask.bag as db
-# import dask.dataframe as dd
-# from dask import delayed
-# from dask.diagnostics import ResourceProfiler
 from datetime import datetime
-# from dask.diagnostics import ProgressBar
 from collections import defaultdict
-# from operator import itemgetter
 import itertools
 import os
 
@@ -223,16 +213,16 @@ def create_profiles_one_type(data_obj, logging_dir):
     # Add extra coordinates for ArgoVis metadata
     nc = proc_meta.add_extra_coords(nc, file_info)
 
-    # print(nc['ctd_salinity'].compute())
-    # exit(1)
-
     # TODO
     # Get formula for Oxygen unit conversion
     # Apply equations before rename
     nc = conv.apply_equations_and_ref_scale(nc)
 
     # Now check so see if there is a 'temp_{type}'  column and a corresponding
-    # qc col. 'temp_{type}_qc'. If not, add a 'temp' qc col. with values 0
+    # qc col. 'temp_{type}_qc'. If not, add a 'temp' qc col. with nan values
+    # to make it easier later when remove null rows. Later will set qc = 0
+    # when looking for temp_qc all nan. Add it here so it appears in var mappings
+
     nc = proc_param.add_qc_if_no_temp_qc(nc)
 
     # Create mapping object of goship names to nc attributes
@@ -315,32 +305,20 @@ def create_profiles_one_type(data_obj, logging_dir):
     logging.info('Remove empty rows')
 
     meta_dask = ddf_param.dtypes.to_dict()
-    # ddf_param = ddf_param.groupby("N_PROF").apply(
-    #     remove_empty_rows, meta=meta_dask)
 
     ddf_param = ddf_param.groupby("N_PROF").apply(
         remove_empty_rows_ver2, meta=meta_dask)
 
-    # data = [[2, 1, 'NaT', '', 4], [3, 2, 'NaT', '', np.NaN], [
-    #     4, 3, 'time1', '', 5], [5, 4, 'NaT', '', np.NaN], [6, 5, 'NaT', '', np.NaN]]
+    # Add back in temp_qc = 0 if column exists and all np.nan
+    try:
+        if ddf_param[f"temp_{type}_qc"].isnull().values.all():
+            ddf_param[f"temp_{type}_qc"] = ddf_param[f"temp_{type}_qc"].fillna(
+                0)
 
-    # df_test = pd.DataFrame(
-    #     data, columns=['N_PROF', 'index', 'time', 'empty', 'value'])
-
-    # df_test['station_cast'] = 'sta_cast'
-
-    # print('before')
-    # print(df_test)
-
-    # df_test = df_test.groupby("N_PROF").apply(remove_empty_rows_ver2)
-
-    # print(df_test)
+    except KeyError:
+        pass
 
     ddf_param = ddf_param.set_index('station_cast')
-
-    # TODO
-    # apply c_format while in pandas
-    # Can I apply it in xarray?
 
     df_param = ddf_param.compute()
 
@@ -348,8 +326,7 @@ def create_profiles_one_type(data_obj, logging_dir):
     df_param = df_param.reindex(sorted(df_param.columns), axis=1)
 
     logging.info('create all_meta profile')
-    all_meta_profiles = proc_meta.create_meta_profile(
-        ddf_meta, meta_mapping_argovis)
+    all_meta_profiles = proc_meta.create_meta_profile(ddf_meta)
 
     logging.info('create all_bgc profile')
     all_bgc_profiles = proc_param.create_bgc_profile(df_param)

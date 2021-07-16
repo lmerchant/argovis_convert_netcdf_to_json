@@ -39,12 +39,6 @@ def filter_btl_ctd_combined_measurements(btl_measurements, ctd_measurements, use
         if has_sal:
             del new_obj['salinity']
 
-        # has_elems = any([True if (pd.notnull(val) and key != 'pres')
-        #                 else False for key, val in new_obj.items()])
-
-        # if not has_elems:
-        #     new_obj = {}
-
         new_btl_measurements.append(new_obj)
 
     is_empty = all([not elem for elem in new_btl_measurements])
@@ -67,9 +61,6 @@ def filter_btl_ctd_combined_measurements(btl_measurements, ctd_measurements, use
             if key == 'psal' and not use_psal_ctd:
                 new_obj['psal'] = None
 
-        # has_elems = any([True if (pd.notnull(val) and key != 'pres')
-        #                 else False for key, val in new_obj.items()])
-
         # TODO
         # Remove or not empty objects that only have pressure?
         # if not has_elems:
@@ -81,8 +72,6 @@ def filter_btl_ctd_combined_measurements(btl_measurements, ctd_measurements, use
 
     if is_empty:
         new_ctd_measurements = []
-
-    #new_ctd_measurements = [obj for obj in new_ctd_measurements if obj]
 
     # If using no temp_btl, psal_btl, or salinity, btl, remove from list
 
@@ -105,6 +94,9 @@ def filter_btl_ctd_combined_measurements(btl_measurements, ctd_measurements, use
 
     measurements_sources = {}
     #measurements_source['source'] = flag
+
+    # TODO
+    # how do I know qc = 2?
 
     measurements_sources['qc'] = 2
     measurements_sources['use_temp_ctd'] = use_temp_ctd

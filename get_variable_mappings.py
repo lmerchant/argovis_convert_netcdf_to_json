@@ -75,7 +75,7 @@ def get_goship_argovis_measurements_mapping():
     }
 
 
-def get_goship_argovis_core_values_mapping(type):
+def get_goship_argovis_core_values_mapping_no_qc(type):
 
     return {
         'pressure': 'pres',
@@ -163,8 +163,8 @@ def get_goship_argovis_core_values_mapping(type):
         'ctd_temperature_68_qc': f'temp_{type}_qc',
         'ctd_oxygen': f'doxy_{type}',
         'ctd_oxygen_qc': f'doxy_{type}_qc',
-        'ctd_oxygen_ml_l': f'doxy',
-        'ctd_oxygen_ml_l_qc': f'doxy_qc',
+        'ctd_oxygen_ml_l': f'doxy_{type}',
+        'ctd_oxygen_ml_l_qc': f'doxy_qc_{type}',
         'bottle_salinity': f'salinity_{type}',
         'bottle_salinity_qc': f'salinity_{type}_qc',
         'latitude': 'lat',
@@ -376,37 +376,6 @@ def get_goship_mappings_param(nc):
 
     return param_mapping
 
-    # for var in nc.keys():
-    #     try:
-    #         param_units[var] = nc[var].attrs['units']
-    #     except:
-    #         param_units[var] = None
-
-    #     try:
-    #         param_ref_scale[var] = nc[var].attrs['reference_scale']
-    #     except:
-    #         param_ref_scale[var] = None
-
-    #     try:
-    #         param_c_format[var] = nc[var].attrs['C_format']
-    #     except:
-    #         param_c_format[var] = None
-
-    #     try:
-    #         param_dtype[var] = nc[var].dtype
-    #     except KeyError:
-    #         param_dtype[var] = None
-
-    # param_mapping['names'] = list(nc.keys())
-    # param_mapping['units'] = {key: val for key,
-    #                           val in param_units.items() if val}
-    # param_mapping['ref_scale'] = {
-    #     key: val for key, val in param_ref_scale.items() if val}
-    # param_mapping['c_format'] = {key: val for key,
-    #                              val in param_c_format.items() if val}
-    # param_mapping['dtype'] = {key: val for key,
-    #                           val in param_dtype.items() if val}
-
 
 def get_goship_mappings_meta(nc, meta_goship_names):
 
@@ -447,38 +416,6 @@ def get_goship_mappings_meta(nc, meta_goship_names):
     meta_mapping['dtype'] = meta_dtype
 
     return meta_mapping
-
-    # for var in nc.coords:
-    #     try:
-    #         meta_units[var] = nc[var].attrs['units']
-    #     except:
-    #         meta_units[var] = None
-
-    #     try:
-    #         meta_ref_scale[var] = nc[var].attrs['reference_scale']
-    #     except:
-    #         meta_ref_scale[var] = None
-
-    #     try:
-    #         meta_c_format[var] = nc[var].attrs['C_format']
-    #     except:
-    #         meta_c_format[var] = None
-
-    #     try:
-    #         meta_dtype[var] = nc[var].dtype
-    #     except KeyError:
-    #         meta_dtype[var] = None
-
-    # meta_mapping['units'] = {key: val for key,
-    #                          val in meta_units.items() if val}
-    # meta_mapping['ref_scale'] = {key: val for key,
-    #                              val in meta_ref_scale.items() if val}
-    # # meta_mapping['c_format'] = {key: val for key,
-    # #                             val in meta_c_format.items() if val and val != 'station_cast'}
-    # meta_mapping['c_format'] = {key: val for key,
-    #                             val in meta_c_format.items() if val}
-    # meta_mapping['dtype'] = {key: val for key,
-    #                          val in meta_dtype.items() if val}
 
 
 def create_goship_argovis_mapping(goship_names, type):

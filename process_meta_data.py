@@ -4,35 +4,9 @@ import xarray as xr
 import numpy as np
 import pandas as pd
 import logging
-from datetime import datetime
-from functools import partial
 
 
-def apply_c_format_to_num(name, num, dtype_mapping, c_format_mapping):
-
-    # Now get str in C_format. e.g. "%9.1f"
-    # dtype = mapping['dtype'][name]
-    # c_format = mapping['c_format'][name]
-
-    float_types = ['float64', 'float32']
-
-    try:
-
-        dtype = dtype_mapping[name]
-        c_format = c_format_mapping[name]
-
-        if dtype in float_types and c_format:
-            f_format = c_format.lstrip('%')
-            return float(f"{num:{f_format}}")
-
-        else:
-            return num
-
-    except:
-        return num
-
-
-def create_meta_profile(ddf_meta, meta_mapping_argovis):
+def create_meta_profile(ddf_meta):
 
     # With meta columns, pandas exploded them
     # for all levels. Only keep one Level
@@ -57,18 +31,6 @@ def create_meta_profile(ddf_meta, meta_mapping_argovis):
         val_df = val_df.drop(['station_cast', 'N_PROF', 'index'],  axis=1)
 
         meta_dict = val_df.to_dict('records')[0]
-
-        dtype_mapping = meta_mapping_argovis['dtype']
-        c_format_mapping = meta_mapping_argovis['c_format']
-
-        for name, value in meta_dict.items():
-
-            try:
-                new_val = apply_c_format_to_num(
-                    name, value, dtype_mapping, c_format_mapping)
-                meta_dict[name] = new_val
-            except KeyError:
-                pass
 
         lat = meta_dict['lat']
         lon = meta_dict['lon']
@@ -111,9 +73,6 @@ def create_geolocation_dict(lat, lon):
     geo_dict = {}
     geo_dict['coordinates'] = coordinates
     geo_dict['type'] = 'Point'
-
-    # geolocation_dict = {}
-    # geolocation_dict['geoLocation'] = geo_dict
 
     return geo_dict
 
@@ -199,8 +158,6 @@ def add_extra_coords(nc, file_info):
 
     nc = nc.assign_coords(station_cast=('N_PROF', station_cast))
 
-    #expocode_list = [expocode]*coord_length
-
     def create_id(x, y):
         station = str(x).zfill(3)
         cast = str(y).zfill(3)
@@ -273,32 +230,6 @@ def apply_c_format_meta(nc, meta_mapping):
         vfunc = np.vectorize(format_float)
         return vfunc(var, f_format)
 
-    # # Use apply_ufunc to meta
-    # def apply_c_format(var, f_format):
-    #     try:
-    #         new_var = np.array([float(f"{num:{f_format}}") for num in var])
-    #         return new_var
-    #     except:
-    #         return var
-
-        # partial(apply_c_format),
-        #x.chunk({'N_PROF': -1}),
-        # x.chunk(),
-
-    # def apply_c_format_xr(x, f_format, dtype):
-    #     return xr.apply_ufunc(
-    #         apply_c_format,
-    #         x.chunk({'N_PROF': -1}),
-    #         f_format,
-    #         input_core_dims=[['N_PROF'], []],
-    #         output_core_dims=[['N_PROF']],
-    #         vectorize=True,
-    #         dask='allowed',
-    #         output_dtypes=[dtype],
-    #         keep_attrs=True,
-    #         dask_gufunc_kwargs={'allowRechunk': True}
-    #     )
-
     def apply_c_format_xr(x, f_format, dtype):
         return xr.apply_ufunc(
             apply_c_format,
@@ -315,16 +246,5 @@ def apply_c_format_meta(nc, meta_mapping):
         f_format = c_format.lstrip('%')
         dtype = dtype_mapping[var]
         nc[var] = apply_c_format_xr(nc[var], f_format, dtype)
-
-    # for var in nc.coords:
-    #     dtype = dtype_mapping[var]
-    #     print(dtype)
-    #     try:
-    #         c_format = c_format_mapping[var]
-    #         f_format = c_format.lstrip('%')
-    #     except:
-    #         f_format = None
-
-    #nc[var] = apply_c_format_xr(nc[var], f_format, dtype)
 
     return nc

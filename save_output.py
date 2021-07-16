@@ -3,8 +3,6 @@
 import os
 import json
 import numpy as np
-import logging
-#import dask.bag as db
 
 
 def convert(o):
@@ -13,6 +11,9 @@ def convert(o):
         return np.float64(o)
 
     if isinstance(o, np.int8):
+        return int(o)
+
+    if isinstance(o, np.int64):
         return int(o)
 
 
@@ -53,8 +54,6 @@ def write_profile_goship_units(checked_ctd_variables, logging_dir):
 
 
 def prepare_profile_json(profile_dict):
-
-    #station_cast = profile_dict['stationCast']
 
     # TODO
     # If want to remove goshipNames list, do it here
@@ -115,7 +114,6 @@ def write_profile_json(json_dir, profile_dict):
     # TESTING
     # TODO Remove formatting when final
 
-    # TODO is  the following still true?
     # use convert function to change numpy int values into python int
     # Otherwise, not serializable
 
@@ -128,7 +126,6 @@ def save_profile_one_type(ctd_var_check, json_directory):
 
     has_all_ctd_vars = ctd_var_check['has_all_ctd_vars']
     type = ctd_var_check['type']
-    #station_cast = ctd_var_check['station_cast']
 
     profile = ctd_var_check['profile_checked']
     profile_dict = profile['profile_dict']
@@ -147,15 +144,10 @@ def save_all_profiles_one_type(checked_ctd_variables, json_directory):
 def save_one_btl_ctd_profile(ctd_var_check,  json_directory):
 
     has_all_ctd_vars = ctd_var_check['has_all_ctd_vars']
-    # has_ctd_vars_no_qc = ctd_var_check['has_ctd_vars_no_qc']
-    # has_ctd_vars_unk_ref_scale = ctd_var_check['has_ctd_temp_unk']
-    # type = ctd_var_check['type']
 
     profile = ctd_var_check['profile_checked']
 
     profile_dict = profile['profile_dict']
-    #station_cast = profile['station_cast']
-    #expocode = profile_dict['meta']['expocode']
 
     if has_all_ctd_vars['btl'] or has_all_ctd_vars['ctd']:
         write_profile_json(json_directory, profile_dict)
