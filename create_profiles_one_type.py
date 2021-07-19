@@ -58,12 +58,75 @@ def write_logs(all_meta_profiles, logging_dir):
                 f"Cruise: {cruise_expocode} File: {file_expocode}\n")
 
 
-def combine_profiles(meta_profiles, bgc_profiles, meas_profiles, meas_source_profiles, mapping_dict, type):
+def create_goship_argovis_mapping_profiles(
+        goship_meta_mapping, goship_param_mapping, argovis_meta_mapping, all_argovis_param_mapping, type):
+
+    all_mapping_profiles = []
+
+    for argovis_param_mapping in all_argovis_param_mapping:
+
+        new_mapping = {}
+
+        new_mapping['station_cast'] = argovis_param_mapping['station_cast']
+
+        all_goship_meta_names = goship_meta_mapping['names']
+        all_goship_param_names = goship_param_mapping['names']
+        all_goship_names = [*all_goship_meta_names, *all_goship_param_names]
+
+        all_argovis_meta_names = argovis_meta_mapping['names']
+        all_argovis_param_names = argovis_param_mapping['names']
+        all_argovis_names = [*all_argovis_meta_names, *all_argovis_param_names]
+
+        new_mapping['goshipNames'] = all_goship_names
+        new_mapping['argovisNames'] = all_argovis_names
+
+        core_goship_argovis_name_mapping = gvm.get_goship_argovis_name_mapping_per_type(
+            type)
+
+        name_mapping = {}
+        for var in all_goship_names:
+            try:
+                argovis_name = core_goship_argovis_name_mapping[var]
+                if argovis_name in all_argovis_names:
+                    name_mapping[var] = argovis_name
+                    continue
+            except KeyError:
+                pass
+
+            if var.endswith('_qc'):
+                argovis_name = f"{var}_{type}_qc"
+                if argovis_name in all_argovis_names:
+                    name_mapping[var] = argovis_name
+            else:
+                argovis_name = f"{var}_{type}"
+                if argovis_name in all_argovis_names:
+                    name_mapping[var] = argovis_name
+
+        new_mapping['goshipArgovisNameMapping'] = name_mapping
+
+        new_mapping['goshipReferenceScale'] = {
+            **goship_meta_mapping['ref_scale'], **goship_param_mapping['ref_scale']}
+
+        new_mapping['argovisReferenceScale'] = {
+            **argovis_meta_mapping['ref_scale'], **argovis_param_mapping['ref_scale']}
+
+        new_mapping['goshipUnits'] = {
+            **goship_meta_mapping['units'], **goship_param_mapping['units']}
+
+        new_mapping['argovisUnits'] = {
+            **argovis_meta_mapping['units'], **argovis_param_mapping['units']}
+
+        all_mapping_profiles.append(new_mapping)
+
+    return all_mapping_profiles
+
+
+def combine_profiles(meta_profiles, bgc_profiles, meas_profiles, meas_source_profiles, mapping_profiles, type):
 
     #  https://stackoverflow.com/questions/5501810/join-two-lists-of-dictionaries-on-a-single-key
 
     profile_dict = defaultdict(dict)
-    for elem in itertools.chain(meta_profiles, bgc_profiles,  meas_profiles, meas_source_profiles):
+    for elem in itertools.chain(meta_profiles, bgc_profiles,  meas_profiles, meas_source_profiles, mapping_profiles):
         profile_dict[elem['station_cast']].update(elem)
 
     all_profiles = []
@@ -71,8 +134,6 @@ def combine_profiles(meta_profiles, bgc_profiles, meas_profiles, meas_source_pro
         new_obj = {}
         new_obj['station_cast'] = key
         val['type'] = type
-        # Insert a mapping dict
-        val = {**val, **mapping_dict}
         # Add stationCast to the dict itself
         val['stationCast'] = key
         new_obj['profile_dict'] = val
@@ -82,46 +143,6 @@ def combine_profiles(meta_profiles, bgc_profiles, meas_profiles, meas_source_pro
 
 
 def remove_empty_rows(df):
-
-    #  TODO
-    # Can I make a map of where NaT, '' are
-    # Replace with NaN, and remove null rows
-    # Finally use map to replace NaT and '' values
-
-    # Count # of non empty elems in each row and save to new column
-    def count_elems(row):
-
-        result = [0 if pd.isnull(
-            cell) or cell == '' or cell == 'NaT' else 1 for cell in row]
-
-        return sum(result)
-
-    orig_cols = df.columns
-
-    df_columns = list(df.columns)
-    df_columns.remove('N_PROF')
-    df_columns.remove('station_cast')
-    df_columns.remove('index')
-    df_subset = df[df_columns]
-
-    new_df = df_subset.apply(count_elems, axis=1)
-
-    new_df.columns = ['num_elems']
-
-    df_end = pd.concat([df, new_df], axis=1)
-
-    # name last column so know what to delete
-    df_end.columns = [*df_end.columns[:-1], 'num_elems']
-
-    # Then drop rows where num_elems is 0
-    df_end = df_end.drop(df_end[df_end['num_elems'] == 0].index)
-
-    df_end = df_end[orig_cols]
-
-    return df_end
-
-
-def remove_empty_rows_ver2(df):
 
     df_copy = df.copy()
 
@@ -185,22 +206,30 @@ def create_profiles_one_type(data_obj, logging_dir):
 
     type = data_obj['type']
 
+    chunk_size = data_obj['chunk_size']
+
     logging.info('---------------------------')
     logging.info(f'Start processing {type} profiles')
     logging.info('---------------------------')
 
-    file_info = {}
-    file_info['type'] = type
-    file_info['filename'] = data_obj['filename']
-    file_info['data_path'] = data_obj['data_path']
-    file_info['cruise_expocode'] = data_obj['cruise_expocode']
-    file_info['cruise_id'] = data_obj['cruise_id']
-    file_info['woce_lines'] = data_obj['woce_lines']
-    file_info['file_hash'] = data_obj['file_hash']
-
     # ****** Modify nc and create mappings ********
 
     nc = data_obj['nc']
+
+    # *****************************************
+    # Rearrange xarray nc to put meta in coords
+    # and put parameters as vars
+    #
+    # Get mapping after this
+    #
+    # then add extra ArgoVis meta attributes to coords
+    #
+    # And if there is a ctd_temperature var
+    # but no qc (most bottle files), add a
+    # qc variable. Fill with NaN first and
+    # later change to be 0. Use NaN first to make
+    # dropping null rows easier.
+    # *****************************************
 
     # Move some vars to coordinates and drop some vars
     # Want metadata stored in coordinates and parameter
@@ -211,81 +240,83 @@ def create_profiles_one_type(data_obj, logging_dir):
     meta_goship_names = nc.coords
 
     # Add extra coordinates for ArgoVis metadata
-    nc = proc_meta.add_extra_coords(nc, file_info)
-
-    # TODO
-    # Get formula for Oxygen unit conversion
-    # Apply equations before rename
-    nc = conv.apply_equations_and_ref_scale(nc)
+    nc = proc_meta.add_extra_coords(nc, data_obj)
 
     # Now check so see if there is a 'temp_{type}'  column and a corresponding
     # qc col. 'temp_{type}_qc'. If not, add a 'temp' qc col. with nan values
     # to make it easier later when remove null rows. Later will set qc = 0
     # when looking for temp_qc all nan. Add it here so it appears in var mappings
-
     nc = proc_param.add_qc_if_no_temp_qc(nc)
 
     # Create mapping object of goship names to nc attributes
     # mapping obj: names (list), units (obj), ref_scale (obj)
     # c_format (obj), and dtype (obj)
-    meta_mapping = gvm.get_goship_mappings_meta(nc, meta_goship_names)
-    param_mapping = gvm.get_goship_mappings_param(nc)
+    goship_meta_mapping = gvm.get_goship_mappings_meta(nc, meta_goship_names)
+    goship_param_mapping = gvm.get_goship_mappings_param(nc)
 
-    # TODO
-    # Following could be a one-off error
+    # *********************************
+    # Convert units and reference scale
+    # *********************************
 
-    # Create mapping of goship to argovis names and attributes
-    # Can't do this yet using mapped argovis names because core vars
-    # can change per profile. Such as using a diff ref scale for one cast
-    # See expo_49K6KY9606_1_sta_021_cast_001.json
-    goship_argovis_mapping_for_profile = gvm.create_mapping_for_profile(
-        meta_mapping, param_mapping, type)
+    logging.info("Apply conversions")
 
-    # Rename goship variables to any in ArgoVis naming scheme
-    # Use to get dtype and c_format mapping later and want
-    # relative to ArgoVis names
-    meta_mapping_argovis = rn.rename_vars_to_argovis(meta_mapping)
+    # Apply units before change unit names
 
-    param_mapping_argovis_btl = rn.rename_vars_to_argovis_by_type(
-        param_mapping, 'btl')
-    param_mapping_argovis_ctd = rn.rename_vars_to_argovis_by_type(
-        param_mapping, 'ctd')
+    # Couldn't get apply_ufunc and gsw to work with dask
+    # So load it back to pure xarray
 
-    # Create mapping from goship_col names to argovis names
-    # and use to rename columns to argovis names
-    # Quicker to renamae columns than to change later after
-    # converted to objects
-    goship_argovis_col_mapping = gvm.create_meta_col_name_mapping(
-        list(nc.coords))
-    nc = nc.rename_vars(goship_argovis_col_mapping)
+    # Load nc from Dask for conversions calc
+    nc.load()
 
-    goship_argovis_col_mapping = gvm.create_param_col_name_mapping_w_type(
-        list(nc.keys()), type)
-    nc = nc.rename_vars(goship_argovis_col_mapping)
+    nc = conv.apply_conversions(nc, chunk_size)
 
-    # ****** Convert to Dask dataframe ********
+    # ****************************
+    # Apply C_format print format
+    # ****************************
 
-    # Removing rows in xarray is too slow with groupby
-    # since using a big loop. faster in pandas
+    logging.info("Apply c_format")
+
+    # Convert back to Dask
+    nc = nc.chunk({'N_PROF': chunk_size})
+
+    # When apply c_format, have to use entire
+    # array N_PROF size, but after chunk
+    # back to  starting size
+    nc = proc_meta.apply_c_format_meta_dask(
+        nc, chunk_size, goship_meta_mapping)
+
+    nc = proc_param.apply_c_format_param_dask(
+        nc, chunk_size, goship_param_mapping)
+
+    # **********************************
+    # Change unit names (no conversions)
+    # **********************************
+
+    nc = proc_meta.change_units_to_argovis(nc)
+
+    nc = proc_param.change_units_to_argovis(nc)
+
+    # **************************
+    # Rename varables to ArgoVis
+    # **************************
+
+    nc = rn.rename_to_argovis(nc, type)
+
+    # **********************
+    # Create ArgoVis Mapping
+    # **********************
+
+    argovis_meta_mapping = gvm.get_argovis_mappings_meta(nc)
+
+    argovis_param_mapping = gvm.get_argovis_mappings_param(nc)
+
+    # *************************
+    # Convert to Dask dataframe
+    # *************************
 
     # process metadata and parameter data separately
     meta_keys = list(nc.coords)
     param_keys = list(nc.keys())
-
-    # Apply compute to partially apply ufunc
-    # If keep as dask, it combines chunks
-    nc = nc.load()
-
-    nc = proc_meta.apply_c_format_meta(nc, meta_mapping_argovis)
-
-    if type == 'btl':
-        param_mapping = param_mapping_argovis_btl
-    elif type == 'ctd':
-        param_mapping = param_mapping_argovis_ctd
-
-    nc = proc_param.apply_c_format_param(nc, param_mapping)
-
-    # ------ Convert xarray to dask dataframe ----------
 
     # nc was read in with Dask xarray, so now save to dask dataframe
     ddf = nc.to_dask_dataframe(dim_order=['N_PROF', 'N_LEVELS'])
@@ -297,17 +328,20 @@ def create_profiles_one_type(data_obj, logging_dir):
     ddf_meta = ddf[meta_keys].copy()
     ddf_param = ddf[param_keys].copy()
 
-    # -----
+    logging.info('create all_meta profiles')
+    all_meta_profiles = proc_meta.create_meta_profile(ddf_meta)
 
-    ddf_param = ddf_param.reset_index()
-    ddf_param = ddf_param.drop('N_LEVELS', axis=1)
+    # ******************************************
+    # Remove empty rows so don't include in JSON
+    # ******************************************
 
     logging.info('Remove empty rows')
 
-    meta_dask = ddf_param.dtypes.to_dict()
+    ddf_param = ddf_param.drop('N_LEVELS', axis=1)
 
+    meta_dask = ddf_param.dtypes.to_dict()
     ddf_param = ddf_param.groupby("N_PROF").apply(
-        remove_empty_rows_ver2, meta=meta_dask)
+        remove_empty_rows, meta=meta_dask)
 
     # Add back in temp_qc = 0 if column exists and all np.nan
     try:
@@ -320,25 +354,53 @@ def create_profiles_one_type(data_obj, logging_dir):
 
     ddf_param = ddf_param.set_index('station_cast')
 
+    # ******************************************
+    # Convert from Dask to pure Pandas dataframe
+    # since working with dictionaries now
+    # *******************************************
+
     df_param = ddf_param.compute()
 
     # Sort columns so qc next to its var
     df_param = df_param.reindex(sorted(df_param.columns), axis=1)
 
-    logging.info('create all_meta profile')
-    all_meta_profiles = proc_meta.create_meta_profile(ddf_meta)
+    # *******************************
+    # Create all measurement profiles
+    # *******************************
 
-    logging.info('create all_bgc profile')
-    all_bgc_profiles = proc_param.create_bgc_profile(df_param)
-
-    logging.info('create all_meas profile')
+    logging.info('create all_meas profiles')
     all_meas_profiles, all_meas_source_profiles = proc_param.create_measurements_profile(
         df_param, type)
 
-    # Combine
+    # **********************************
+    # From df_param, filter out any vars
+    # with all null/empty values
+    #
+    # Create mapping profile for each
+    # filtered df_param profile
+    # **********************************
+
+    logging.info('create all_bgc profile and get filtered name mapping')
+    all_bgc_profiles, all_name_mapping = proc_param.create_bgc_profile(
+        df_param)
+
+    all_argovis_param_mapping = proc_param.filter_argovis_mapping(
+        argovis_param_mapping, all_name_mapping, type)
+
+    goship_argovis_mapping_profiles = create_goship_argovis_mapping_profiles(
+        goship_meta_mapping, goship_param_mapping, argovis_meta_mapping, all_argovis_param_mapping, type)
+
+    # ********************************************
+    # Combine all the profiles into one dictionary
+    # ********************************************
+
     logging.info('start combining profiles')
     all_profiles = combine_profiles(all_meta_profiles, all_bgc_profiles,
-                                    all_meas_profiles, all_meas_source_profiles, goship_argovis_mapping_for_profile, type)
+                                    all_meas_profiles, all_meas_source_profiles, goship_argovis_mapping_profiles, type)
+
+    # ***********************
+    # Write some info to logs
+    # ***********************
 
     write_logs(all_meta_profiles, logging_dir)
 

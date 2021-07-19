@@ -103,6 +103,7 @@ def read_file_test(data_obj):
 def read_file(data_obj):
 
     err_flag = ''
+    chunk_size = 20
 
     data_path = data_obj['data_path']
 
@@ -111,7 +112,7 @@ def read_file(data_obj):
     try:
         with fsspec.open(data_url) as fobj:
             nc = xr.open_dataset(fobj, engine='h5netcdf',
-                                 chunks={"N_PROF": 20})
+                                 chunks={"N_PROF": chunk_size})
 
     except Exception as e:
         logging.warning(f"Error reading in file {data_url}")
@@ -120,6 +121,7 @@ def read_file(data_obj):
         return data_obj, err_flag
 
     data_obj['nc'] = nc
+    data_obj['chunk_size'] = chunk_size
 
     return data_obj, err_flag
 
@@ -269,11 +271,11 @@ def main(start_year, end_year, append):
 
     else:
         # Loop through all cruises and grap NetCDF files
-        # all_cruises_info = gi.get_cruise_information(
-        #     session, logging_dir, start_datetime, end_datetime)
+        all_cruises_info = gi.get_cruise_information(
+            session, logging_dir, start_datetime, end_datetime)
 
-        cruise_info = gi.get_information_one_cruise_test(session)
-        all_cruises_info = [cruise_info]
+        # cruise_info = gi.get_information_one_cruise_test(session)
+        # all_cruises_info = [cruise_info]
 
         if not all_cruises_info:
             logging.info('No cruises within dates selected')
@@ -281,6 +283,9 @@ def main(start_year, end_year, append):
 
     read_error_count = 0
     data_file_read_errors = []
+
+    goship_collection = []
+    excluded_collection = []
 
     for cruise_info in all_cruises_info:
 
@@ -360,7 +365,7 @@ def main(start_year, end_year, append):
                 logging.info('----------------------')
                 sv.write_profile_goship_units(
                     checked_ctd_variables, logging_dir)
-                sv.save_all_btl_ctd_profiles(checked_ctd_variables,
+                sv.save_all_btl_ctd_profiles(checked_ctd_variables, goship_collection, excluded_collection,
                                              json_directory)
 
             else:
@@ -385,7 +390,7 @@ def main(start_year, end_year, append):
                 sv.write_profile_goship_units(
                     checked_ctd_variables, logging_dir)
                 sv.save_all_profiles_one_type(
-                    checked_ctd_variables, json_directory)
+                    checked_ctd_variables, goship_collection, excluded_collection, json_directory)
 
             else:
                 logging.info(
@@ -410,7 +415,7 @@ def main(start_year, end_year, append):
                     checked_ctd_variables, logging_dir)
 
                 sv.save_all_profiles_one_type(
-                    checked_ctd_variables, json_directory)
+                    checked_ctd_variables, goship_collection, excluded_collection, json_directory)
 
             else:
                 logging.info(
@@ -434,6 +439,13 @@ def main(start_year, end_year, append):
             logging.info('---------------------------')
 
             logging.info("*****************************\n")
+
+    # ***********************************
+    # Write included/excluded goship vars
+    # ***********************************
+
+    sv.save_included_excluded_goship_vars(
+        logging_dir, goship_collection, excluded_collection)
 
     if read_error_count:
         filename = 'file_read_errors.txt'

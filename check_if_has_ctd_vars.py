@@ -195,27 +195,27 @@ def check_ctd_vars_one_profile(profile, logging_dir):
         else:
             has_pres = False
 
-    try:
-        goship_argovis_name_mapping_btl = profile_dict['goshipArgovisNameMappingBtl']
-        goship_argovis_name_mapping_ctd = profile_dict['goshipArgovisNameMappingCtd']
-    except:
-        goship_argovis_name_mapping = profile_dict['goshipArgovisNameMapping']
+    # try:
+    #     goship_argovis_name_mapping_btl = profile_dict['goshipArgovisNameMappingBtl']
+    #     goship_argovis_name_mapping_ctd = profile_dict['goshipArgovisNameMappingCtd']
+    # except:
+    #     goship_argovis_name_mapping = profile_dict['goshipArgovisNameMapping']
 
     # Look for ctd_temperature
     try:
-        has_ctd_temp_btl = 'temp_btl' in goship_argovis_name_mapping_btl.values()
-        has_ctd_temp_ctd = 'temp_ctd' in goship_argovis_name_mapping_ctd.values()
+        has_ctd_temp_btl = 'temp_btl' in profile_dict['argovisNamesBtl']
+        has_ctd_temp_ctd = 'temp_ctd' in profile_dict['argovisNamesCtd']
     except:
-        has_ctd_temp_btl = 'temp_btl' in goship_argovis_name_mapping.values()
-        has_ctd_temp_ctd = 'temp_ctd' in goship_argovis_name_mapping.values()
+        has_ctd_temp_btl = 'temp_btl' in profile_dict['argovisNames']
+        has_ctd_temp_ctd = 'temp_ctd' in profile_dict['argovisNames']
 
     # Look for ctd_temperature with qc
     try:
-        has_ctd_temp_qc_btl = 'temp_btl_qc' in goship_argovis_name_mapping_btl.values()
-        has_ctd_temp_qc_ctd = 'temp_ctd_qc' in goship_argovis_name_mapping_ctd.values()
+        has_ctd_temp_qc_btl = 'temp_btl_qc' in profile_dict['argovisNamesBtl']
+        has_ctd_temp_qc_ctd = 'temp_ctd_qc' in profile_dict['argovisNamesCtd']
     except:
-        has_ctd_temp_qc_btl = 'temp_btl_qc' in goship_argovis_name_mapping.values()
-        has_ctd_temp_qc_ctd = 'temp_ctd_qc' in goship_argovis_name_mapping.values()
+        has_ctd_temp_qc_btl = 'temp_btl_qc' in profile_dict['argovisNames']
+        has_ctd_temp_qc_ctd = 'temp_ctd_qc' in profile_dict['argovisNames']
 
     # Look at ctd_temperature ref scale
     argovis_ref_scale = profile_dict['argovisReferenceScale']
@@ -224,8 +224,15 @@ def check_ctd_vars_one_profile(profile, logging_dir):
     has_ctd_temp_w_ref_scale_ctd = 'temp_ctd' in argovis_ref_scale.keys()
 
     # Look for ctd_temperature_unk (unknown ref scale)
-    has_ctd_temp_unk_btl = 'ctd_temperature_unk' in profile_dict['goshipNames']
-    has_ctd_temp_unk_ctd = 'ctd_temperature_unk' in profile_dict['goshipNames']
+    try:
+        has_ctd_temp_unk_btl = 'ctd_temperature_unk_btl' in profile_dict['argovisNamesBtl']
+    except KeyError:
+        has_ctd_temp_unk_btl = 'ctd_temperature_unk_btl' in profile_dict['argovisNames']
+
+    try:
+        has_ctd_temp_unk_ctd = 'ctd_temperature_unk_ctd' in profile_dict['argovisNamesCtd']
+    except KeyError:
+        has_ctd_temp_unk_ctd = 'ctd_temperature_unk_ctd' in profile_dict['argovisNames']
 
     # Summary of variables checked
     variables_check = {}

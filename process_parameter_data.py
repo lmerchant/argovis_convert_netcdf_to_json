@@ -9,6 +9,47 @@ from datetime import datetime
 
 import filter_measurements as fm
 import get_variable_mappings as gvm
+import rename_objects as rn
+
+
+def filter_argovis_mapping(argovis_param_mapping, all_name_mapping, type):
+
+    # Take param mapping and filter it to only  contain all_name_mapping
+    # for each station_cast
+
+    units = argovis_param_mapping['units']
+    ref_scale = argovis_param_mapping['ref_scale']
+    c_format = argovis_param_mapping['c_format']
+    dtype = argovis_param_mapping['dtype']
+
+    all_filtered_mappings = []
+
+    for name_mapping in all_name_mapping:
+
+        argovis_names = name_mapping['non_empty_cols']
+
+        new_mapping = {}
+
+        # ******************************
+        # filter names to non empty cols
+        # ******************************
+
+        new_mapping['station_cast'] = name_mapping['station_cast']
+
+        new_mapping['names'] = argovis_names
+
+        new_mapping['units'] = {key: val for key,
+                                val in units.items() if key in argovis_names}
+        new_mapping['ref_scale'] = {
+            key: val for key, val in ref_scale.items() if key in argovis_names}
+        new_mapping['c_format'] = {
+            key: val for key, val in c_format.items() if key in argovis_names}
+        new_mapping['dtype'] = {key: val for key,
+                                val in dtype.items() if key in argovis_names}
+
+        all_filtered_mappings.append(new_mapping)
+
+    return all_filtered_mappings
 
 
 def dtjson(o):
@@ -43,6 +84,39 @@ def process_bgc_group_lists(all_bgc):
     return all_bgc_profiles
 
 
+def remove_empty_cols(df):
+
+    # Delete columns with all null, empty, or 'NaT' values
+    null_cols = df.columns[df.isna().all()].tolist()
+
+    try:
+        empty_str_cols = [
+            *filter(lambda c: df[c].str.contains('').all(), df)]
+
+    except AttributeError:
+        empty_str_cols = []
+
+    try:
+        not_a_time_cols = [
+            *filter(lambda c: df[c].str.contains('NaT').all(), df)]
+
+    except AttributeError:
+        not_a_time_cols = []
+
+    cols_to_drop = [*null_cols, *empty_str_cols, *not_a_time_cols]
+
+    empty_cols_wo_qc = [col for col in cols_to_drop if '_qc' not in col]
+
+    drop_qc_cols = [
+        f"{col}_qc" for col in empty_cols_wo_qc if f"{col}_qc" in df.columns]
+
+    cols_to_drop.extend(drop_qc_cols)
+
+    df = df.drop(cols_to_drop, axis=1)
+
+    return df
+
+
 def create_bgc_group_lists(df_param):
 
     df_bgc = df_param
@@ -53,12 +127,23 @@ def create_bgc_group_lists(df_param):
     bgc_df_groups = dict(tuple(df_bgc.groupby('N_PROF')))
 
     all_bgc = []
+    all_name_mapping = []
 
     for key, val_df in bgc_df_groups.items():
 
         station_cast = val_df.index[0]
 
-        val_df = val_df.drop(['N_PROF', 'index'],  axis=1)
+        # val_df = val_df.drop(['N_PROF', 'index'],  axis=1)
+        val_df = val_df.drop(['N_PROF'],  axis=1)
+
+        # ***********************************************
+        # Remove cols and corresponding qc if data set is
+        # null, empty or 'NaT'
+        # ***********************************************
+
+        val_df = remove_empty_cols(val_df)
+
+        non_empty_cols = val_df.columns
 
         val_df = val_df.sort_values(by=['pres'])
 
@@ -69,16 +154,21 @@ def create_bgc_group_lists(df_param):
         bgc_obj['list'] = bgc_dict_list
         all_bgc.append(bgc_obj)
 
-    return all_bgc
+        name_mapping_obj = {}
+        name_mapping_obj['station_cast'] = station_cast
+        name_mapping_obj['non_empty_cols'] = non_empty_cols
+        all_name_mapping.append(name_mapping_obj)
+
+    return all_bgc, all_name_mapping
 
 
 def create_bgc_profile(df_param):
 
-    all_bgc = create_bgc_group_lists(df_param)
+    all_bgc, all_name_mapping = create_bgc_group_lists(df_param)
 
     all_bgc_profiles = process_bgc_group_lists(all_bgc)
 
-    return all_bgc_profiles
+    return all_bgc_profiles, all_name_mapping
 
 
 def create_measurements_profile(df_param, type):
@@ -365,6 +455,70 @@ def find_temp_qc_val(df, type):
     return qc
 
 
+# def remove_empty_vars(ddf):
+
+#     ddf['new_col'] = np.nan
+
+#     print(ddf.columns)
+
+#     ddf = ddf.groupby('N_PROF').apply(remove_empty_cols, meta=pd.DataFrame())
+
+#     print(ddf.columns)
+
+#     # # Delete columns with all null, empty, or 'NaT' values
+#     # null_cols = ddf.columns[ddf.isna().all()].tolist()
+
+#     # try:
+#     #     # for string cols
+#     #     empty_cols = [*filter(lambda c: ddf[c].str.contains('').all(), ddf)]
+
+#     #     not_a_time_cols = [
+#     #         *filter(lambda c: ddf[c].str.contains('NaT').all(), ddf)]
+
+#     #     print(empty_cols)
+#     #     print(not_a_time_cols)
+#     # except AttributeError:
+#     #     pass
+
+#     # print(null_cols)
+
+#     exit(1)
+
+
+def change_units_to_argovis(nc):
+
+    # Rename units (no conversion)
+
+    unit_name_mapping = gvm.get_goship_argovis_unit_name_mapping()
+    goship_unit_names = unit_name_mapping.keys()
+
+    # Get reference scale to determine if salinity because there
+    # can be a goship unit of '1' that is not salinity
+    salinity_ref_scale = 'PSS-78'
+
+    for var in nc.keys():
+
+        # Change salinity  unit
+        try:
+            var_ref_scale = nc[var].attrs['reference_scale']
+            var_units = nc[var].attrs['units']
+
+            if var_ref_scale == salinity_ref_scale and var_units == '1':
+                nc[var].attrs['units'] = 'psu'
+        except KeyError:
+            pass
+
+        # Change other units
+        try:
+            var_units = nc[var].attrs['units']
+            if var_units in goship_unit_names and var_units != 1:
+                nc[var].attrs['units'] = unit_name_mapping[var_units]
+        except KeyError:
+            pass
+
+    return nc
+
+
 def add_qc_if_no_temp_qc(nc):
 
     # Now check so see if there is a ctd temperature  column and a corresponding
@@ -441,5 +595,47 @@ def apply_c_format_param(nc, param_mapping):
         f_format = c_format.lstrip('%')
         dtype = dtype_mapping[var]
         nc[var] = apply_c_format_xr(nc[var], f_format, dtype)
+
+    return nc
+
+
+def apply_c_format_param_dask(nc, chunk_size, param_mapping):
+
+    float_types = ['float64', 'float32']
+
+    c_format_mapping = param_mapping['c_format']
+    dtype_mapping = param_mapping['dtype']
+
+    float_vars = [name for name,
+                  dtype in dtype_mapping.items() if dtype in float_types]
+
+    c_format_vars = [
+        name for name in c_format_mapping.keys() if name in float_vars]
+
+    def format_float(num, f_format):
+        return float(f"{FormatFloat(num):{f_format}}")
+
+    def apply_c_format(var, f_format):
+        vfunc = np.vectorize(format_float)
+        return vfunc(var, f_format)
+
+    def apply_c_format_xr(x, f_format, dtype):
+        return xr.apply_ufunc(
+            apply_c_format,
+            x.chunk({'N_PROF': -1}),
+            f_format,
+            input_core_dims=[['N_PROF', 'N_LEVELS'], []],
+            output_core_dims=[['N_PROF', 'N_LEVELS']],
+            output_dtypes=[dtype],
+            keep_attrs=True,
+            dask="parallelized"
+        )
+
+    for var in c_format_vars:
+        c_format = c_format_mapping[var]
+        f_format = c_format.lstrip('%')
+        dtype = dtype_mapping[var]
+        nc[var] = apply_c_format_xr(nc[var], f_format, dtype)
+        nc[var] = nc[var].chunk({'N_PROF': chunk_size})
 
     return nc

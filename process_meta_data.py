@@ -4,6 +4,10 @@ import xarray as xr
 import numpy as np
 import pandas as pd
 import logging
+import time
+
+
+import get_variable_mappings as gvm
 
 
 def create_meta_profile(ddf_meta):
@@ -13,22 +17,21 @@ def create_meta_profile(ddf_meta):
     # since they repeat
     logging.info('Get level = 0 meta rows')
 
+    # N_LEVELS is an index
     ddf_meta = ddf_meta[ddf_meta['N_LEVELS'] == 0]
-    ddf_meta = ddf_meta.reset_index()
-    ddf_meta = ddf_meta.drop('index', axis=1)
+
     ddf_meta = ddf_meta.drop('N_LEVELS', axis=1)
+
     df_meta = ddf_meta.compute()
 
     logging.info('create all_meta list')
     large_meta_dict = dict(tuple(df_meta.groupby('N_PROF')))
 
-    all_meta = []
     all_meta_profiles = []
     for key, val_df in large_meta_dict.items():
 
-        val_df = val_df.reset_index()
         station_cast = val_df['station_cast'].values[0]
-        val_df = val_df.drop(['station_cast', 'N_PROF', 'index'],  axis=1)
+        val_df = val_df.drop(['station_cast', 'N_PROF'],  axis=1)
 
         meta_dict = val_df.to_dict('records')[0]
 
@@ -40,22 +43,46 @@ def create_meta_profile(ddf_meta):
 
         meta_obj = {}
         meta_obj['station_cast'] = station_cast
-        meta_obj['dict'] = meta_dict
+        meta_obj['meta'] = meta_dict
 
-        all_meta.append(meta_obj)
+        all_meta_profiles.append(meta_obj)
 
-    logging.info('start create all_meta_profiles')
+    # all_meta_profiles = []
+    # for obj in all_meta:
 
-    all_meta_profiles = []
-    for obj in all_meta:
+    #     meta_profile = {}
+    #     meta_profile['station_cast'] = obj['station_cast']
+    #     meta_profile['meta'] = obj['dict']
 
-        meta_profile = {}
-        meta_profile['station_cast'] = obj['station_cast']
-        meta_profile['meta'] = obj['dict']
+    #     all_meta_profiles.append(meta_profile)
 
-        all_meta_profiles.append(meta_profile)
+    # print('*add meta profiles *')
+    # print(all_meta_profiles)
 
     return all_meta_profiles
+
+
+def change_units_to_argovis(nc):
+
+    # Rename units (no conversion)
+
+    unit_name_mapping = gvm.get_goship_argovis_unit_name_mapping()
+    goship_unit_names = unit_name_mapping.keys()
+
+    # No saliniity in coordinates so don't have to
+    # worry about units = 1 being salinity
+
+    for var in nc.coords:
+
+        # Change units if needed
+        try:
+            var_units = nc[var].attrs['units']
+            if var_units in goship_unit_names and var_units != 1:
+                nc[var].attrs['units'] = unit_name_mapping[var_units]
+        except KeyError:
+            pass
+
+    return nc
 
 
 def create_geolocation_dict(lat, lon):
@@ -77,20 +104,22 @@ def create_geolocation_dict(lat, lon):
     return geo_dict
 
 
-def add_extra_coords(nc, file_info):
+def add_extra_coords(nc, data_obj):
 
-    # Use cruise expocode because file one could be different than cruise page
-    # Drop existing expocode
-    # nc = nc.reset_coords(names=['expocode'], drop=True)
+    filename = data_obj['filename']
+    data_path = data_obj['data_path']
+    expocode = data_obj['cruise_expocode']
+    cruise_id = data_obj['cruise_id']
+    woce_lines = data_obj['woce_lines']
+    file_hash = data_obj['file_hash']
+
+    # *************************************************
+    # Use the cruise expocode rather than file expocode
+    # because cruise expocode points to the cruise page
+    # and the file expode can be different than the cruise value
+    # *************************************************
 
     nc = nc.rename({'expocode':  'file_expocode'})
-
-    filename = file_info['filename']
-    data_path = file_info['data_path']
-    expocode = file_info['cruise_expocode']
-    cruise_id = file_info['cruise_id']
-    woce_lines = file_info['woce_lines']
-    file_hash = file_info['file_hash']
 
     if '/' in expocode:
         expocode = expocode.replace('/', '_')
@@ -103,6 +132,12 @@ def add_extra_coords(nc, file_info):
         cruise_url = f"https://cchdo.ucsd.edu/cruise/{expocode}"
 
     data_url = f"https://cchdo.ucsd.edu{data_path}"
+
+    # *********************************************
+    # Add coords file_hash, cruise_id, woce_lines,
+    # POSITIONING_SYSTEM, DATA_CENTRE, cruise_url
+    # netcdf_url, data_filename, expocode
+    # *********************************************
 
     coord_length = nc.dims['N_PROF']
 
@@ -142,6 +177,12 @@ def add_extra_coords(nc, file_info):
     new_coord_np = np.array(new_coord_list, dtype=object)
     nc = nc.assign_coords(expocode=('N_PROF', new_coord_np))
 
+    # **************************************************
+    # Create station_cast identifier will use in program
+    # to keep track of profile groups.
+    # Also used to create unique profile id
+    # **************************************************
+
     # The station number is a string
     station_list = nc['station'].values
 
@@ -168,6 +209,10 @@ def add_extra_coords(nc, file_info):
     nc = nc.assign_coords(id=('N_PROF', id))
     nc = nc.assign_coords(_id=('N_PROF', id))
 
+    # **********************************
+    # Use dates instead of time variable
+    # **********************************
+
     # Convert times
     xr.apply_ufunc(lambda x: pd.to_datetime(x), nc['time'], dask='allowed')
 
@@ -183,8 +228,12 @@ def add_extra_coords(nc, file_info):
 
     nc = nc.assign_coords(date=('N_PROF', new_date))
 
-    # Drop time
+    # Drop time for ArgoVis. Wiil be using date value instead
     nc = nc.drop('time')
+
+    # **************************************
+    # Create ArgoVis lat/lon extra meta data
+    # **************************************
 
     latitude = nc['latitude'].values
     longitude = nc['longitude'].values
@@ -211,7 +260,9 @@ class FormatFloat(float):
 
 def apply_c_format_meta(nc, meta_mapping):
 
-    # apply c_format while in xarray
+    # apply c_format to float values to limit
+    # number of decimal places in the final JSON format
+
     float_types = ['float64', 'float32']
 
     c_format_mapping = meta_mapping['c_format']
@@ -226,6 +277,8 @@ def apply_c_format_meta(nc, meta_mapping):
     def format_float(val, f_format):
         return float(f"{FormatFloat(val):{f_format}}")
 
+    # TODO
+    # Do I need to vectorize?
     def apply_c_format(var, f_format):
         vfunc = np.vectorize(format_float)
         return vfunc(var, f_format)
@@ -246,5 +299,52 @@ def apply_c_format_meta(nc, meta_mapping):
         f_format = c_format.lstrip('%')
         dtype = dtype_mapping[var]
         nc[var] = apply_c_format_xr(nc[var], f_format, dtype)
+
+    return nc
+
+
+def apply_c_format_meta_dask(nc,  chunk_size, meta_mapping):
+
+    # apply c_format to float values to limit
+    # number of decimal places in the final JSON format
+
+    float_types = ['float64', 'float32']
+
+    c_format_mapping = meta_mapping['c_format']
+    dtype_mapping = meta_mapping['dtype']
+
+    float_vars = [name for name,
+                  dtype in dtype_mapping.items() if dtype in float_types]
+
+    c_format_vars = [
+        name for name in c_format_mapping.keys() if name in float_vars]
+
+    def format_float(val, f_format):
+        return float(f"{FormatFloat(val):{f_format}}")
+
+    # TODO
+    # Do I need to vectorize?
+    def apply_c_format(var, f_format):
+        vfunc = np.vectorize(format_float)
+        return vfunc(var, f_format)
+
+    def apply_c_format_xr(x, f_format, dtype):
+        return xr.apply_ufunc(
+            apply_c_format,
+            x.chunk({'N_PROF': -1}),
+            f_format,
+            input_core_dims=[['N_PROF'], []],
+            output_core_dims=[['N_PROF']],
+            output_dtypes=[dtype],
+            keep_attrs=True,
+            dask="parallelized"
+        )
+
+    for var in c_format_vars:
+        c_format = c_format_mapping[var]
+        f_format = c_format.lstrip('%')
+        dtype = dtype_mapping[var]
+        nc[var] = apply_c_format_xr(nc[var], f_format, dtype)
+        nc[var] = nc[var].chunk({'N_PROF': chunk_size})
 
     return nc

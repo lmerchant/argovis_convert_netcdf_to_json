@@ -10,7 +10,7 @@ import rename_objects as rn
 # and expand that
 
 
-def get_goship_salnity_reference_scale():
+def get_goship_salinity_reference_scale():
 
     return {
         'goship_ref_scale': 'PSS-78'
@@ -25,15 +25,20 @@ def get_argovis_reference_scale_per_type():
     }
 
 
-def get_goship_argovis_unit_mapping():
+def get_goship_argovis_unit_name_mapping():
 
     return {
         'dbar': 'decibar',
-        '1': 'psu',
         'degC': 'Celsius',
-        'umol/kg': 'micromole/kg',
-        'meters': 'meters',
-        'ml/l': 'micromole/kg'
+        'umol/kg': 'micromole/kg'
+    }
+
+
+def get_required_units():
+    return {
+        'pressure': 'decibar',
+        'oxygen': 'micromole/kg',
+        'temperature': 'Celcius'
     }
 
 
@@ -172,65 +177,65 @@ def get_goship_argovis_core_values_mapping(type):
     }
 
 
-def create_goship_c_format_mapping(nc):
+# def create_goship_c_format_mapping(nc):
 
-    meta_names, param_names = pmc.get_meta_param_names(nc)
+#     meta_names, param_names = pmc.get_meta_param_names(nc)
 
-    goship_c_format = {}
+#     goship_c_format = {}
 
-    for var in meta_names:
+#     for var in meta_names:
 
-        # Not all vars have c_format
-        try:
-            # Get goship c_format of var
-            var_goship_format = nc.coords[var].attrs['C_format']
-            goship_c_format[var] = var_goship_format
-        except:
-            pass
+#         # Not all vars have c_format
+#         try:
+#             # Get goship c_format of var
+#             var_goship_format = nc.coords[var].attrs['C_format']
+#             goship_c_format[var] = var_goship_format
+#         except:
+#             pass
 
-    for var in param_names:
+#     for var in param_names:
 
-        # Not all vars have c_format
-        try:
-            # Get goship c_format of var
-            var_goship_format = nc[var].attrs['C_format']
-            goship_c_format[var] = var_goship_format
-        except:
-            pass
+#         # Not all vars have c_format
+#         try:
+#             # Get goship c_format of var
+#             var_goship_format = nc[var].attrs['C_format']
+#             goship_c_format[var] = var_goship_format
+#         except:
+#             pass
 
-    return goship_c_format
+#     return goship_c_format
 
 
-def create_goship_unit_mapping(nc):
+# def create_goship_unit_mapping(nc):
 
-    meta_names, param_names = pmc.get_meta_param_names(nc)
+#     meta_names, param_names = pmc.get_meta_param_names(nc)
 
-    goship_units = {}
+#     goship_units = {}
 
-    # TODO
-    # What about bottom depth?
+#     # TODO
+#     # What about bottom depth?
 
-    for var in meta_names:
+#     for var in meta_names:
 
-        # Not all vars have units
-        try:
-            # Get goship units of var
-            var_goship_unit = nc.coords[var].attrs['units']
-            goship_units[var] = var_goship_unit
-        except:
-            pass
+#         # Not all vars have units
+#         try:
+#             # Get goship units of var
+#             var_goship_unit = nc.coords[var].attrs['units']
+#             goship_units[var] = var_goship_unit
+#         except:
+#             pass
 
-    for var in param_names:
+#     for var in param_names:
 
-        # Not all vars have units
-        try:
-            # Get goship units of var
-            var_goship_unit = nc[var].attrs['units']
-            goship_units[var] = var_goship_unit
-        except:
-            pass
+#         # Not all vars have units
+#         try:
+#             # Get goship units of var
+#             var_goship_unit = nc[var].attrs['units']
+#             goship_units[var] = var_goship_unit
+#         except:
+#             pass
 
-    return goship_units
+#     return goship_units
 
 
 def get_argovis_ref_scale_mapping(goship_names, type):
@@ -336,7 +341,48 @@ def create_param_col_name_mapping_w_type(cols, type):
     return col_mapping
 
 
-def get_goship_mappings_param(nc):
+def get_argovis_mappings_meta(nc, meta_goship_names):
+
+    meta_mapping = {}
+
+    meta_units = {}
+    meta_ref_scale = {}
+    meta_c_format = {}
+    meta_dtype = {}
+
+    # Meta: Save units, ref_scale, c_format, dtype
+    for var in nc.coords:
+
+        try:
+            meta_units[var] = nc[var].attrs['units']
+        except KeyError:
+            pass
+
+        try:
+            meta_ref_scale[var] = nc[var].attrs['reference_scale']
+        except KeyError:
+            pass
+
+        try:
+            meta_c_format[var] = nc[var].attrs['C_format']
+        except KeyError:
+            pass
+
+        try:
+            meta_dtype[var] = nc[var].dtype
+        except KeyError:
+            pass
+
+    meta_mapping['names'] = meta_goship_names
+    meta_mapping['units'] = meta_units
+    meta_mapping['ref_scale'] = meta_ref_scale
+    meta_mapping['c_format'] = meta_c_format
+    meta_mapping['dtype'] = meta_dtype
+
+    return meta_mapping
+
+
+def get_argovis_mappings_param(nc):
 
     param_mapping = {}
 
@@ -354,7 +400,8 @@ def get_goship_mappings_param(nc):
             pass
 
         try:
-            param_ref_scale[var] = nc[var].attrs['reference_scale']
+            if nc[var].attrs['reference_scale'] != 'unknown':
+                param_ref_scale[var] = nc[var].attrs['reference_scale']
         except KeyError:
             pass
 
@@ -375,6 +422,89 @@ def get_goship_mappings_param(nc):
     param_mapping['dtype'] = param_dtype
 
     return param_mapping
+
+
+def get_goship_mappings_param(nc):
+
+    param_mapping = {}
+
+    param_units = {}
+    param_ref_scale = {}
+    param_c_format = {}
+    param_dtype = {}
+
+    # Param: Save units, ref_scale, and c_format, dtype
+
+    for var in nc.keys():
+        try:
+            param_units[var] = nc[var].attrs['units']
+        except KeyError:
+            pass
+
+        try:
+            if nc[var].attrs['reference_scale'] != 'unknown':
+                param_ref_scale[var] = nc[var].attrs['reference_scale']
+        except KeyError:
+            pass
+
+        try:
+            param_c_format[var] = nc[var].attrs['C_format']
+        except KeyError:
+            pass
+
+        try:
+            param_dtype[var] = nc[var].dtype
+        except KeyError:
+            pass
+
+    param_mapping['names'] = list(nc.keys())
+    param_mapping['units'] = param_units
+    param_mapping['ref_scale'] = param_ref_scale
+    param_mapping['c_format'] = param_c_format
+    param_mapping['dtype'] = param_dtype
+
+    return param_mapping
+
+
+def get_argovis_mappings_meta(nc):
+
+    meta_mapping = {}
+
+    meta_units = {}
+    meta_ref_scale = {}
+    meta_c_format = {}
+    meta_dtype = {}
+
+    # Meta: Save units, ref_scale, c_format, dtype
+    for var in nc.coords:
+
+        try:
+            meta_units[var] = nc[var].attrs['units']
+        except KeyError:
+            pass
+
+        try:
+            meta_ref_scale[var] = nc[var].attrs['reference_scale']
+        except KeyError:
+            pass
+
+        try:
+            meta_c_format[var] = nc[var].attrs['C_format']
+        except KeyError:
+            pass
+
+        try:
+            meta_dtype[var] = nc[var].dtype
+        except KeyError:
+            pass
+
+    meta_mapping['names'] = list(nc.coords)
+    meta_mapping['units'] = meta_units
+    meta_mapping['ref_scale'] = meta_ref_scale
+    meta_mapping['c_format'] = meta_c_format
+    meta_mapping['dtype'] = meta_dtype
+
+    return meta_mapping
 
 
 def get_goship_mappings_meta(nc, meta_goship_names):
@@ -484,6 +614,11 @@ def create_mapping_for_profile(meta_mapping, param_mapping, type):
     mapping_dict['goshipUnits'] = goship_units
     mapping_dict['goshipCformat'] = goship_c_format
 
-    mapping_dict['goshipArgovisUnitsMapping'] = get_goship_argovis_unit_mapping()
+    # TODO
+    # Only include units found in goshipUnits
+    unit_mapping = get_goship_argovis_unit_name_mapping()
+
+    mapping_dict['goshipArgovisUnitsMapping'] = {
+        key: val for key, val in unit_mapping.items() if key in goship_units.values()}
 
     return mapping_dict

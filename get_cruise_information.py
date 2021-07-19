@@ -141,14 +141,14 @@ def get_information_one_cruise_test(session):
     # btl file
     # many params
     # no temp_qc
-    # expocode = '325020210420'
-    # file_id = 19429
+    expocode = '325020210420'
+    file_id = 19429
 
     # ctd file
     # doxy in ctd_oxygen_ml_l
     # doxy not given a suffix
-    expocode = '06PO20110601'
-    file_id = 18620
+    # expocode = '06PO20110601'
+    # file_id = 18620
 
     # ctd file
     # has both ctd temp and ctd temp 68
