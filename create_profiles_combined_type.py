@@ -16,29 +16,105 @@ def combine_btl_ctd_measurements(btl_measurements, ctd_measurements):
     return combined_btl_ctd_measurements, measurements_source, measurements_source_qc
 
 
+def combine_mapping_per_profile_btl_ctd(combined_btl_ctd_dict, btl_dict, ctd_dict):
+
+    # *******************************
+    # Create combined mapping profile
+    # *******************************
+
+    # May have case where bot dict or ctd dict doesn't exist for same profile
+    # But they have the same station_cast
+
+    # All profiles have a profile and station_cast key but
+    # profile_dict may be empty
+
+    if btl_dict and not ctd_dict:
+        combined_btl_ctd_dict['argovisMetaNames'] = btl_dict['argovisMetaNames']
+        combined_btl_ctd_dict['argovisParamNames'] = btl_dict['argovisParamNames']
+        combined_btl_ctd_dict['argovisReferenceScale'] = btl_dict['argovisReferenceScale']
+        combined_btl_ctd_dict['argovisUnits'] = btl_dict['argovisUnits']
+
+        combined_btl_ctd_dict['goshipMetaNames'] = btl_dict['goshipMetaNames']
+        combined_btl_ctd_dict['goshipParamNames'] = btl_dict['goshipParamNames']
+        combined_btl_ctd_dict['goshipArgovisMetaMapping'] = btl_dict['goshipArgovisMetaMapping']
+        combined_btl_ctd_dict['goshipArgovisParamMapping'] = btl_dict['goshipArgovisParamMapping']
+        combined_btl_ctd_dict['goshipReferenceScale'] = btl_dict['goshipReferenceScale']
+        combined_btl_ctd_dict['goshipUnits'] = btl_dict['goshipUnits']
+
+    if ctd_dict and not btl_dict:
+        combined_btl_ctd_dict['argovisMetaNames'] = ctd_dict['argovisMetaNames']
+        combined_btl_ctd_dict['argovisParamNames'] = ctd_dict['argovisParamNames']
+        combined_btl_ctd_dict['argovisReferenceScale'] = ctd_dict['argovisReferenceScale']
+        combined_btl_ctd_dict['argovisUnits'] = ctd_dict['argovisUnits']
+
+        combined_btl_ctd_dict['goshipMetaNames'] = ctd_dict['goshipMetaNames']
+        combined_btl_ctd_dict['goshipParamNames'] = ctd_dict['goshipParamNames']
+        combined_btl_ctd_dict['goshipArgovisMetaMapping'] = ctd_dict['goshipArgovisMetaMapping']
+        combined_btl_ctd_dict['goshipArgovisParamMapping'] = ctd_dict['goshipArgovisParamMapping']
+        combined_btl_ctd_dict['goshipReferenceScale'] = ctd_dict['goshipReferenceScale']
+        combined_btl_ctd_dict['goshipUnits'] = ctd_dict['goshipUnits']
+
+    if btl_dict and ctd_dict:
+
+        # Put suffix of '_btl' in  bottle meta
+
+        # Remove _btl variables that are the same as CTD
+        btl_exclude = set(['expocode', 'cruise_url', 'DATA_CENTRE'])
+
+        argovis_meta_names_btl_subset = list(
+            set(btl_dict['argovisMetaNames']).difference(btl_exclude))
+
+        goship_argovis_meta_mapping_btl = btl_dict['goshipArgovisMetaMapping']
+        goship_argovis_meta_mapping_btl = {
+            key: val for key, val in goship_argovis_meta_mapping_btl.items() if val in argovis_meta_names_btl_subset}
+
+        combined_btl_ctd_dict['goshipMetaNamesBtl'] = btl_dict['goshipMetaNames']
+        combined_btl_ctd_dict['goshipMetaNamesCtd'] = ctd_dict['goshipMetaNames']
+
+        combined_btl_ctd_dict['goshipParamNamesBtl'] = btl_dict['goshipParamNames']
+        combined_btl_ctd_dict['goshipParamNamesCtd'] = ctd_dict['goshipParamNames']
+
+        combined_btl_ctd_dict['goshipArgovisMetaMappingBtl'] = goship_argovis_meta_mapping_btl
+        combined_btl_ctd_dict['goshipArgovisMetaMappingCtd'] = ctd_dict['goshipArgovisMetaMapping']
+
+        combined_btl_ctd_dict['goshipArgovisParamMappingBtl'] = btl_dict['goshipArgovisParamMapping']
+        combined_btl_ctd_dict['goshipArgovisParamMappingCtd'] = ctd_dict['goshipArgovisParamMapping']
+
+        combined_btl_ctd_dict['goshipReferenceScaleBtl'] = btl_dict['goshipReferenceScale']
+        combined_btl_ctd_dict['goshipReferenceScaleCtd'] = ctd_dict['goshipReferenceScale']
+
+        combined_btl_ctd_dict['goshipUnitsBtl'] = btl_dict['goshipUnits']
+        combined_btl_ctd_dict['goshipUnitsCtd'] = ctd_dict['goshipUnits']
+
+        argovis_meta_names = [*ctd_dict['argovisMetaNames'],
+                              *btl_dict['argovisMetaNames']]
+
+        argovis_param_names = [*ctd_dict['argovisParamNames'],
+                               *btl_dict['argovisParamNames']]
+
+        combined_btl_ctd_dict['argovisMetaNames'] = argovis_meta_names
+        combined_btl_ctd_dict['argovisParamNames'] = argovis_param_names
+
+        argovis_ref_scale_mapping = {
+            **ctd_dict['argovisReferenceScale'], **btl_dict['argovisReferenceScale']}
+
+        argovis_units_mapping = {
+            **ctd_dict['argovisUnits'], **btl_dict['argovisUnits']}
+
+        combined_btl_ctd_dict['argovisReferenceScale'] = argovis_ref_scale_mapping
+        combined_btl_ctd_dict['argovisUnits'] = argovis_units_mapping
+
+    return combined_btl_ctd_dict
+
+
 def combine_output_per_profile_btl_ctd(btl_profile, ctd_profile):
 
-    btl_meta = {}
-    btl_bgc_meas = []
-    btl_measurements = []
-    goship_names_btl = []
-    goship_argovis_name_mapping_btl = {}
-    goship_ref_scale_mapping_btl = {}
-    argovis_ref_scale_btl = {}
-    goship_units_btl = {}
-    goship_argovis_units_btl = {}
-
-    ctd_meta = {}
-    ctd_bgc_meas = []
-    ctd_measurements = []
-    goship_names_ctd = []
-    goship_argovis_name_mapping_ctd = {}
-    goship_ref_scale_mapping_ctd = {}
-    argovis_ref_scale_ctd = {}
-    goship_units_ctd = {}
-    goship_argovis_units_ctd = {}
+    # For a combined dict, station_cast same for btl and ctd
+    station_cast = btl_profile['station_cast']
 
     combined_btl_ctd_dict = {}
+    combined_btl_ctd_dict['type'] = 'btl_ctd'
+    combined_btl_ctd_dict['stationCast'] = station_cast
 
     # May have case where bot dict or ctd dict doesn't exist for same profile
     # But they have the same station_cast
@@ -49,81 +125,42 @@ def combine_output_per_profile_btl_ctd(btl_profile, ctd_profile):
     btl_dict = btl_profile['profile_dict']
     ctd_dict = ctd_profile['profile_dict']
 
-    station_cast = btl_profile['station_cast']
+    btl_meta = {}
+    ctd_meta = {}
 
-    # For a combined dict, station_cast same for btl and ctd
-    combined_btl_ctd_dict['type'] = 'btl_ctd'
-    combined_btl_ctd_dict['stationCast'] = station_cast
+    btl_measurements = []
+    ctd_measurements = []
+
+    btl_bgc_meas = []
+    ctd_bgc_meas = []
 
     if btl_dict:
-
         btl_meta = btl_dict['meta']
-
         btl_bgc_meas = btl_dict['bgcMeas']
         btl_measurements = btl_dict['measurements']
 
-        goship_argovis_name_mapping_btl = btl_dict['goshipArgovisNameMapping']
-
-        goship_names_btl = btl_dict['goshipNames']
-        goship_ref_scale_mapping_btl = btl_dict['goshipReferenceScale']
-        argovis_ref_scale_btl = btl_dict['argovisReferenceScale']
-        goship_units_btl = btl_dict['goshipUnits']
-        goship_argovis_units_btl = btl_dict['goshipArgovisUnitsMapping']
-
     if ctd_dict:
-
         ctd_meta = ctd_dict['meta']
-
         ctd_bgc_meas = ctd_dict['bgcMeas']
         ctd_measurements = ctd_dict['measurements']
-
-        goship_argovis_name_mapping_ctd = ctd_dict['goshipArgovisNameMapping']
-
-        goship_names_ctd = ctd_dict['goshipNames']
-        goship_ref_scale_mapping_ctd = ctd_dict['goshipReferenceScale']
-        argovis_ref_scale_ctd = ctd_dict['argovisReferenceScale']
-        goship_units_ctd = ctd_dict['goshipUnits']
-        goship_argovis_units_ctd = ctd_dict['goshipArgovisUnitsMapping']
 
     if btl_dict and ctd_dict:
 
         # Put suffix of '_btl' in  bottle meta
+        # Remove _btl variables that are the same as CTD
+        btl_exclude = set(['expocode', 'cruise_url', 'DATA_CENTRE'])
+
+        for item in btl_exclude:
+            if item in btl_meta:
+                btl_meta.pop(item)
+
         btl_meta = rn.rename_btl_by_key_meta(btl_meta)
 
-        # Add extension of '_btl' to lat/lon and cast in name mapping
-        new_obj = {}
-        for key, val in goship_argovis_name_mapping_btl.items():
-            if val == 'lat':
-                new_obj[key] = 'lat_btl'
-            elif val == 'lon':
-                new_obj[key] = 'lon_btl'
-            else:
-                new_obj[key] = val
-
-        goship_argovis_name_mapping_btl = new_obj
-
-        # Remove _btl variables that are the same as CTD
-        btl_meta.pop('expocode_btl', None)
-        btl_meta.pop('cruise_url_btl', None)
-        btl_meta.pop('DATA_CENTRE_btl', None)
-
     meta = {**ctd_meta, **btl_meta}
-
     bgc_meas = [*ctd_bgc_meas, *btl_bgc_meas]
 
     measurements, measurements_source, measurements_source_qc = combine_btl_ctd_measurements(
         btl_measurements, ctd_measurements)
-
-    goship_names = [*goship_names_btl, *goship_names_ctd]
-
-    goship_ref_scale_mapping = {
-        **goship_ref_scale_mapping_ctd, **goship_ref_scale_mapping_btl}
-
-    argovis_reference_scale = {
-        **argovis_ref_scale_ctd, **argovis_ref_scale_btl}
-
-    goship_argovis_units_mapping = {
-        **goship_argovis_units_ctd, **goship_argovis_units_btl}
 
     combined_btl_ctd_dict['meta'] = meta
     combined_btl_ctd_dict['bgcMeas'] = bgc_meas
@@ -131,29 +168,8 @@ def combine_output_per_profile_btl_ctd(btl_profile, ctd_profile):
     combined_btl_ctd_dict['measurementsSource'] = measurements_source
     combined_btl_ctd_dict['measurementsSourceQC'] = measurements_source_qc
 
-    if goship_argovis_name_mapping_btl and goship_argovis_name_mapping_ctd:
-        combined_btl_ctd_dict['goshipArgovisNameMappingBtl'] = goship_argovis_name_mapping_btl
-        combined_btl_ctd_dict['goshipArgovisNameMappingCtd'] = goship_argovis_name_mapping_ctd
-
-    elif goship_argovis_name_mapping_btl:
-        combined_btl_ctd_dict['goshipArgovisNameMapping'] = goship_argovis_name_mapping_btl
-
-    elif goship_argovis_name_mapping_ctd:
-        combined_btl_ctd_dict['goshipArgovisNameMapping'] = goship_argovis_name_mapping_ctd
-
-    combined_btl_ctd_dict['goshipReferenceScale'] = goship_ref_scale_mapping
-    combined_btl_ctd_dict['argovisReferenceScale'] = argovis_reference_scale
-    combined_btl_ctd_dict['goshipArgovisUnitsMapping'] = goship_argovis_units_mapping
-
-    combined_btl_ctd_dict['goshipNames'] = goship_names
-
-    if goship_units_btl and goship_units_ctd:
-        combined_btl_ctd_dict['goshipUnitsBtl'] = goship_units_btl
-        combined_btl_ctd_dict['goshipUnitsCtd'] = goship_units_ctd
-    elif goship_units_btl:
-        combined_btl_ctd_dict['goshipUnits'] = goship_units_btl
-    elif goship_units_ctd:
-        combined_btl_ctd_dict['goshipUnits'] = goship_units_ctd
+    combined_btl_ctd_dict = combine_mapping_per_profile_btl_ctd(combined_btl_ctd_dict,
+                                                                btl_dict, ctd_dict)
 
     combined_profile = {}
     combined_profile['profile_dict'] = combined_btl_ctd_dict
@@ -163,6 +179,12 @@ def combine_output_per_profile_btl_ctd(btl_profile, ctd_profile):
 
 
 def get_same_station_cast_profile_btl_ctd(btl_profiles, ctd_profiles):
+
+    # Want to group  on station_cast, so if number
+    # of station_cast combinations is not the same,
+    # Set a station_cast for that empty profile  so
+    # that the number of station_cast values is the
+    # same for btl and ctd.
 
     station_casts_btl = [btl_profile['station_cast']
                          for btl_profile in btl_profiles]

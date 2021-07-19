@@ -103,6 +103,7 @@ def read_file_test(data_obj):
 def read_file(data_obj):
 
     err_flag = ''
+    chunk_size = 20
 
     data_path = data_obj['data_path']
 
@@ -111,7 +112,7 @@ def read_file(data_obj):
     try:
         with fsspec.open(data_url) as fobj:
             nc = xr.open_dataset(fobj, engine='h5netcdf',
-                                 chunks={"N_PROF": 20})
+                                 chunks={"N_PROF": chunk_size})
 
     except Exception as e:
         logging.warning(f"Error reading in file {data_url}")
@@ -120,6 +121,7 @@ def read_file(data_obj):
         return data_obj, err_flag
 
     data_obj['nc'] = nc
+    data_obj['chunk_size'] = chunk_size
 
     return data_obj, err_flag
 
@@ -191,6 +193,9 @@ def setup_logging(append_logs):
     logging_dir = './logging'
     os.makedirs(logging_dir, exist_ok=True)
 
+    included_excluded_dir = './logging/included_excluded'
+    os.makedirs(included_excluded_dir, exist_ok=True)
+
     if not append_logs:
         remove_file('output.log', logging_dir)
         remove_file('file_read_errors.txt', logging_dir)
@@ -220,7 +225,8 @@ def setup_logging(append_logs):
     console.setFormatter(formatter)
     logging.getLogger("").addHandler(console)
 
-    return logging_dir, logging
+    # return logging_dir, logging
+    return logging_dir, included_excluded_dir
 
 
 @ click.command()
@@ -231,7 +237,9 @@ def main(start_year, end_year, append):
 
     program_start_time = datetime.now()
 
-    logging_dir, logging = setup_logging(append)
+    #logging_dir, logging = setup_logging(append)
+    logging_dir, included_excluded_dir = setup_logging(append)
+
     logging.info(f"Converting years Jan 1, {start_year} to Dec 31, {end_year}")
 
     start_datetime = datetime(start_year, 1, 1)
@@ -268,12 +276,12 @@ def main(start_year, end_year, append):
         ctd_found = test_ctd_obj['found']
 
     else:
-        # Loop through all cruises and grap NetCDF files
-        # all_cruises_info = gi.get_cruise_information(
-        #     session, logging_dir, start_datetime, end_datetime)
+        # # Loop through all cruises and grap NetCDF files
+        all_cruises_info = gi.get_cruise_information(
+            session, logging_dir, start_datetime, end_datetime)
 
-        cruise_info = gi.get_information_one_cruise_test(session)
-        all_cruises_info = [cruise_info]
+        # cruise_info = gi.get_information_one_cruise_test(session)
+        # all_cruises_info = [cruise_info]
 
         if not all_cruises_info:
             logging.info('No cruises within dates selected')
@@ -281,6 +289,9 @@ def main(start_year, end_year, append):
 
     read_error_count = 0
     data_file_read_errors = []
+
+    goship_collection = []
+    excluded_collection = []
 
     for cruise_info in all_cruises_info:
 
@@ -360,7 +371,7 @@ def main(start_year, end_year, append):
                 logging.info('----------------------')
                 sv.write_profile_goship_units(
                     checked_ctd_variables, logging_dir)
-                sv.save_all_btl_ctd_profiles(checked_ctd_variables,
+                sv.save_all_btl_ctd_profiles(checked_ctd_variables, goship_collection, excluded_collection,
                                              json_directory)
 
             else:
@@ -385,7 +396,7 @@ def main(start_year, end_year, append):
                 sv.write_profile_goship_units(
                     checked_ctd_variables, logging_dir)
                 sv.save_all_profiles_one_type(
-                    checked_ctd_variables, json_directory)
+                    checked_ctd_variables, goship_collection, excluded_collection, json_directory)
 
             else:
                 logging.info(
@@ -410,7 +421,7 @@ def main(start_year, end_year, append):
                     checked_ctd_variables, logging_dir)
 
                 sv.save_all_profiles_one_type(
-                    checked_ctd_variables, json_directory)
+                    checked_ctd_variables, goship_collection, excluded_collection, json_directory)
 
             else:
                 logging.info(
@@ -434,6 +445,15 @@ def main(start_year, end_year, append):
             logging.info('---------------------------')
 
             logging.info("*****************************\n")
+
+    # ***********************************
+    # Write included/excluded goship vars
+    # ***********************************
+
+    logging.info("Save included and excluded goship vars")
+
+    sv.save_included_excluded_goship_vars(
+        included_excluded_dir, goship_collection, excluded_collection)
 
     if read_error_count:
         filename = 'file_read_errors.txt'

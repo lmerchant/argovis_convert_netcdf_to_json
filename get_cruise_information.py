@@ -147,8 +147,8 @@ def get_information_one_cruise_test(session):
     # ctd file
     # doxy in ctd_oxygen_ml_l
     # doxy not given a suffix
-    expocode = '06PO20110601'
-    file_id = 18620
+    # expocode = '06PO20110601'
+    # file_id = 18620
 
     # ctd file
     # has both ctd temp and ctd temp 68
@@ -179,6 +179,17 @@ def get_information_one_cruise_test(session):
     # error  for ctd temp unk
     # expocode = '33RO20070710'
     # file_id = 17772
+
+    # CTD file error on meta chunk dim
+    #  Also  has  ctd_temperature_68
+    # to check conversion
+    # expocode = '316N154_2'
+    # file_id = 18420
+
+    # temp_ctd renaming conflict
+    # ctd_temp and ctd_temp_68
+    expocode = '49K6KY9606_1'
+    file_id = 17365
 
     query = f"{API_END_POINT}/file/{file_id}"
     response = session.get(query)
