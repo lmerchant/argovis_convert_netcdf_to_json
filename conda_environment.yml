@@ -1,0 +1,13 @@
+name: argovis_cchdo
+channels:
+    - defaults
+    - conda-forge
+dependencies:
+    - gsw
+    - xarray
+    - pip
+    - requests
+    - fsspec
+    - dask
+    - aiohttp
+prefix: /Users/merchant/miniconda3/envs/argovis_cchdo
