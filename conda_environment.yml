@@ -10,4 +10,6 @@ dependencies:
     - fsspec
     - dask
     - aiohttp
+    - pip:
+          - h5netcdf
 prefix: /Users/merchant/miniconda3/envs/argovis_cchdo
