@@ -153,13 +153,15 @@ The unique identifier is a combination of <expocode>_<station>_<cast>
 
 > TODO. Zero pad the station and cast number to 3 places
 
-## To configure conda environment
+## To create conda environment
 
     In a conda environment to copy and create yml file:
     conda env export --from-history > conda_environment.yml
 
     To create that environment from the yml file:
     conda env create -f conda_environment.yml
+
+    Then activate the Conda environment
 
 ## To Run it
 
