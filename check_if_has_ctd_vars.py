@@ -203,6 +203,7 @@ def check_ctd_vars_one_profile(profile, logging_dir):
 
     # Look for ctd_temperature
     try:
+<<<<<<< HEAD
         has_ctd_temp_btl = 'temp_btl' in profile_dict['argovisParamNamesBtl']
         has_ctd_temp_ctd = 'temp_ctd' in profile_dict['argovisParamNamesCtd']
     except KeyError:
@@ -216,6 +217,21 @@ def check_ctd_vars_one_profile(profile, logging_dir):
     except KeyError:
         has_ctd_temp_qc_btl = 'temp_btl_qc' in profile_dict['argovisParamNames']
         has_ctd_temp_qc_ctd = 'temp_ctd_qc' in profile_dict['argovisParamNames']
+=======
+        has_ctd_temp_btl = 'temp_btl' in profile_dict['argovisNamesBtl']
+        has_ctd_temp_ctd = 'temp_ctd' in profile_dict['argovisNamesCtd']
+    except:
+        has_ctd_temp_btl = 'temp_btl' in profile_dict['argovisNames']
+        has_ctd_temp_ctd = 'temp_ctd' in profile_dict['argovisNames']
+
+    # Look for ctd_temperature with qc
+    try:
+        has_ctd_temp_qc_btl = 'temp_btl_qc' in profile_dict['argovisNamesBtl']
+        has_ctd_temp_qc_ctd = 'temp_ctd_qc' in profile_dict['argovisNamesCtd']
+    except:
+        has_ctd_temp_qc_btl = 'temp_btl_qc' in profile_dict['argovisNames']
+        has_ctd_temp_qc_ctd = 'temp_ctd_qc' in profile_dict['argovisNames']
+>>>>>>> 689fb70962b7b22fd8af98fc653c839f744bbee8
 
     # Look at ctd_temperature ref scale
     argovis_ref_scale = profile_dict['argovisReferenceScale']
@@ -225,6 +241,7 @@ def check_ctd_vars_one_profile(profile, logging_dir):
 
     # Look for ctd_temperature_unk (unknown ref scale)
     try:
+<<<<<<< HEAD
         has_ctd_temp_unk_btl = 'ctd_temperature_unk_btl' in profile_dict['argovisParamNamesBtl']
     except KeyError:
         has_ctd_temp_unk_btl = 'ctd_temperature_unk_btl' in profile_dict['argovisParamNames']
@@ -233,6 +250,16 @@ def check_ctd_vars_one_profile(profile, logging_dir):
         has_ctd_temp_unk_ctd = 'ctd_temperature_unk_ctd' in profile_dict['argovisParamNamesCtd']
     except KeyError:
         has_ctd_temp_unk_ctd = 'ctd_temperature_unk_ctd' in profile_dict['argovisParamNames']
+=======
+        has_ctd_temp_unk_btl = 'ctd_temperature_unk_btl' in profile_dict['argovisNamesBtl']
+    except KeyError:
+        has_ctd_temp_unk_btl = 'ctd_temperature_unk_btl' in profile_dict['argovisNames']
+
+    try:
+        has_ctd_temp_unk_ctd = 'ctd_temperature_unk_ctd' in profile_dict['argovisNamesCtd']
+    except KeyError:
+        has_ctd_temp_unk_ctd = 'ctd_temperature_unk_ctd' in profile_dict['argovisNames']
+>>>>>>> 689fb70962b7b22fd8af98fc653c839f744bbee8
 
     # Summary of variables checked
     variables_check = {}

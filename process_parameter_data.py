@@ -9,6 +9,47 @@ from datetime import datetime
 
 import filter_measurements as fm
 import get_variable_mappings as gvm
+import rename_objects as rn
+
+
+def filter_argovis_mapping(argovis_param_mapping, all_name_mapping, type):
+
+    # Take param mapping and filter it to only  contain all_name_mapping
+    # for each station_cast
+
+    units = argovis_param_mapping['units']
+    ref_scale = argovis_param_mapping['ref_scale']
+    c_format = argovis_param_mapping['c_format']
+    dtype = argovis_param_mapping['dtype']
+
+    all_filtered_mappings = []
+
+    for name_mapping in all_name_mapping:
+
+        argovis_names = name_mapping['non_empty_cols']
+
+        new_mapping = {}
+
+        # ******************************
+        # filter names to non empty cols
+        # ******************************
+
+        new_mapping['station_cast'] = name_mapping['station_cast']
+
+        new_mapping['names'] = argovis_names
+
+        new_mapping['units'] = {key: val for key,
+                                val in units.items() if key in argovis_names}
+        new_mapping['ref_scale'] = {
+            key: val for key, val in ref_scale.items() if key in argovis_names}
+        new_mapping['c_format'] = {
+            key: val for key, val in c_format.items() if key in argovis_names}
+        new_mapping['dtype'] = {key: val for key,
+                                val in dtype.items() if key in argovis_names}
+
+        all_filtered_mappings.append(new_mapping)
+
+    return all_filtered_mappings
 
 
 def filter_argovis_mapping(argovis_param_mapping, all_name_mapping, type):

@@ -115,6 +115,41 @@ def rename_to_argovis(nc, type):
     return nc
 
 
+def rename_argovis_mapping_by_type(mapping, type):
+
+    new_mapping = {}
+
+    for name, val in mapping.items():
+
+        if name.endswith('_qc'):
+            non_qc_name = name.replace('_qc', '')
+            new_name = f"{non_qc_name}_{type}_qc"
+        else:
+            new_name = f"{name}_{type}"
+
+        new_mapping[new_name] = val
+
+    return new_mapping
+
+
+def rename_argovis_name_list_by_type(argovis_names_list, type):
+
+    new_names_list = []
+
+    for name in argovis_names_list:
+
+        if name.endswith('_qc'):
+            non_qc_name = name.replace('_qc', '')
+            new_name = f"{non_qc_name}_{type}_qc"
+
+        else:
+            new_name = f"{name}_{type}"
+
+        new_names_list.append(new_name)
+
+    return new_names_list
+
+
 def rename_goship_name_list_by_type(goship_names_list, type):
 
     goship_argovis_core_mapping = gvm.get_goship_argovis_core_values_mapping(
@@ -710,6 +745,7 @@ def rename_mapping_argovis_param(mapping, type):
 #         argovis_ref_scale = gvm.get_argovis_ref_scale_mapping(
 #             goship_names, type)
 
+
 #         goship_argovis_unit = gvm.get_goship_argovis_unit_name_mapping()
 
 #     if type == 'ctd':
@@ -742,6 +778,7 @@ def rename_mapping_argovis_param(mapping, type):
 
 #         argovis_ref_scale = gvm.get_argovis_ref_scale_mapping(
 #             goship_names, type)
+
 
 #         goship_argovis_unit = gvm.get_goship_argovis_unit_name_mapping()
 

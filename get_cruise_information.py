@@ -141,8 +141,8 @@ def get_information_one_cruise_test(session):
     # btl file
     # many params
     # no temp_qc
-    # expocode = '325020210420'
-    # file_id = 19429
+    expocode = '325020210420'
+    file_id = 19429
 
     # ctd file
     # doxy in ctd_oxygen_ml_l

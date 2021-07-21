@@ -130,6 +130,8 @@ def create_goship_argovis_mapping_profiles(
 
     return all_mapping_profiles
 
+    #  https://stackoverflow.com/questions/5501810/join-two-lists-of-dictionaries-on-a-single-key
+
 
 def combine_profiles(meta_profiles, bgc_profiles, meas_profiles, meas_source_profiles, mapping_profiles, type):
 
@@ -313,17 +315,6 @@ def create_profiles_one_type(data_obj, logging_dir):
     # ****************************
 
     logging.info("Apply c_format")
-
-    #a = nc['btm_depth'].chunk({'N_PROF': chunk_size})
-
-    # coords_no_dims = [coord for coord  in nc.coords if not len(nc[coord].dims)]
-
-    # print(nc.dims['N_PROF'])
-
-    # a = np.repeat(nc['btm_depth'], nc.dims['N_PROF'])
-
-    # print(a)
-    # exit(1)
 
     # Convert back to Dask
     nc = nc.chunk({'N_PROF': chunk_size})

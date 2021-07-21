@@ -273,7 +273,7 @@ def convert_goship_to_argovis_units(nc, chunk_size):
             ds_grid = [converted_groups]
 
             nc = xr.combine_nested(
-                ds_grid, concat_dim=["N_LEVELS", "N_PROF"], combine_attrs='override')
+                ds_grid, concat_dim=["N_LEVELS", "N_PROF"], combine_attrs='identical')
 
     return nc
 
