@@ -254,10 +254,14 @@ def create_bgc_profile(df_param):
 def create_measurements_profile(df_param, type):
 
     # Returns a variable col df depending on core vars exist
+
+    df_param = df_param.reset_index()
+    df_param = df_param.set_index(['N_PROF', 'station_cast'])
+
     df_meas = df_param.groupby('N_PROF').apply(
         create_measurements_df_all, type)
 
-    meas_df_groups = dict(tuple(df_meas.groupby('N_PROF')))
+    meas_df_groups = dict(tuple(df_meas.groupby(level='N_PROF')))
 
     all_meas_profiles = []
     all_meas_source_profiles = []

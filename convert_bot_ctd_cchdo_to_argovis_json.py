@@ -277,11 +277,11 @@ def main(start_year, end_year, append):
 
     else:
         # # Loop through all cruises and grap NetCDF files
-        all_cruises_info = gi.get_cruise_information(
-            session, logging_dir, start_datetime, end_datetime)
+        # all_cruises_info = gi.get_cruise_information(
+        #     session, logging_dir, start_datetime, end_datetime)
 
-        # cruise_info = gi.get_information_one_cruise_test(session)
-        # all_cruises_info = [cruise_info]
+        cruise_info = gi.get_information_one_cruise_test(session)
+        all_cruises_info = [cruise_info]
 
         if not all_cruises_info:
             logging.info('No cruises within dates selected')
