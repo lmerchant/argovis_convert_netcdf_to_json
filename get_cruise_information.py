@@ -188,8 +188,17 @@ def get_information_one_cruise_test(session):
 
     # temp_ctd renaming conflict
     # ctd_temp and ctd_temp_68
-    expocode = '49K6KY9606_1'
-    file_id = 17365
+    # expocode = '49K6KY9606_1'
+    # file_id = 17365
+
+    # # doxy_ctd renaming conflict
+    # expocode = '33SW9404_1'
+    # file_id = 18400
+
+    # no ctd_temp to calc o2 conversion
+    # It has ctd_temperature_unk and oxygen_ml_l
+    expocode = '06MT30_3'
+    file_id = 17773
 
     query = f"{API_END_POINT}/file/{file_id}"
     response = session.get(query)

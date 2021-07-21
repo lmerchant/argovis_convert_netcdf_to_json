@@ -53,7 +53,7 @@ def has_both_temperatures(names):
 
 def has_both_oxygen(names):
 
-    core_oxygen_names = set(['oxygen', 'ctd_oxygen_ml_l'])
+    core_oxygen_names = set(['ctd_oxygen', 'ctd_oxygen_ml_l'])
     oxygen_names = set(names).intersection(
         core_oxygen_names)
 
