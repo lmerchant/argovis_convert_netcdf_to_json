@@ -12,6 +12,9 @@ import click
 import dask as ds
 from dask.distributed import Client
 from dask.diagnostics import ProgressBar
+from dask.diagnostics import Profiler, ResourceProfiler, CacheProfiler
+from dask.diagnostics import visualize
+from cachey import nbytes
 import ctypes
 
 
@@ -28,6 +31,9 @@ import save_output as sv
 
 pbar = ProgressBar()
 pbar.register()
+
+# fs = fsspec.filesystem("filecache", target_protocol='fs',
+#                        cache_storage='/tmp/fsspec_files/')
 
 
 # install cloudpickle to use the multiprocessing scheduler for dask
@@ -110,9 +116,13 @@ def read_file(data_obj):
     data_url = f"https://cchdo.ucsd.edu{data_path}"
 
     try:
+        # with fsspec.open(data_url) as fobj:
+        #     nc = xr.open_dataset(fobj, engine='h5netcdf',
+        #                          chunks={"N_PROF": chunk_size})
+
         with fsspec.open(data_url) as fobj:
-            nc = xr.open_dataset(fobj, engine='h5netcdf',
-                                 chunks={"N_PROF": chunk_size})
+            nc = xr.open_dataset(fobj, engine='h5netcdf')
+            nc = nc.chunk(chunks={"N_PROF": chunk_size})
 
     except Exception as e:
         logging.warning(f"Error reading in file {data_url}")
@@ -237,7 +247,7 @@ def main(start_year, end_year, append):
 
     program_start_time = datetime.now()
 
-    #logging_dir, logging = setup_logging(append)
+    # logging_dir, logging = setup_logging(append)
     logging_dir, included_excluded_dir = setup_logging(append)
 
     logging.info(f"Converting years Jan 1, {start_year} to Dec 31, {end_year}")
@@ -277,11 +287,11 @@ def main(start_year, end_year, append):
 
     else:
         # # Loop through all cruises and grap NetCDF files
-        # all_cruises_info = gi.get_cruise_information(
-        #     session, logging_dir, start_datetime, end_datetime)
+        all_cruises_info = gi.get_cruise_information(
+            session, logging_dir, start_datetime, end_datetime)
 
-        cruise_info = gi.get_information_one_cruise_test(session)
-        all_cruises_info = [cruise_info]
+        # cruise_info = gi.get_information_one_cruise_test(session)
+        # all_cruises_info = [cruise_info]
 
         if not all_cruises_info:
             logging.info('No cruises within dates selected')
@@ -475,20 +485,42 @@ if __name__ == '__main__':
 
     # setting Client() without arguments
     # This sets up a scheduler in your local process along with a number of workers and threads per worker related to the number of cores in your machine.
-    #client = Client()
+    # client = Client(dashboard_address=None)
+    # client = Client()
+    # client.get_worker_logs()
+
+    # client = Client(memory_limit='2GB', processes=False,
+    #  n_workers = 2, threads_per_worker = 2)
+
+    # client = Client(n_workers=4,
+    #                 threads_per_worker=1,
+    #                 memory_limit='4GB')
+
+    # https://docs.dask.org/en/latest/setup/single-machine.html
+    # ds.config.set(scheduler='threads')
+    # ds.config.set(scheduler='single-threaded')
+
+    # https://docs.dask.org/en/latest/diagnostics-local.html
+    # prof = Profiler()
+    # rprof = ResourceProfiler(dt=0.5)
+    # cprof = CacheProfiler(metric=nbytes)
+
+    # visualize([prof, rprof, cprof])
+
+    # client.write_scheduler_file('schedular_output.txt')
 
     # https://github.com/dask/dask-jobqueue/issues/391
     # Set dashboard to none to prevent program freezing
 
     # For debugging, use single-threaded
-    #client = Client(scheduler='single-threaded')
+    # client = Client(scheduler='single-threaded')
 
-    #client = Client(processes=False, dashboard_address=None)
+    # client = Client(processes=False, dashboard_address=None)
 
     # https://www.javaer101.com/en/article/18616059.html
     # However, if you are spending most of your compute time manipulating Pure Python objects like strings or dictionaries then you may want to avoid GIL issues by having more processes with fewer threads each
 
-    #client = Client(n_workers=4, threads_per_worker=1, dashboard_address=None)
+    # client = Client(n_workers=4, threads_per_worker=1, dashboard_address=None)
 
     #  --------------------
 
@@ -520,6 +552,3 @@ if __name__ == '__main__':
     # Using more processes avoids GIL issues, but adds costs due to inter-process communication. You would want to avoid many processes if your computations require a lot of inter-worker communication..
 
     main()
-
-
-# hang at 316N20130914

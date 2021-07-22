@@ -372,11 +372,11 @@ def create_profiles_one_type(data_obj, logging_dir):
 
     logging.info('Remove empty rows')
 
-    ddf_param = ddf_param.drop('N_LEVELS', axis=1)
+    #ddf_param = ddf_param.drop('N_LEVELS', axis=1)
 
-    meta_dask = ddf_param.dtypes.to_dict()
+    dask_meta = ddf_param.dtypes.to_dict()
     ddf_param = ddf_param.groupby("N_PROF").apply(
-        remove_empty_rows, meta=meta_dask)
+        remove_empty_rows, meta=dask_meta)
 
     # Add back in temp_qc = 0 if column exists and all np.nan
     try:
@@ -387,7 +387,7 @@ def create_profiles_one_type(data_obj, logging_dir):
     except KeyError:
         pass
 
-    ddf_param = ddf_param.set_index('station_cast')
+    #ddf_param = ddf_param.set_index('station_cast')
 
     # ******************************************
     # Convert from Dask to pure Pandas dataframe
@@ -395,6 +395,8 @@ def create_profiles_one_type(data_obj, logging_dir):
     # *******************************************
 
     df_param = ddf_param.compute()
+
+    #df_param = df_param.reset_index()
 
     # Sort columns so qc next to its var
     df_param = df_param.reindex(sorted(df_param.columns), axis=1)

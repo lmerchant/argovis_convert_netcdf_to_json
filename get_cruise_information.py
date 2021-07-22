@@ -5,6 +5,7 @@ from datetime import datetime
 import logging
 import os
 import dask.bag as db
+import requests
 
 
 API_END_POINT = "https://cchdo.ucsd.edu/api/v1"
@@ -141,8 +142,8 @@ def get_information_one_cruise_test(session):
     # btl file
     # many params
     # no temp_qc
-    expocode = '325020210420'
-    file_id = 19429
+    # expocode = '325020210420'
+    # file_id = 19429
 
     # ctd file
     # doxy in ctd_oxygen_ml_l
@@ -159,8 +160,12 @@ def get_information_one_cruise_test(session):
     # file_id = 17365
 
     #  ctd file
-    expocode = '325020210420'
-    file_id = 19427
+    # expocode = '325020210420'
+    # file_id = 19427
+
+    # hangs, ctd
+    expocode = '33RR20160321'
+    file_id = 17904
 
     # ctd temp unknown
     # expocode = '33RO20070710

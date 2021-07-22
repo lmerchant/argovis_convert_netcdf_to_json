@@ -208,7 +208,7 @@ def create_bgc_profile(df_param):
 
     # all_bgc_profiles = process_bgc_group_lists(all_bgc)
 
-    df_bgc = df_param
+    df_bgc = df_param.drop('N_LEVELS', axis=1)
 
     # Change NaN to None so in json, converted to null
     df_bgc = df_bgc.where(pd.notnull(df_bgc), None)
@@ -220,9 +220,8 @@ def create_bgc_profile(df_param):
 
     for val_df in bgc_df_groups.values():
 
-        station_cast = val_df.index[0]
+        station_cast = val_df['station_cast'].values[0]
 
-        # val_df = val_df.drop(['N_PROF', 'index'],  axis=1)
         val_df = val_df.drop(['N_PROF'],  axis=1)
 
         # ***********************************************
@@ -253,15 +252,13 @@ def create_bgc_profile(df_param):
 
 def create_measurements_profile(df_param, type):
 
-    # Returns a variable col df depending on core vars exist
-
-    df_param = df_param.reset_index()
-    df_param = df_param.set_index(['N_PROF', 'station_cast'])
-
+    # Returns a variable col df depending on which core vars exist
     df_meas = df_param.groupby('N_PROF').apply(
         create_measurements_df_all, type)
 
-    meas_df_groups = dict(tuple(df_meas.groupby(level='N_PROF')))
+    df_meas = df_meas.drop(['N_LEVELS'], axis=1)
+
+    meas_df_groups = dict(tuple(df_meas.groupby('N_PROF')))
 
     all_meas_profiles = []
     all_meas_source_profiles = []
@@ -271,7 +268,7 @@ def create_measurements_profile(df_param, type):
         measurements_source, measurements_source_qc = get_measurements_source(
             val_df, type)
 
-        station_cast = val_df.index.get_level_values('station_cast').values[0]
+        station_cast = val_df['station_cast'].values[0]
 
         # Drop any columns except core meas cols
         # TODO probably easier just to select columns than drop them
@@ -302,27 +299,6 @@ def create_measurements_profile(df_param, type):
         meas_source_profile_qc['station_cast'] = station_cast
         meas_source_profile_qc['measurementsSourceQC'] = measurements_source_qc
         all_meas_source_profiles.append(meas_source_profile_qc)
-
-    # all_meas_profiles = []
-    # all_meas_source_profiles = []
-    # for obj in all_meas:
-
-    #     meas_list = obj['list']
-
-    #     meas_profile = {}
-    #     meas_profile['station_cast'] = obj['station_cast']
-    #     meas_profile['measurements'] = meas_list
-    #     all_meas_profiles.append(meas_profile)
-
-    #     meas_source_profile = {}
-    #     meas_source_profile['station_cast'] = obj['station_cast']
-    #     meas_source_profile['measurementsSource'] = obj['source']
-    #     all_meas_source_profiles.append(meas_source_profile)
-
-    #     meas_source_profile_qc = {}
-    #     meas_source_profile_qc['station_cast'] = obj['station_cast']
-    #     meas_source_profile_qc['measurementsSourceQC'] = obj['qc']
-    #     all_meas_source_profiles.append(meas_source_profile_qc)
 
     return all_meas_profiles, all_meas_source_profiles
 
@@ -439,7 +415,12 @@ def create_measurements_df_all(df,  type):
 
     core_non_qc = [elem for elem in core_cols if '_qc' not in elem]
 
-    df_meas = df[core_cols].copy()
+    # Also include N_PROF, N_LEVELS, station_cast for unique identifiers
+    cols_to_keep = core_cols
+    identifier_cols = ['N_LEVELS', 'station_cast']
+    cols_to_keep.extend(identifier_cols)
+
+    df_meas = df[cols_to_keep].copy()
 
     # If qc != 0 or 2, set corresponding non_qc value to np.nan
     for col in core_non_qc:
@@ -460,7 +441,7 @@ def create_measurements_df_all(df,  type):
     psal_qc = None
     salinity_qc = None
 
-    # Assume temp_qc is one value
+    # # Assume temp_qc is one value
 
     # may not have ctd temp with ref scale
     if f"temp_{type}" in core_cols and f"temp_{type}_qc" in core_cols:
@@ -506,9 +487,7 @@ def create_measurements_df_all(df,  type):
         if col.endswith('_qc'):
             df_meas = df_meas.drop([col], axis=1)
 
-    # If all core values have nan, drop row
-    # This won't work since
-    df_meas = df_meas.dropna(how='all')
+    df_meas.dropna(subset=core_non_qc, how='all', inplace=True)
 
     df_meas = df_meas.sort_values(by=['pres'])
 

@@ -206,19 +206,30 @@ def add_extra_coords(nc, data_obj):
     # **************************************************
 
     # The station number is a string
-    station_list = nc['station'].values
+    station_list = nc.coords['station'].values
 
    # cast_number is an integer
-    cast_list = nc['cast'].values
+    cast_list = nc.coords['cast'].values
+
+    # The file expocode is a string
+    file_expocode_list = nc.coords['file_expocode'].values
 
     # Add in station_cast var for later
     # processing of groups. But in
     # final JSON, it's dropped
 
-    def create_station_cast(x, y):
-        station = str(x).zfill(3)
-        cast = str(y).zfill(3)
+    def create_station_cast(s, c):
+        station = str(s).zfill(3)
+        cast = str(c).zfill(3)
         return f"{station}_{cast}"
+
+    # def create_file_expo_station_cast(e, s, c):
+    #     station = str(s).zfill(3)
+    #     cast = str(c).zfill(3)
+    #     return f"{e}_{station}_{cast}"
+
+    # expo_station_cast = list(
+    #     map(create_file_expo_station_cast, file_expocode_list, station_list, cast_list))
 
     station_cast = list(
         map(create_station_cast, station_list, cast_list))
