@@ -321,10 +321,12 @@ def create_profiles_one_type(data_obj, logging_dir):
     # Convert back to Dask
     nc = nc.chunk({'N_PROF': chunk_size})
 
+    print(nc['ctd_salinity'].values)
+
+    print(nc['ctd_salinity'].dtype)
+
     nc = proc_meta.apply_c_format_meta_dask(
         nc, chunk_size, goship_meta_mapping)
-
-    exit(1)
 
     nc = proc_param.apply_c_format_param_dask(
         nc, chunk_size, goship_param_mapping)

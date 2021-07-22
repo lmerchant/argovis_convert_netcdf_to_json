@@ -190,7 +190,9 @@ def get_information_one_cruise_test(session):
     # file_id = 17772
 
     # CTD file error on meta chunk dim
+    # since some are constants
     #  Also  has  ctd_temperature_68
+    # and oxygen_ml_l
     # to check conversion
     expocode = '316N154_2'
     file_id = 18420
