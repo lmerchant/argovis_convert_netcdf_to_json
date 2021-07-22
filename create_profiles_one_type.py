@@ -379,14 +379,14 @@ def create_profiles_one_type(data_obj, logging_dir):
     #     remove_empty_rows, meta=dask_meta)
 
     # https://stackoverflow.com/questions/54164879/what-is-an-efficient-way-to-use-groupby-apply-a-custom-function-for-a-huge-dat
+    dask_meta = ddf_param.dtypes.to_dict()
     ddf_param = ddf_param.map_partitions(
-        lambda part: part.groupby('N_PROF').apply(remove_empty_rows))
+        lambda part: part.groupby('N_PROF').apply(remove_empty_rows), meta=dask_meta)
 
     # Now both indexed by N_PROF  and retained as a column
-    # drop the column
-    ddf_param = ddf_param.drop(['N_PROF', 'N_LEVELS'], axis=1)
-    ddf_param = ddf_param.reset_index()
-    ddf_param = ddf_param.drop('level_1', axis=1)
+    # drop the index
+    ddf_param = ddf_param.drop(['N_LEVELS'], axis=1)
+    ddf_param = ddf_param.reset_index(drop=True)
 
     # Change NaN to None so in json, converted to null
     ddf_param = ddf_param.replace({np.nan: None})
@@ -400,21 +400,28 @@ def create_profiles_one_type(data_obj, logging_dir):
     except KeyError:
         pass
 
+    # **********************************************
+    # Convert to Pandas df since converting to dicts
+    # **********************************************
+
+    df_param = ddf_param.compute()
+
     # *******************************
     # Create all measurement profiles
     # *******************************
 
     logging.info('create all_meas profiles')
 
-    ddf_meas = ddf_param.map_partitions(
-        lambda part: part.groupby('N_PROF').apply(proc_param.create_measurements_df_all, type))
+    # dask_meta = ddf_param.dtypes.to_dict()
+    # ddf_meas = ddf_param.map_partitions(
+    #     lambda part: part.groupby('N_PROF').apply(proc_param.create_measurements_df_all, type), meta=dask_meta)
 
-    # Now both indexed by N_PROF  and retained as a column
-    # drop the column
-    ddf_meas = ddf_meas.drop('N_PROF', axis=1)
+    # # Now both indexed by N_PROF  and retained as a column
+    # # drop the column
+    # ddf_meas = ddf_meas.drop('N_PROF', axis=1)
 
     all_meas_profiles, all_meas_source_profiles = proc_param.create_measurements_profile(
-        ddf_meas, type)
+        df_param, type)
 
     # **********************************
     # From df_param, filter out any vars
@@ -426,7 +433,7 @@ def create_profiles_one_type(data_obj, logging_dir):
 
     logging.info('create all_bgc profile and get name mapping')
     all_bgc_profiles, all_name_mapping = proc_param.create_bgc_profile(
-        ddf_param)
+        df_param)
 
     all_argovis_param_mapping = proc_param.filter_argovis_mapping(
         argovis_param_mapping, all_name_mapping, type)
@@ -453,7 +460,7 @@ def create_profiles_one_type(data_obj, logging_dir):
 
     logging.info('---------------------------')
     logging.info(f'End processing {type} profiles')
-    logging.info(f"Num params {len(ddf_param.columns)}")
+    logging.info(f"Num params {len(df_param.columns)}")
     logging.info(f"Shape of dims")
     logging.info(nc.dims)
     logging.info('---------------------------')

@@ -202,9 +202,7 @@ def remove_empty_cols(df):
 #     return all_bgc_profiles, all_name_mapping
 
 
-def create_bgc_profile(ddf_param):
-
-    df_param = ddf_param.compute()
+def create_bgc_profile(df_param):
 
     # Sort columns so qc next to its var
     df_param = df_param.reindex(sorted(df_param.columns), axis=1)
@@ -246,16 +244,13 @@ def create_bgc_profile(ddf_param):
     return all_bgc_profiles, all_name_mapping
 
 
-def create_measurements_profile(ddf_meas, type):
+def create_measurements_profile(df_param, type):
 
     # Returns a variable col df depending on which core vars exist
-    # df_meas = df_param.groupby('N_PROF').apply(
-    #     create_measurements_df_all, type)
+    df_meas = df_param.groupby('N_PROF').apply(
+        create_measurements_df_all, type)
 
-    # df_meas = df_param.map_partitions(
-    #     lambda part: part.groupby('N_PROF').apply(create_measurements_df_all, type))
-
-    df_meas = ddf_meas.compute()
+    df_meas = df_meas.reset_index(drop=True)
 
     meas_df_groups = dict(tuple(df_meas.groupby('N_PROF')))
 

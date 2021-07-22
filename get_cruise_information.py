@@ -160,8 +160,12 @@ def get_information_one_cruise_test(session):
     # file_id = 17365
 
     #  ctd file
+    # expocode = '325020210420'
+    # file_id = 19427
+
+    # btl file
     expocode = '325020210420'
-    file_id = 19427
+    file_id = 19429
 
     # hangs, ctd
     # expocode = '33RR20160321'
