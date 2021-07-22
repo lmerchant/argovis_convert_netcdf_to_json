@@ -164,8 +164,8 @@ def get_information_one_cruise_test(session):
     # file_id = 19427
 
     # btl file
-    expocode = '325020210420'
-    file_id = 19429
+    # expocode = '325020210420'
+    # file_id = 19429
 
     # hangs, ctd
     # expocode = '33RR20160321'
@@ -192,8 +192,8 @@ def get_information_one_cruise_test(session):
     # CTD file error on meta chunk dim
     #  Also  has  ctd_temperature_68
     # to check conversion
-    # expocode = '316N154_2'
-    # file_id = 18420
+    expocode = '316N154_2'
+    file_id = 18420
 
     # temp_ctd renaming conflict
     # ctd_temp and ctd_temp_68

@@ -286,7 +286,7 @@ def main(start_year, end_year, append):
         ctd_found = test_ctd_obj['found']
 
     else:
-        # # Loop through all cruises and grap NetCDF files
+        # Loop through all cruises and grap NetCDF files
         all_cruises_info = gi.get_cruise_information(
             session, logging_dir, start_datetime, end_datetime)
 
