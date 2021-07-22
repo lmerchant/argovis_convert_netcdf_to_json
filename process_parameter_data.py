@@ -157,63 +157,59 @@ def remove_empty_cols(df):
     return df
 
 
-def create_bgc_group_lists(df_param):
+# def create_bgc_group_lists(df_param):
 
-    df_bgc = df_param
+#     df_bgc = df_param
 
-    # Change NaN to None so in json, converted to null
-    df_bgc = df_bgc.where(pd.notnull(df_bgc), None)
+#     # Change NaN to None so in json, converted to null
+#     df_bgc = df_bgc.where(pd.notnull(df_bgc), None)
 
-    bgc_df_groups = dict(tuple(df_bgc.groupby('N_PROF')))
+#     bgc_df_groups = dict(tuple(df_bgc.groupby('N_PROF')))
 
-    all_bgc_profiles = []
-    all_name_mapping = []
+#     all_bgc_profiles = []
+#     all_name_mapping = []
 
-    for val_df in bgc_df_groups.values():
+#     for val_df in bgc_df_groups.values():
 
-        station_cast = val_df.index[0]
+#         station_cast = val_df.index[0]
 
-        # val_df = val_df.drop(['N_PROF', 'index'],  axis=1)
-        val_df = val_df.drop(['N_PROF'],  axis=1)
+#         # val_df = val_df.drop(['N_PROF', 'index'],  axis=1)
+#         val_df = val_df.drop(['N_PROF'],  axis=1)
 
-        # ***********************************************
-        # Remove cols and corresponding qc if data set is
-        # null, empty or 'NaT'
-        # ***********************************************
+#         # ***********************************************
+#         # Remove cols and corresponding qc if data set is
+#         # null, empty or 'NaT'
+#         # ***********************************************
 
-        val_df = remove_empty_cols(val_df)
+#         val_df = remove_empty_cols(val_df)
 
-        non_empty_cols = val_df.columns
+#         non_empty_cols = val_df.columns
 
-        val_df = val_df.sort_values(by=['pres'])
+#         val_df = val_df.sort_values(by=['pres'])
 
-        bgc_dict_list = val_df.to_dict('records')
+#         bgc_dict_list = val_df.to_dict('records')
 
-        bgc_obj = {}
-        bgc_obj['station_cast'] = station_cast
-        bgc_obj['bgcMeas'] = to_int_qc(bgc_dict_list)
-        all_bgc_profiles.append(bgc_obj)
+#         bgc_obj = {}
+#         bgc_obj['station_cast'] = station_cast
+#         bgc_obj['bgcMeas'] = to_int_qc(bgc_dict_list)
+#         all_bgc_profiles.append(bgc_obj)
 
-        name_mapping_obj = {}
-        name_mapping_obj['station_cast'] = station_cast
-        name_mapping_obj['non_empty_cols'] = non_empty_cols
-        all_name_mapping.append(name_mapping_obj)
+#         name_mapping_obj = {}
+#         name_mapping_obj['station_cast'] = station_cast
+#         name_mapping_obj['non_empty_cols'] = non_empty_cols
+#         all_name_mapping.append(name_mapping_obj)
 
-    return all_bgc_profiles, all_name_mapping
+#     return all_bgc_profiles, all_name_mapping
 
 
-def create_bgc_profile(df_param):
+def create_bgc_profile(ddf_param):
 
-    # all_bgc, all_name_mapping = create_bgc_group_lists(df_param)
+    df_param = ddf_param.compute()
 
-    # all_bgc_profiles = process_bgc_group_lists(all_bgc)
+    # Sort columns so qc next to its var
+    df_param = df_param.reindex(sorted(df_param.columns), axis=1)
 
-    df_bgc = df_param.drop('N_LEVELS', axis=1)
-
-    # Change NaN to None so in json, converted to null
-    df_bgc = df_bgc.where(pd.notnull(df_bgc), None)
-
-    bgc_df_groups = dict(tuple(df_bgc.groupby('N_PROF')))
+    bgc_df_groups = dict(tuple(df_param.groupby('N_PROF')))
 
     all_bgc_profiles = []
     all_name_mapping = []
@@ -222,7 +218,7 @@ def create_bgc_profile(df_param):
 
         station_cast = val_df['station_cast'].values[0]
 
-        val_df = val_df.drop(['N_PROF'],  axis=1)
+        #val_df = val_df.drop(['N_PROF'],  axis=1)
 
         # ***********************************************
         # Remove cols and corresponding qc if data set is
@@ -250,13 +246,16 @@ def create_bgc_profile(df_param):
     return all_bgc_profiles, all_name_mapping
 
 
-def create_measurements_profile(df_param, type):
+def create_measurements_profile(ddf_meas, type):
 
     # Returns a variable col df depending on which core vars exist
-    df_meas = df_param.groupby('N_PROF').apply(
-        create_measurements_df_all, type)
+    # df_meas = df_param.groupby('N_PROF').apply(
+    #     create_measurements_df_all, type)
 
-    df_meas = df_meas.drop(['N_LEVELS'], axis=1)
+    # df_meas = df_param.map_partitions(
+    #     lambda part: part.groupby('N_PROF').apply(create_measurements_df_all, type))
+
+    df_meas = ddf_meas.compute()
 
     meas_df_groups = dict(tuple(df_meas.groupby('N_PROF')))
 
@@ -281,7 +280,7 @@ def create_measurements_profile(df_param, type):
         val_df = val_df[cols]
 
         # Change NaN to None so in json, converted to null
-        val_df = val_df.where(pd.notnull(val_df), None)
+        #val_df = val_df.where(pd.notnull(val_df), None)
 
         meas_dict_list = val_df.to_dict('records')
 
@@ -417,7 +416,7 @@ def create_measurements_df_all(df,  type):
 
     # Also include N_PROF, N_LEVELS, station_cast for unique identifiers
     cols_to_keep = core_cols
-    identifier_cols = ['N_LEVELS', 'station_cast']
+    identifier_cols = ['N_PROF', 'station_cast']
     cols_to_keep.extend(identifier_cols)
 
     df_meas = df[cols_to_keep].copy()

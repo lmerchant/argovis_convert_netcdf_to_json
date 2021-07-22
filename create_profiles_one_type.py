@@ -166,8 +166,10 @@ def remove_empty_rows(df):
     df = df.replace(r'^\s*$', np.NaN, regex=True)
     df = df.replace(r'^NaT$', np.NaN, regex=True)
 
-    exclude_columns = ['N_PROF', 'station_cast']
-    df = df.dropna(subset=df.columns.difference(exclude_columns), how='all')
+    exclude_columns = ['N_PROF', 'N_LEVELS', 'station_cast']
+    subset_cols = [col for col in df.columns if col not in exclude_columns]
+
+    df = df.dropna(subset=subset_cols, how='all')
 
     df.update(df_copy)
 
@@ -372,11 +374,22 @@ def create_profiles_one_type(data_obj, logging_dir):
 
     logging.info('Remove empty rows')
 
-    #ddf_param = ddf_param.drop('N_LEVELS', axis=1)
+    # dask_meta = ddf_param.dtypes.to_dict()
+    # ddf_param = ddf_param.groupby("N_PROF").apply(
+    #     remove_empty_rows, meta=dask_meta)
 
-    dask_meta = ddf_param.dtypes.to_dict()
-    ddf_param = ddf_param.groupby("N_PROF").apply(
-        remove_empty_rows, meta=dask_meta)
+    # https://stackoverflow.com/questions/54164879/what-is-an-efficient-way-to-use-groupby-apply-a-custom-function-for-a-huge-dat
+    ddf_param = ddf_param.map_partitions(
+        lambda part: part.groupby('N_PROF').apply(remove_empty_rows))
+
+    # Now both indexed by N_PROF  and retained as a column
+    # drop the column
+    ddf_param = ddf_param.drop(['N_PROF', 'N_LEVELS'], axis=1)
+    ddf_param = ddf_param.reset_index()
+    ddf_param = ddf_param.drop('level_1', axis=1)
+
+    # Change NaN to None so in json, converted to null
+    ddf_param = ddf_param.replace({np.nan: None})
 
     # Add back in temp_qc = 0 if column exists and all np.nan
     try:
@@ -387,27 +400,21 @@ def create_profiles_one_type(data_obj, logging_dir):
     except KeyError:
         pass
 
-    #ddf_param = ddf_param.set_index('station_cast')
-
-    # ******************************************
-    # Convert from Dask to pure Pandas dataframe
-    # since mainly working with dictionaries now
-    # *******************************************
-
-    df_param = ddf_param.compute()
-
-    #df_param = df_param.reset_index()
-
-    # Sort columns so qc next to its var
-    df_param = df_param.reindex(sorted(df_param.columns), axis=1)
-
     # *******************************
     # Create all measurement profiles
     # *******************************
 
     logging.info('create all_meas profiles')
+
+    ddf_meas = ddf_param.map_partitions(
+        lambda part: part.groupby('N_PROF').apply(proc_param.create_measurements_df_all, type))
+
+    # Now both indexed by N_PROF  and retained as a column
+    # drop the column
+    ddf_meas = ddf_meas.drop('N_PROF', axis=1)
+
     all_meas_profiles, all_meas_source_profiles = proc_param.create_measurements_profile(
-        df_param, type)
+        ddf_meas, type)
 
     # **********************************
     # From df_param, filter out any vars
@@ -417,9 +424,9 @@ def create_profiles_one_type(data_obj, logging_dir):
     # filtered df_param profile
     # **********************************
 
-    logging.info('create all_bgc profile and get filtered name mapping')
+    logging.info('create all_bgc profile and get name mapping')
     all_bgc_profiles, all_name_mapping = proc_param.create_bgc_profile(
-        df_param)
+        ddf_param)
 
     all_argovis_param_mapping = proc_param.filter_argovis_mapping(
         argovis_param_mapping, all_name_mapping, type)
@@ -446,7 +453,7 @@ def create_profiles_one_type(data_obj, logging_dir):
 
     logging.info('---------------------------')
     logging.info(f'End processing {type} profiles')
-    logging.info(f"Num params {len(df_param.columns)}")
+    logging.info(f"Num params {len(ddf_param.columns)}")
     logging.info(f"Shape of dims")
     logging.info(nc.dims)
     logging.info('---------------------------')
