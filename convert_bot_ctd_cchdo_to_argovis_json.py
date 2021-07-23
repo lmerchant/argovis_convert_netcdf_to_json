@@ -14,8 +14,8 @@ from dask.distributed import Client
 from dask.diagnostics import ProgressBar
 from dask.diagnostics import Profiler, ResourceProfiler, CacheProfiler
 from dask.diagnostics import visualize
-from cachey import nbytes
-import ctypes
+# from cachey import nbytes
+# import ctypes
 
 
 import check_if_has_ctd_vars as ckvar

@@ -50,7 +50,6 @@ def find_btl_ctd_file_info(file_ids, file_id_hash_mapping, session):
         data_format = file_meta['data_format']
         file_path = file_meta['file_path']
 
-        # Only returning file info if both a bottle and doc for cruise
         if file_role == "dataset":
             if data_type == "bottle" and data_format == "cf_netcdf":
                 file_info['btl_id'] = file_id
@@ -194,8 +193,8 @@ def get_information_one_cruise_test(session):
     #  Also  has  ctd_temperature_68
     # and oxygen_ml_l
     # to check conversion
-    expocode = '316N154_2'
-    file_id = 18420
+    # expocode = '316N154_2'
+    # file_id = 18420
 
     # temp_ctd renaming conflict
     # ctd_temp and ctd_temp_68
@@ -210,6 +209,26 @@ def get_information_one_cruise_test(session):
     # It has ctd_temperature_unk and oxygen_ml_l
     # expocode = '06MT30_3'
     # file_id = 17773
+
+    # Check salinity c_format for BIOS20140819
+    # The values look to be only 3 decimal places
+    # And the c_format is 4 decimal places
+    # does this mean precision is 3 but when do math,
+    # assuming it is good out to 4 places
+    # I wonder if this is true for all BIOS cruises
+    # No cruise report
+    # expocode = 'BIOS20140819'
+    # file_id = 18353
+
+    # Cruise with no ctd_salinity
+    # btl file
+    # expocode = '77DN20010717'
+    # file_id = 17139
+
+    # Every time start over,
+    # included/excluded logs wiped out
+    expocode = '77DN20010717'
+    file_id = 17139
 
     query = f"{API_END_POINT}/file/{file_id}"
     response = session.get(query)
@@ -342,17 +361,6 @@ def get_information_one_cruise(cruise, all_file_ids, file_id_hash_mapping, start
     woce_lines = cruise['collections']['woce_lines']
     woce_lines = ','.join(woce_lines)
 
-    # TESTING
-    # Find cruise 32MW9508 to check for ctd_temperature_68 case
-    # It has ctd temp on 68 scale
-
-    # Check this to see if program freezes or if it was random
-    # expocode = cruise['expocode']
-    # expocode =  06GA350_1, cruise_id = 865
-    #  ctd file id = 17346
-    # if expocode != '06GA350_1':
-    #     return {}
-
     # Get files attached to the cruise
     # Could be deleted ones so check if exist in all_files
     file_ids = cruise['files']
@@ -440,13 +448,13 @@ def get_cruise_information(session, logging_dir, start_datetime, end_datetime):
     # Get all cruises and active files
     logging.info('Get CCHDO cruise information for date range')
     all_cruises = get_all_cruises(session)
+
     all_file_ids = get_all_file_ids(session)
     file_id_hash_mapping = get_file_id_hash_mapping(session)
 
     all_cruises_info = []
 
     b = db.from_sequence(all_cruises)
-
     c = b.map(get_information_one_cruise, all_file_ids,
               file_id_hash_mapping, start_datetime, end_datetime, session)
 
