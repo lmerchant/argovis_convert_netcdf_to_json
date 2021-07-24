@@ -1,4 +1,3 @@
-from global_vars import GlobalVars
 import os
 import logging
 import errno
@@ -39,7 +38,7 @@ def delete_logs(append_logs):
     logging_dir = GlobalVars.LOGGING_DIR
 
     if not append_logs:
-        remove_file('output.log', logging_dir)
+        remove_file(GlobalVars.OUTPUT_LOG, logging_dir)
         remove_file('file_read_errors.txt', logging_dir)
         remove_file('found_goship_units.txt', logging_dir)
         remove_file('cruises_no_core_ctd_vars.txt', logging_dir)
@@ -59,6 +58,6 @@ def setup_logging(append_logs):
     os.makedirs(GlobalVars.LOGGING_DIR, exist_ok=True)
     os.makedirs(GlobalVars.INCLUDE_EXCLUDE_DIR, exist_ok=True)
 
-    setup_logger()
-
     delete_logs(append_logs)
+
+    setup_logger()

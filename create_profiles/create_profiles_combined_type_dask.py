@@ -1,4 +1,3 @@
-# Create profiles for combined type (btl_ctd)
 import logging
 import pandas as pd
 
@@ -424,13 +423,14 @@ def get_same_station_cast_profile_btl_ctd(btl_profiles, ctd_profiles):
     return btl_profiles, ctd_profiles
 
 
-def create_profiles_combined_type(file_profiles):
+def create_profiles_combined_type_dask(profiles_objs):
 
-    for profiles in file_profiles:
-        if profiles['data_type'] == 'btl':
-            btl_profiles = profiles['profiles']
-        elif profiles['data_type'] == 'ctd':
-            ctd_profiles = profiles['profiles']
+    for profiles_obj in profiles_objs:
+
+        if profiles_obj['data_type'] == 'btl':
+            btl_profiles = profiles_obj['profiles']
+        elif profiles_obj['data_type'] == 'ctd':
+            ctd_profiles = profiles_obj['profiles']
 
     # Get profile dicts so have the same number of profiles
     # one may be blank while the other exists at a cast

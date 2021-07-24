@@ -97,15 +97,21 @@ def get_expocode_file_id():
     # file_id = 18353
 
     # Cruise with no ctd_salinity
-    # btl file
-    expocode = '77DN20010717'
-    btl_file_id = 17139
-    ctd_file_id = None
+    # # btl file
+    # expocode = '77DN20010717'
+    # btl_file_id = 17139
+    # ctd_file_id = None
 
     # Every time start over,
     # included/excluded logs wiped out
     # expocode = '77DN20010717'
     # file_id = 17139
+
+    # btl and ctd
+    # Has a meas pt with temp=null, should this be kept?
+    expocode = '32MW093_1'
+    btl_file_id = 16979
+    ctd_file_id = 17842
 
     return expocode, btl_file_id, ctd_file_id
 
@@ -146,7 +152,8 @@ def setup_test_objs():
     if btl_file_id:
         btl_obj = create_test_obj(expocode, btl_file_id, 'btl')
         test_objs.append(btl_obj)
-    elif ctd_file_id:
+
+    if ctd_file_id:
         ctd_obj = create_test_obj(expocode, ctd_file_id, 'ctd')
         test_objs.append(ctd_obj)
 

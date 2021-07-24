@@ -7,7 +7,7 @@ from check_and_save.check_of_ctd_vars import check_of_ctd_vars
 import check_and_save.save_output as save
 
 
-def check_and_save_per_type(file_obj_profile, collections):
+def check_and_save_per_type(file_obj_profile):
 
     # Now check if profiles have CTD vars and should be saved
     # And filter btl and ctd measurements separately
@@ -24,9 +24,11 @@ def check_and_save_per_type(file_obj_profile, collections):
         logging.info('----------------------')
         logging.info('Saving files')
         logging.info('----------------------')
+
         save.write_profile_goship_units(
             checked_ctd_variables)
-        save.save_all_profiles_one_type(checked_ctd_variables, collections)
+
+        save.save_all_profiles_one_type(checked_ctd_variables)
 
     else:
         logging.info("*** Cruise not converted ***")

@@ -125,7 +125,7 @@ def write_profile_json(profile_dict):
                   sort_keys=False, default=convert)
 
 
-def save_one_btl_ctd_profile(ctd_var_check, collections):
+def save_one_btl_ctd_profile(ctd_var_check):
 
     has_all_ctd_vars = ctd_var_check['has_all_ctd_vars']
 
@@ -133,26 +133,63 @@ def save_one_btl_ctd_profile(ctd_var_check, collections):
 
     profile_dict = profile['profile_dict']
 
-    add_vars_to_included_excluded_collections(
-        profile_dict, collections)
+    # add_vars_to_included_excluded_collections(
+    #     profile_dict, cruises_collections)
 
     if has_all_ctd_vars['btl'] or has_all_ctd_vars['ctd']:
         write_profile_json(profile_dict)
 
 
-def save_all_btl_ctd_profiles(checked_ctd_variables, collections):
+def save_all_btl_ctd_profiles(checked_ctd_variables):
 
     for checked_vars in checked_ctd_variables:
-        save_one_btl_ctd_profile(
-            checked_vars, collections)
+        save_one_btl_ctd_profile(checked_vars)
 
 
-def save_included_excluded_goship_vars(collections):
+# def save_included_excluded_goship_vars(cruises_collections):
+#     # Sort each collection by variable name
+#     # and save to separate files
+
+#     included = cruises_collections['included']
+#     excluded = cruises_collections['excluded']
+
+#     sorted_included = sorted(included)
+#     included_vars = [elem[0] for elem in sorted_included]
+#     unique_included_vars = list(set(included_vars))
+
+#     for var in unique_included_vars:
+
+#         # Save included var
+#         included_ids = [elem[1]
+#                         for elem in sorted_included if elem[0] == var]
+
+#         filename = f"{var}_included.txt"
+#         filepath = os.path.join(GlobalVars.INCLUDE_EXCLUDE_DIR, filename)
+#         with open(filepath, 'w') as f:
+#             for id in included_ids:
+#                 f.write(f"{id}\n")
+
+#     # Save excluded var
+#     sorted_excluded = sorted(excluded)
+#     excluded_vars = [
+#         elem[0] for elem in sorted_excluded]
+#     unique_excluded_vars = list(set(excluded_vars))
+
+#     for var in unique_excluded_vars:
+
+#         excluded_ids = [elem[1]
+#                         for elem in sorted_excluded if elem[0] == var]
+
+#         filename = f"{var}_excluded.txt"
+#         filepath = os.path.join(GlobalVars.INCLUDE_EXCLUDE_DIR, filename)
+#         with open(filepath, 'w') as f:
+#             for id in excluded_ids:
+#                 f.write(f"{id}\n")
+
+
+def save_included_excluded_goship_vars_dask(included, excluded):
     # Sort each collection by variable name
     # and save to separate files
-
-    included = collections['included']
-    excluded = collections['excluded']
 
     sorted_included = sorted(included)
     included_vars = [elem[0] for elem in sorted_included]
@@ -188,211 +225,23 @@ def save_included_excluded_goship_vars(collections):
                 f.write(f"{id}\n")
 
 
-def add_vars_to_included_excluded_collections(profile_dict, collections):
+def save_profile_one_type(checked_vars):
 
-    # Don't save qc or meta vars
+    has_all_ctd_vars = checked_vars['has_all_ctd_vars']
+    data_type = checked_vars['data_type']
 
-    profile_keys = profile_dict.keys()
-
-    profile_id = profile_dict['meta']['id']
-
-    # argovis_meta_keys = profile_dict['meta'].keys()
-
-    # # Map back to goship names
-    # goship_meta_keys = rn.convert_argovis_meta_to_goship_names(
-    #     argovis_meta_keys)
-
-    included_meta_goship_btl = []
-    included_meta_goship_ctd = []
-    included_meta_goship = []
-
-    included_param_goship_btl = []
-    included_param_goship_ctd = []
-    included_param_goship = []
-
-    goship_meta_names_btl = []
-    goship_meta_names_ctd = []
-    goship_meta_names = []
-
-    goship_param_names_btl = []
-    goship_param_names_ctd = []
-    goship_param_names = []
-
-    excluded_goship_meta_names_btl = []
-    excluded_goship_meta_names_ctd = []
-    excluded_goship_meta_names = []
-
-    excluded_goship_param_names_btl = []
-    excluded_goship_param_names_ctd = []
-    excluded_goship_param_names = []
-
-    # *******************************
-    # Get goship argovis name mapping
-    # Only included non null goship names
-    # *******************************
-
-    # For meta data
-    try:
-        name_mapping = profile_dict['goshipArgovisMetaMapping']
-        included_meta_goship = [
-            name for name in name_mapping.keys() if '_qc' not in name]
-    except KeyError:
-        if 'goshipArgovisMetaMappingBtl' in profile_keys:
-            name_mapping_btl = profile_dict['goshipArgovisMetaMappingBtl']
-            included_meta_goship_btl = [
-                name for name in name_mapping_btl.keys() if '_qc' not in name]
-        if 'goshipArgovisMetaMappingCtd' in profile_keys:
-            name_mapping_ctd = profile_dict['goshipArgovisMetaMappingCtd']
-            included_meta_goship_ctd = [
-                name for name in name_mapping_ctd.keys() if '_qc' not in name]
-
-    # For param data
-    try:
-        name_mapping = profile_dict['goshipArgovisParamMapping']
-        included_param_goship = [
-            name for name in name_mapping.keys() if '_qc' not in name]
-    except KeyError:
-        if 'goshipArgovisParamMappingBtl' in profile_keys:
-            name_mapping_btl = profile_dict['goshipArgovisParamMappingBtl']
-            included_param_goship_btl = [
-                name for name in name_mapping_btl.keys() if '_qc' not in name]
-        if 'goshipArgovisParamMappingCtd' in profile_keys:
-            name_mapping_ctd = profile_dict['goshipArgovisParamMappingCtd']
-            included_param_goship_ctd = [
-                name for name in name_mapping_ctd.keys() if '_qc' not in name]
-
-    # *********************
-    # Get all  goship names
-    # *********************
-
-    # For meta data
-    try:
-        goship_meta_names = profile_dict['goshipMetaNames']
-        goship_meta_names = [
-            name for name in goship_meta_names if '_qc' not in name]
-    except KeyError:
-        if 'goshipMetaNamesBtl' in profile_keys:
-            goship_meta_names_btl = profile_dict['goshipMetaNamesBtl']
-            goship_meta_names_btl = [
-                name for name in goship_meta_names_btl if '_qc' not in name]
-        elif 'goshipMetaNamesCtd' in profile_keys:
-            goship_meta_names_ctd = profile_dict['goshipMetaNamesCtd']
-            goship_meta_names_ctd = [
-                name for name in goship_meta_names_ctd if '_qc' not in name]
-
-    # For param data
-    try:
-        goship_param_names = profile_dict['goshipParamNames']
-        goship_param_names = [
-            name for name in goship_param_names if '_qc' not in name]
-    except KeyError:
-        if 'goshipParamNamesBtl' in profile_keys:
-            goship_param_names_btl = profile_dict['goshipParamNamesBtl']
-            goship_param_names_btl = [
-                name for name in goship_param_names_btl if '_qc' not in name]
-        elif 'goshipParamNamesCtd' in profile_keys:
-            goship_param_names_ctd = profile_dict['goshipParamNamesCtd']
-            goship_param_names_ctd = [
-                name for name in goship_param_names_ctd if '_qc' not in name]
-
-    # ************************************
-    # Find goship names not included
-    # in mapping because they were all null
-    # ************************************
-
-    # For meta names
-    if included_meta_goship_btl and goship_meta_names_btl:
-        included_goship_meta_names_set = set(included_meta_goship_btl)
-        goship_meta_names_set = set(goship_meta_names_btl)
-        excluded_goship_meta_names_btl = goship_meta_names_set.difference(
-            included_goship_meta_names_set)
-
-    if included_meta_goship_ctd and goship_meta_names_ctd:
-        included_goship_meta_names_set = set(included_meta_goship_ctd)
-        goship_meta_names_set = set(goship_meta_names_ctd)
-        excluded_goship_meta_names_ctd = goship_meta_names_set.difference(
-            included_goship_meta_names_set)
-
-    if included_meta_goship and goship_meta_names:
-        included_goship_meta_names_set = set(included_meta_goship)
-        goship_meta_names_set = set(goship_meta_names)
-        excluded_goship_meta_names = goship_meta_names_set.difference(
-            included_goship_meta_names_set)
-
-    # For param names
-    if included_param_goship_btl and goship_param_names_btl:
-        included_goship_param_names_set = set(included_param_goship_btl)
-        goship_param_names_set = set(goship_param_names_btl)
-        excluded_goship_param_names_btl = goship_param_names_set.difference(
-            included_goship_param_names_set)
-
-    if included_param_goship_ctd and goship_param_names_ctd:
-        included_goship_param_names_set = set(included_param_goship_ctd)
-        goship_param_names_set = set(goship_param_names_ctd)
-        excluded_goship_param_names_ctd = goship_param_names_set.difference(
-            included_goship_param_names_set)
-
-    if included_param_goship and goship_param_names:
-        included_goship_param_names_set = set(included_param_goship)
-        goship_param_names_set = set(goship_param_names)
-        excluded_goship_param_names = goship_param_names_set.difference(
-            included_goship_param_names_set)
-
-    # *******************************
-    # Save included and excluded vars
-    # *******************************
-
-    included = collections['included']
-    excluded = collections['excluded']
-
-    # **********************************
-    # for included goship names
-    # Add tuple (goship_name, profile_id)
-    # to included
-    # ***********************************
-
-    for name in included_param_goship:
-        included.append((name, profile_id))
-
-    for name in included_param_goship_btl:
-        included.append((name, profile_id))
-
-    for name in included_param_goship_ctd:
-        included.append((name, profile_id))
-
-    # **********************************
-    # for excluded goship names
-    # Add tuple (excluded_goship_name, profile_id)
-    # to excluded
-    # ***********************************
-
-    for name in excluded_goship_param_names:
-        excluded.append((name, profile_id))
-
-    for name in excluded_goship_param_names_btl:
-        excluded.append((name, profile_id))
-
-    for name in excluded_goship_param_names_ctd:
-        excluded.append((name, profile_id))
-
-
-def save_profile_one_type(ctd_var_check, collections):
-
-    has_all_ctd_vars = ctd_var_check['has_all_ctd_vars']
-    data_type = ctd_var_check['data_type']
-
-    profile = ctd_var_check['profile_checked']
+    profile = checked_vars['profile_checked']
     profile_dict = profile['profile_dict']
     expocode = profile_dict['meta']['expocode']
 
-    add_vars_to_included_excluded_collections(
-        profile_dict, collections)
+    # add_vars_to_included_excluded_collections(
+    #     profile_dict, cruises_collections)
 
     if has_all_ctd_vars[data_type]:
         write_profile_json(profile_dict)
 
 
-def save_all_profiles_one_type(checked_ctd_variables, collections):
+def save_all_profiles_one_type(checked_ctd_variables):
 
     for checked_vars in checked_ctd_variables:
-        save_profile_one_type(checked_vars, collections)
+        save_profile_one_type(checked_vars)

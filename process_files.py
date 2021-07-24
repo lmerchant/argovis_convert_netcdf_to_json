@@ -6,6 +6,7 @@ import logging
 from global_vars import GlobalVars
 from create_profiles.create_profiles_one_type import create_profiles_one_type
 from create_profiles.create_profiles_combined_type import create_profiles_combined_type
+from check_and_save.add_vars_to_logged_collections import add_vars_to_logged_collections
 from check_and_save.check_and_save_combined import check_and_save_combined
 from check_and_save.check_and_save_per_type import check_and_save_per_type
 
@@ -40,7 +41,7 @@ def read_file(file_obj):
     return file_obj, err_flag
 
 
-def process_files(file_objs, collections):
+def process_files(file_objs):
 
     read_error_count = 0
     data_file_read_errors = []
@@ -61,11 +62,18 @@ def process_files(file_objs, collections):
                 f"{GlobalVars.API_END_POINT}{file_path}")
             continue
 
-        file_obj_profile = {}
-        file_obj_profile['data_type'] = file_obj['data_type']
-        file_obj_profile['profiles'] = create_profiles_one_type(file_obj)
+        file_obj_profiles = {}
+        file_obj_profiles['data_type'] = file_obj['data_type']
 
-        file_profiles.append(file_obj_profile)
+        # Get list of profile objects
+        profile_objs = create_profiles_one_type(file_obj)
+
+        file_obj_profiles['profiles'] = profile_objs
+
+        included, excluded = add_vars_to_logged_collections(
+            profile_objs)
+
+        file_profiles.append(file_obj_profiles)
         file_types.append(file_obj['data_type'])
 
     is_btl = 'btl' in file_types
@@ -82,8 +90,10 @@ def process_files(file_objs, collections):
 
         # Now check if profiles have CTD vars and should be saved
         # filter btl and ctd measurements separately
-        check_and_save_combined(profiles_btl_ctd, collections)
+        check_and_save_combined(profiles_btl_ctd)
 
     else:
-        for file_obj_profile in file_profiles:
-            check_and_save_per_type(file_obj_profile, collections)
+        for file_obj_profiles in file_profiles:
+            check_and_save_per_type(file_obj_profiles)
+
+    return included, excluded

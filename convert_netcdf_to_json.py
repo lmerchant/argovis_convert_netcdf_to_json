@@ -10,6 +10,9 @@ from get_cruises_file_info import get_all_cruises_file_info
 from process_cruise import process_cruise
 from tests.setup_test_objs import setup_test_objs
 from process_files import process_files
+from process_cruises_dask import process_cruises_dask
+from check_and_save.save_output import save_included_excluded_goship_vars_dask
+
 
 pbar = ProgressBar()
 pbar.register()
@@ -33,22 +36,39 @@ def main(start_year, end_year, append):
 
     os.makedirs(GlobalVars.JSON_DIR, exist_ok=True)
 
-    collections = {}
-    collections['included'] = []
-    collections['excluded'] = []
-
     if GlobalVars.TEST:
         test_objs = setup_test_objs()
-        process_files(test_objs, collections)
+        process_files(test_objs)
         exit(1)
 
     cruises_json, files_info = get_all_cruises_file_info()
 
+    # TODO
+    # Is it faster to read in all the files and then
+    # process using Dask?
+
+    #process_cruises_dask(cruises_json, files_info, time_range)
+
     cruise_count = 0
 
+    all_included = []
+    all_excluded = []
+
     for cruise_json in cruises_json:
-        cruise_count = process_cruise(cruise_json, files_info, time_range,
-                                      collections, cruise_count)
+
+        cruise_count, included,  excluded = process_cruise(
+            cruise_json, files_info, time_range, cruise_count)
+
+        all_included.extend(included)
+        all_excluded.extend(excluded)
+
+    # ***********************************
+    # Write included/excluded goship vars
+    # ***********************************
+
+    logging.info("Save included and excluded goship vars")
+
+    save_included_excluded_goship_vars_dask(included, excluded)
 
     logging.info(f"Total number of cruises converted {cruise_count}")
     logging.info('=======================================')

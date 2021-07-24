@@ -98,7 +98,10 @@ def check_if_in_time_range(cruise_json, time_range):
     return True
 
 
-def process_cruise(cruise_json, files_info, time_range, collections, cruise_count):
+def process_cruise(cruise_json, files_info, time_range, cruise_count):
+
+    included = []
+    excluded = []
 
     active_file_ids = files_info['active_file_ids']
     file_id_hash_mapping = files_info['file_hash_mapping']
@@ -106,7 +109,7 @@ def process_cruise(cruise_json, files_info, time_range, collections, cruise_coun
     in_time_range = check_if_in_time_range(cruise_json, time_range)
 
     if not in_time_range:
-        return cruise_count
+        return cruise_count, included, excluded
 
     # Get files attached to the cruise
     # Could be deleted ones so check if exist in all_files
@@ -120,6 +123,9 @@ def process_cruise(cruise_json, files_info, time_range, collections, cruise_coun
 
     file_types = []
     file_objs = []
+
+    included = []
+    excluded = []
 
     for file in netcdf_files:
 
@@ -140,17 +146,16 @@ def process_cruise(cruise_json, files_info, time_range, collections, cruise_coun
         logging.info(f"Start converting Cruise: {cruise_json['expocode']}")
         logging.info("--------------------------------")
 
-        process_files(file_objs, collections)
+        included, excluded = process_files(file_objs)
 
         filename = 'found_cruises_with_coords_netcdf.txt'
         filepath = os.path.join(GlobalVars.LOGGING_DIR, filename)
         with open(filepath, 'a') as f:
-            for file in netcdf_files:
-                f.write(f"expocode {cruise_json['expocode']}\n")
-                f.write(f"collection type {file_types}\n")
-                f.write(f"start date {cruise_json['startDate']}\n")
-                f.write(f"---------------------\n")
+            f.write(f"expocode {cruise_json['expocode']}\n")
+            f.write(f"collection type {file_types}\n")
+            f.write(f"start date {cruise_json['startDate']}\n")
+            f.write(f"---------------------\n")
 
         cruise_count = cruise_count + 1
 
-    return cruise_count
+    return cruise_count, included, excluded

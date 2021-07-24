@@ -53,6 +53,10 @@ def remove_empty_cols(df):
 
 def create_bgc_profiles(df_param):
 
+    # TODO
+    # check columns, does N_PROF occur as an index?
+    # Or is it just created after groupby
+
     # **********************************
     # From df_param, filter out any vars
     # with all null/empty values
@@ -66,6 +70,11 @@ def create_bgc_profiles(df_param):
     # Sort columns so qc next to its var
     df_param = df_param.reindex(sorted(df_param.columns), axis=1)
 
+    # TODO
+    # reset index and delete N_PROF index because
+    # N_PROF col already exists
+    # df_param = df_param.reset_index(drop=True)
+
     bgc_df_groups = dict(tuple(df_param.groupby('N_PROF')))
 
     all_bgc_profiles = []
@@ -75,6 +84,8 @@ def create_bgc_profiles(df_param):
 
         station_cast = val_df['station_cast'].values[0]
 
+        # TODO
+        # uncomment this
         #val_df = val_df.drop(['N_PROF'],  axis=1)
 
         # ***********************************************
