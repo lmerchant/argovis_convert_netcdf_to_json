@@ -4,5 +4,5 @@
 converted_data/
 logging/
 __pycache__/
-.pyc
+*.pyc
 
