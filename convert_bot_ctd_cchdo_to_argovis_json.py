@@ -24,6 +24,7 @@ import get_cruise_information as gi
 import create_profiles_one_type as op
 import create_profiles_combined_type as cbp
 import save_output as sv
+import process_parameter_data as pm
 
 
 # Dask bag default is multiprocessing
@@ -88,18 +89,24 @@ def remove_file(filename, dir):
 
 def read_file_test(data_obj):
 
+    # TODO
+    # Fix testing reading in files
+
+    chunk_size = 20
+
     data_path = data_obj['data_path']
 
     nc = xr.open_dataset(data_path)
 
     data_obj['nc'] = nc
+    data_obj['chunk_size'] = chunk_size
 
     file_expocode = nc.coords['expocode'].data[0]
 
-    meta_names, param_names = pm.get_meta_param_names(nc)
+    # meta_names, param_names = pm.get_meta_param_names(nc)
 
-    data_obj['meta'] = meta_names
-    data_obj['param'] = param_names
+    # data_obj['meta'] = meta_names
+    # data_obj['param'] = param_names
 
     data_obj['file_expocode'] = file_expocode
 

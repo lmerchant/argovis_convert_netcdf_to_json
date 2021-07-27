@@ -13,6 +13,11 @@ API_END_POINT = "https://cchdo.ucsd.edu/api/v1"
 
 def find_btl_ctd_file_info(file_ids, file_id_hash_mapping, session):
 
+    # TODO
+    # This is incorrect,
+    # should use file/all to get all the json file info
+    # Get file hash to get file_id from hash/file_id mapping query
+
     # Get file meta for each file id to search for cruise doc id and bottle id
 
     file_info = {}
