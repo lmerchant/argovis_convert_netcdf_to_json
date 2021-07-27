@@ -13,3 +13,7 @@ class GlobalVars:
     OUTPUT_LOG = 'output_log'
 
     CHUNK_SIZE = 20
+
+    PROCESS_IN_CHUNKS = False
+
+    NUM_IN_BATCH = 200

@@ -266,13 +266,17 @@ def combine_mapping_per_profile_btl_ctd(combined_btl_ctd_dict, btl_dict, ctd_dic
 
     if btl_dict and ctd_dict:
 
+        # Check if have both because in combined profile,
+        # can be case of only having one type for that station_cast
+
         # Remove _btl variables that are the same as CTD
         btl_exclude = set(['expocode', 'cruise_url', 'DATA_CENTRE'])
 
         argovis_meta_names_btl_subset = list(
             set(btl_dict['argovisMetaNames']).difference(btl_exclude))
 
-        # Put suffix of '_btl' in  bottle meta
+        # Put suffix of '_btl' in  bottle meta except
+        # for unique meta names iin btl_exclude list
         goship_argovis_meta_mapping_btl = btl_dict['goshipArgovisMetaMapping']
         goship_argovis_meta_mapping_btl = {
             f"{key}_btl": val for key, val in goship_argovis_meta_mapping_btl.items() if val in argovis_meta_names_btl_subset}
@@ -295,8 +299,16 @@ def combine_mapping_per_profile_btl_ctd(combined_btl_ctd_dict, btl_dict, ctd_dic
         combined_btl_ctd_dict['goshipUnitsBtl'] = btl_dict['goshipUnits']
         combined_btl_ctd_dict['goshipUnitsCtd'] = ctd_dict['goshipUnits']
 
+        # For Argovis meta names, didn't add suffix to them
+        # But now that are combining, put suffix on the
+        # btl dict names that  are filtered to remove
+        # btl_exclude set
+        argovis_meta_names_btl = btl_dict['argovisMetaNames']
+        argovis_meta_names_btl = [
+            f"{name}_btl" for name in argovis_meta_names_btl if name in argovis_meta_names_btl_subset]
+
         argovis_meta_names = [*ctd_dict['argovisMetaNames'],
-                              *btl_dict['argovisMetaNames']]
+                              *argovis_meta_names_btl]
 
         argovis_param_names = [*ctd_dict['argovisParamNames'],
                                *btl_dict['argovisParamNames']]
@@ -423,14 +435,50 @@ def get_same_station_cast_profile_btl_ctd(btl_profiles, ctd_profiles):
     return btl_profiles, ctd_profiles
 
 
+# def create_combined_type_all_cruise_objs(cruises_profiles_objs):
+
+#     is_btl = any([True if profiles_obj['data_type'] ==
+#                   'btl' else False for profiles_obj in cruises_profiles_objs])
+
+#     is_ctd = any([True if profiles_obj['data_type'] ==
+#                   'ctd' else False for profiles_obj in cruises_profiles_objs])
+
+#     if is_btl and is_ctd:
+
+#         logging.info("Combining btl and ctd")
+
+#         # filter measurements by hierarchy
+#         #  when combine btl and ctd profiles.
+#         # didn't filter btl or ctd first in case need
+#         # a variable from both
+
+#         all_profiles_btl_ctd_objs = []
+
+#         for curise_profiles_obj in cruises_profiles_objs:
+#             profiles_btl_ctd_objs = create_profiles_combined_type_dask(
+#                 curise_profiles_obj)
+
+#             all_profiles_btl_ctd_objs.append(profiles_btl_ctd_objs)
+
+#         return all_profiles_btl_ctd_objs
+
+#     else:
+#         return []
+
+
 def create_profiles_combined_type_dask(profiles_objs):
 
     for profiles_obj in profiles_objs:
 
+        # if profiles_obj['data_type'] == 'btl':
+        #     btl_profiles = profiles_obj['profiles']
+        # elif profiles_obj['data_type'] == 'ctd':
+        #     ctd_profiles = profiles_obj['profiles']
+
         if profiles_obj['data_type'] == 'btl':
-            btl_profiles = profiles_obj['profiles']
+            btl_profiles = profiles_obj['data_type_profiles_list']
         elif profiles_obj['data_type'] == 'ctd':
-            ctd_profiles = profiles_obj['profiles']
+            ctd_profiles = profiles_obj['data_type_profiles_list']
 
     # Get profile dicts so have the same number of profiles
     # one may be blank while the other exists at a cast

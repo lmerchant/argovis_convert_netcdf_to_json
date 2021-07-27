@@ -1,4 +1,3 @@
-
 def get_goship_meta_names(profile_dict):
 
     goship_meta_names_btl = []
@@ -130,6 +129,7 @@ def find_param_included(profile_dict):
         name_mapping = profile_dict['goshipArgovisParamMapping']
         included_param_goship = [
             name for name in name_mapping.keys() if '_qc' not in name]
+
     except KeyError:
         if 'goshipArgovisParamMappingBtl' in profile_keys:
             name_mapping_btl = profile_dict['goshipArgovisParamMappingBtl']
@@ -174,7 +174,7 @@ def find_param_excluded(profile_dict, included_param_goship_btl, included_param_
     return excluded_goship_param_names_btl, excluded_goship_param_names_ctd, excluded_goship_param_names
 
 
-def add_vars_to_logged_collection_one_profile(profile_dict):
+def add_vars_one_profile(profile_dict):
 
     # Don't save qc or meta vars
 
@@ -189,98 +189,96 @@ def add_vars_to_logged_collection_one_profile(profile_dict):
     included = []
     excluded = []
 
-    goship_meta_names, goship_meta_names_btl, goship_meta_names_ctd = get_goship_meta_names(
-        profile_dict)
+    # Get Included Goship Meta and Param names after filtering empty cols
 
-    goship_param_names, goship_param_names_btl, goship_param_names_ctd = get_goship_param_names(
-        profile_dict)
+    name_mapping = profile_dict['goshipArgovisMetaMapping']
+    included_meta_goship = [
+        name for name in name_mapping.keys() if '_qc' not in name]
 
-    included_meta_goship, included_meta_goship_btl, included_meta_goship_ctd = find_meta_included(
-        profile_dict)
+    name_mapping = profile_dict['goshipArgovisParamMapping']
+    included_param_goship = [
+        name for name in name_mapping.keys() if '_qc' not in name]
 
-    included_param_goship, included_param_goship_btl, included_param_goship_ctd = find_param_included(
-        profile_dict)
+    # Get Goship Meta and Param names before filtering out empty cols
 
-    excluded_goship_meta_names_btl, excluded_goship_meta_names_ctd, excluded_goship_meta_names = find_meta_excluded(
-        profile_dict, included_meta_goship_btl, included_meta_goship_ctd, included_meta_goship)
+    goship_meta_names = profile_dict['goshipMetaNames']
+    goship_meta_names = [
+        name for name in goship_meta_names if '_qc' not in name]
 
-    excluded_goship_param_names_btl, excluded_goship_param_names_ctd, excluded_goship_param_names = find_param_excluded(
-        profile_dict, included_param_goship_btl, included_param_goship_ctd, included_param_goship)
+    goship_param_names = profile_dict['goshipParamNames']
+    goship_param_names = [
+        name for name in goship_param_names if '_qc' not in name]
+
+    # Get Excluded Goship Meta  and Param names
+
+    included_goship_meta_names_set = set(included_meta_goship)
+    goship_meta_names_set = set(goship_meta_names)
+    excluded_goship_meta_names = goship_meta_names_set.difference(
+        included_goship_meta_names_set)
+
+    included_goship_param_names_set = set(included_param_goship)
+    goship_param_names_set = set(goship_param_names)
+    excluded_goship_param_names = goship_param_names_set.difference(
+        included_goship_param_names_set)
 
     # *******************************
     # Save included and excluded vars
     # *******************************
 
     # **********************************
-    # for included goship names
-    # Add tuple (goship_name, profile_id)
-    # to included
+    # for included and excluded goship names
+    # Add tuple (goship_name, profile_id, data_type)
     # ***********************************
+
+    data_type = profile_dict['data_type']
 
     for name in included_param_goship:
-        included.append((name, profile_id))
-
-    for name in included_param_goship_btl:
-        included.append((name, profile_id))
-
-    for name in included_param_goship_ctd:
-        included.append((name, profile_id))
-
-    # **********************************
-    # for excluded goship names
-    # Add tuple (excluded_goship_name, profile_id)
-    # to excluded
-    # ***********************************
+        included.append((name, profile_id, data_type))
 
     for name in excluded_goship_param_names:
-        excluded.append((name, profile_id))
-
-    for name in excluded_goship_param_names_btl:
-        excluded.append((name, profile_id))
-
-    for name in excluded_goship_param_names_ctd:
-        excluded.append((name, profile_id))
+        excluded.append((name, profile_id, data_type))
 
     return included, excluded
 
 
-def add_vars_to_logged_collections_dask(profiles_objs):
+def add_vars_one_cruise(files_profiles_objs):
 
-    all_included = []
-    all_excluded = []
+    vars_included = []
+    vars_excluded = []
 
-    for profiles_obj in profiles_objs:
+    # Loop over the profiles for the collection of files with profiles
+    for file_profiles_obj in files_profiles_objs:
 
-        profiles = profiles_obj['profiles']
+        file_profiles = file_profiles_obj['profiles']
 
-        for profile in profiles:
+        for file_profile in file_profiles:
 
-            profile_dict = profile['profile_dict']
+            profile_dict = file_profile['profile_dict']
 
-            included, excluded = add_vars_to_logged_collection_one_profile(
+            included, excluded = add_vars_one_profile(
                 profile_dict)
 
-            all_included.extend(included)
-            all_excluded.extend(excluded)
+            vars_included.extend(included)
+            vars_excluded.extend(excluded)
 
     # Return values are lists of tuples (name, profile_id)
-    return all_included, all_excluded
+    return vars_included, vars_excluded
 
 
-def add_vars_to_logged_collections(profiles_objs):
+def gather_included_excluded_vars(batch_cruises_profiles_objs):
 
-    all_included = []
-    all_excluded = []
+    cruises_all_included = []
+    cruises_all_excluded = []
 
-    for profiles_obj in profiles_objs:
+    for cruise_profiles_obj in batch_cruises_profiles_objs:
 
-        profile_dict = profiles_obj['profile_dict']
+        expocode = cruise_profiles_obj['cruise_expocode']
+        profiles_objs = cruise_profiles_obj['all_data_types_profile_objs']
 
-        included, excluded = add_vars_to_logged_collection_one_profile(
-            profile_dict)
+        # Return values are lists of tuples (name, profile_id)
+        included, excluded = add_vars_one_cruise(profiles_objs)
 
-        all_included.extend(included)
-        all_excluded.extend(excluded)
+        cruises_all_included.extend(included)
+        cruises_all_excluded.extend(excluded)
 
-    # Return values are lists of tuples (name, profile_id)
-    return all_included, all_excluded
+    return cruises_all_included, cruises_all_excluded

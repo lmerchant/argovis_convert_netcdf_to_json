@@ -28,11 +28,14 @@ def modify_dask_obj(ddf_param, data_type):
 
     # ******************************************
     # Remove empty rows so don't include in JSON
+    # Change NaN to None for JSON to be null
+    # Add back in temp_qc = 0 col if existed
     # ******************************************
 
     logging.info('Remove empty rows')
 
     # https://stackoverflow.com/questions/54164879/what-is-an-efficient-way-to-use-groupby-apply-a-custom-function-for-a-huge-dat
+
     dask_meta = ddf_param.dtypes.to_dict()
     ddf_param = ddf_param.map_partitions(
         lambda part: part.groupby('N_PROF').apply(remove_empty_rows), meta=dask_meta)
