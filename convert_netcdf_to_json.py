@@ -43,9 +43,6 @@ def main(start_year, end_year, append):
 
     process_all_cruises(cruises_json, files_info, time_range)
 
-    # logging.info(f"Total number of cruises converted {cruise_count}")
-    # logging.info('=======================================')
-
     logging.info("Time to run program")
     logging.info(datetime.now() - program_start_time)
 

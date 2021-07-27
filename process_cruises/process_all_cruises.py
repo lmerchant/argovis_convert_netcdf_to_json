@@ -13,7 +13,6 @@ a = requests.adapters.HTTPAdapter(max_retries=3)
 session.mount('https://', a)
 
 
-#  used
 def add_file_data(netcdf_cruise_obj):
 
     cruise_expocode = netcdf_cruise_obj['cruise_expocode']
@@ -212,8 +211,8 @@ def process_all_cruises(cruises_json, files_info, time_range):
     logging.info(f"num batches {num_batches} and num leftover {num_leftover}")
 
     # # Testing
-    num_in_batch = 1
-    num_batches = 1
+    # num_in_batch = 1
+    # num_batches = 1
 
     for start in range(0, num_batches):
 
@@ -228,11 +227,16 @@ def process_all_cruises(cruises_json, files_info, time_range):
 
         process_batch_of_cruises(cruises_data_objs_w_data)
 
-    exit(1)
-
     if num_leftover:
         logging.info(f"Inside leftover loop")
-        netcdf_cruises_objs_batch = netcdf_cruises_objs[end_batch: num_netcdf_cruises_objs]
+
+        try:
+            # If continuing from a bunch, end_batch exists
+            netcdf_cruises_objs_batch = netcdf_cruises_objs[end_batch: num_netcdf_cruises_objs]
+        except UnboundLocalError:
+            # If no bunch size, end_batch doesn't exist. Set to zero
+            end_batch = 0
+            netcdf_cruises_objs_batch = netcdf_cruises_objs[end_batch: num_netcdf_cruises_objs]
 
         # Add data to the objs
         cruises_data_objs_w_data = get_cruises_data_objs(
