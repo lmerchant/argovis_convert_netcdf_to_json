@@ -276,7 +276,7 @@ def apply_c_format_meta(nc, meta_mapping):
     return nc
 
 
-def apply_c_format_meta_dask(nc, meta_mapping):
+def apply_c_format_meta(nc, meta_mapping):
 
     # apply c_format to float values to limit
     # number of decimal places in the final JSON format

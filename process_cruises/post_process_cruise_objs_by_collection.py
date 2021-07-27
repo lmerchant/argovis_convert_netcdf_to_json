@@ -1,6 +1,6 @@
 import logging
 
-from create_profiles.create_profiles_combined_type_dask import create_profiles_combined_type_dask
+from create_profiles.create_profiles_combined_type import create_profiles_combined_type
 from check_and_save.save_output import check_and_save_combined
 from check_and_save.save_output import check_and_save_per_type
 
@@ -33,7 +33,7 @@ def post_process_cruise_objs_by_collection(cruises_profiles_objs):
             #  when combine btl and ctd profiles.
             # didn't filter btl or ctd first in case need
             # a variable from both
-            profiles_btl_ctd_objs = create_profiles_combined_type_dask(
+            profiles_btl_ctd_objs = create_profiles_combined_type(
                 profiles_objs)
 
             # Now check if profiles have CTD vars and should be saved

@@ -33,7 +33,7 @@ def combine_profiles(meta_profiles, bgc_profiles, meas_profiles, meas_source_pro
     return all_profiles
 
 
-# def process_cruise_objs_by_type_dask_bunched(cruise_objs):
+# def process_cruise_objs_by_type_bunched(cruise_objs):
 
 #     logging.info('Process all cruise objects in xarray objects')
 
@@ -353,7 +353,7 @@ def create_xr_obj(cruise_obj):
     return cruise_xr_obj
 
 
-def process_cruise_objs_by_type_dask(cruise_objs):
+def process_cruise_objs_by_type(cruise_objs):
 
     # TODO
     # Was hoping to speed up groups but can't use
@@ -423,7 +423,7 @@ def process_cruise_objs_by_type_dask(cruise_objs):
     return cruises_profiles_objs
 
 
-def process_cruise_objs_by_type_dask_alt(cruise_objs):
+def process_cruise_objs_by_type_alt(cruise_objs):
 
     logging.info('Process all cruise objects in xarray objects')
 

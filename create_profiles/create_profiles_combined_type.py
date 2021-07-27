@@ -455,7 +455,7 @@ def get_same_station_cast_profile_btl_ctd(btl_profiles, ctd_profiles):
 #         all_profiles_btl_ctd_objs = []
 
 #         for curise_profiles_obj in cruises_profiles_objs:
-#             profiles_btl_ctd_objs = create_profiles_combined_type_dask(
+#             profiles_btl_ctd_objs = create_profiles_combined_type(
 #                 curise_profiles_obj)
 
 #             all_profiles_btl_ctd_objs.append(profiles_btl_ctd_objs)
@@ -466,7 +466,7 @@ def get_same_station_cast_profile_btl_ctd(btl_profiles, ctd_profiles):
 #         return []
 
 
-def create_profiles_combined_type_dask(profiles_objs):
+def create_profiles_combined_type(profiles_objs):
 
     for profiles_obj in profiles_objs:
 

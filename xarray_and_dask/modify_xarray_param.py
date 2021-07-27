@@ -94,7 +94,7 @@ class FormatFloat(float):
 #     return nc
 
 
-def apply_c_format_param_dask(nc, param_mapping):
+def apply_c_format_param(nc, param_mapping):
 
     float_types = ['float64', 'float32']
 

@@ -119,10 +119,10 @@ def modify_xarray_obj(file_obj):
     # Convert back to Dask
     nc = nc.chunk({'N_PROF': chunk_size})
 
-    nc = mod_xr_meta.apply_c_format_meta_dask(
+    nc = mod_xr_meta.apply_c_format_meta(
         nc, goship_meta_mapping)
 
-    nc = mod_xr_param.apply_c_format_param_dask(
+    nc = mod_xr_param.apply_c_format_param(
         nc, goship_param_mapping)
 
     # **********************************

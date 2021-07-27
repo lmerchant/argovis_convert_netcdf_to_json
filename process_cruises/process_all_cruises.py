@@ -6,7 +6,7 @@ from datetime import datetime
 import math
 
 from global_vars import GlobalVars
-from process_cruises.process_batch_of_cruises_dask import process_batch_of_cruises_dask
+from process_cruises.process_batch_of_cruises import process_batch_of_cruises
 
 session = requests.Session()
 a = requests.adapters.HTTPAdapter(max_retries=3)
@@ -118,61 +118,6 @@ def check_if_netcdf_data(file_json):
         return False
 
 
-# def get_netcdf_files_info(active_cruise_file_ids, files_json_objs):
-
-#     netcdf_files = []
-
-#     for file_id in active_cruise_file_ids:
-
-#         file_json = files_json_objs[file_id]
-
-#         is_netcdf = check_if_netcdf_data(file_json)
-
-#         if is_netcdf:
-#             file = {}
-#             file['id'] = file_id
-#             file['json'] = file_json
-
-#             netcdf_files.append(file)
-
-#     return netcdf_files
-
-
-# def get_cruise_obj(cruise_json, active_file_ids,  file_id_hash_mapping,  files_json_objs):
-
-#     # Get files attached to the cruise
-#     # Could be deleted ones so check if exist in all_files
-#     cruise_file_ids = cruise_json['files']
-
-#     # Get only file_ids in active file ids
-#     active_cruise_file_ids = [
-#         id for id in cruise_file_ids if id in active_file_ids]
-
-#     netcdf_files = get_netcdf_files_info(
-#         active_cruise_file_ids, files_json_objs)
-
-#     #file_id_hash_mapping = files_info['file_id_hash_mapping']
-
-#     file_objs = []
-#     for file in netcdf_files:
-
-#         file_id = file['id']
-#         file_json = file['json']
-#         file_hash = file_id_hash_mapping[file_id]
-
-#         file_obj = create_file_obj(
-#             cruise_json, file_id, file_json, file_hash)
-
-#         file_objs.append(file_obj)
-
-#     cruise_obj = {}
-#     if file_objs:
-#         cruise_obj['cruise_expocode'] = cruise_json['expocode']
-#         cruise_obj['file_objs'] = file_objs
-
-#     return cruise_obj
-
-
 def check_if_in_time_range(cruise_json, time_range):
 
     cruise_start_date = cruise_json['startDate']
@@ -191,94 +136,7 @@ def check_if_in_time_range(cruise_json, time_range):
     return True
 
 
-# def get_cruise_obj_dask(cruise_json, files_info, time_range):
-
-#     in_time_range = check_if_in_time_range(cruise_json, time_range)
-
-#     if not in_time_range:
-#         return {}
-
-#     active_file_ids = files_info['active_file_ids']
-#     file_id_hash_mapping = files_info['file_id_hash_mapping']
-
-#     # Get files attached to the cruise
-#     # Could be deleted ones so check if exist in all_files
-#     cruise_file_ids = cruise_json['files']
-
-#     # Get only file_ids in active file ids
-#     active_cruise_file_ids = [
-#         id for id in cruise_file_ids if id in active_file_ids]
-
-#     netcdf_files = get_netcdf_files_info(active_cruise_file_ids)
-
-#     file_objs = []
-#     for file in netcdf_files:
-
-#         file_id = file['id']
-#         file_json = file['json']
-#         file_hash = file_id_hash_mapping[file_id]
-
-#         file_obj = create_file_obj(
-#             cruise_json, file_id, file_json, file_hash)
-
-#         file_objs.append(file_obj)
-
-#     cruise_obj = {}
-#     if file_objs:
-#         cruise_obj['cruise_expocode'] = cruise_json['expocode']
-#         cruise_obj['file_objs'] = file_objs
-
-#     return cruise_obj
-
-
-# def func(file_json_fobjs, file_hash_id_mapping):
-
-#     for file_json_fobj in file_json_fobjs:
-
-#         with file_json_fobj as f:
-#             data = f.read()
-#             file_json = json.loads(data)
-
-#         file_hash = file_json['file_hash']
-#         file_id = file_hash_id_mapping[file_hash]
-
-#         file_json_obj = {}
-#         file_json_obj[file_id] = file_json
-
-#     return file_json_obj
-
-
-# @dask.delayed
-# def read_fsspec_obj(file_json_fobj, file_hash_id_mapping):
-
-#     print('reading obj')
-
-#     with file_json_fobj as f:
-#         data = f.read()
-#         file_json = json.loads(data)
-
-#     file_hash = file_json['file_hash']
-#     file_id = file_hash_id_mapping[file_hash]
-
-#     file_json_obj = {}
-#     file_json_obj[file_id] = file_json
-
-#     return file_json_obj
-
-
-# def get_all_files_json_objs(files_info):
-
-#     active_file_ids = files_info['active_file_ids']
-
-#     active_file_urls = [
-#         f"{GlobalVars.API_END_POINT}/file/{file_id}" for file_id in active_file_ids]
-
-#     file_json_fobjs = fsspec.open_files(active_file_urls, 'r')
-
-#     return file_json_fobjs
-
-
-def process_cruises_dask(cruises_json, files_info, time_range):
+def process_all_cruises(cruises_json, files_info, time_range):
 
     file_id_hash_mapping = files_info['file_id_hash_mapping']
     hash_file_id_mapping = files_info['hash_file_id_mapping']
@@ -368,7 +226,7 @@ def process_cruises_dask(cruises_json, files_info, time_range):
         cruises_data_objs_w_data = get_cruises_data_objs(
             netcdf_cruises_objs_batch)
 
-        process_batch_of_cruises_dask(cruises_data_objs_w_data)
+        process_batch_of_cruises(cruises_data_objs_w_data)
 
     exit(1)
 
@@ -380,4 +238,4 @@ def process_cruises_dask(cruises_json, files_info, time_range):
         cruises_data_objs_w_data = get_cruises_data_objs(
             netcdf_cruises_objs_batch)
 
-        process_batch_of_cruises_dask(cruises_data_objs_w_data)
+        process_batch_of_cruises(cruises_data_objs_w_data)

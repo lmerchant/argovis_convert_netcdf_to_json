@@ -150,7 +150,7 @@ def save_all_btl_ctd_profiles(checked_ctd_variables):
         save_one_btl_ctd_profile(checked_vars)
 
 
-def save_included_excluded_goship_vars_dask(included, excluded):
+def save_included_excluded_goship_vars(included, excluded):
     """
         Save included vars
     """
