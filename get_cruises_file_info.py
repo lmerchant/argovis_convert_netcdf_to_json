@@ -23,9 +23,11 @@ def get_file_id_hash_mapping():
     mapping = response.json()['files']
 
     # Get into form {file_id: file_hash}
-    file_hash_mapping = {obj['id']: obj['hash'] for obj in mapping}
+    file_id_hash_mapping = {obj['id']: obj['hash'] for obj in mapping}
 
-    return file_hash_mapping
+    hash_file_id_mapping = {obj['hash']: obj['id'] for obj in mapping}
+
+    return file_id_hash_mapping, hash_file_id_mapping
 
 
 def get_active_file_ids():
@@ -79,10 +81,11 @@ def get_all_cruises_file_info():
 
     active_file_ids = get_active_file_ids()
 
-    file_id_hash_mapping = get_file_id_hash_mapping()
+    file_id_hash_mapping, hash_file_id_mapping = get_file_id_hash_mapping()
 
     files_info = {}
     files_info['active_file_ids'] = active_file_ids
-    files_info['file_hash_mapping'] = file_id_hash_mapping
+    files_info['file_id_hash_mapping'] = file_id_hash_mapping
+    files_info['hash_file_id_mapping'] = hash_file_id_mapping
 
     return cruises_info, files_info

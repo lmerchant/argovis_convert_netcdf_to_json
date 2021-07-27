@@ -3,8 +3,12 @@
 import os
 import json
 import numpy as np
+from pathlib import Path
+import logging
 
 from global_vars import GlobalVars
+from check_and_save.check_of_ctd_vars import check_of_ctd_vars
+from create_profiles.filter_measurements import filter_measurements
 
 
 def convert(o):
@@ -146,82 +150,46 @@ def save_all_btl_ctd_profiles(checked_ctd_variables):
         save_one_btl_ctd_profile(checked_vars)
 
 
-# def save_included_excluded_goship_vars(cruises_collections):
-#     # Sort each collection by variable name
-#     # and save to separate files
-
-#     included = cruises_collections['included']
-#     excluded = cruises_collections['excluded']
-
-#     sorted_included = sorted(included)
-#     included_vars = [elem[0] for elem in sorted_included]
-#     unique_included_vars = list(set(included_vars))
-
-#     for var in unique_included_vars:
-
-#         # Save included var
-#         included_ids = [elem[1]
-#                         for elem in sorted_included if elem[0] == var]
-
-#         filename = f"{var}_included.txt"
-#         filepath = os.path.join(GlobalVars.INCLUDE_EXCLUDE_DIR, filename)
-#         with open(filepath, 'w') as f:
-#             for id in included_ids:
-#                 f.write(f"{id}\n")
-
-#     # Save excluded var
-#     sorted_excluded = sorted(excluded)
-#     excluded_vars = [
-#         elem[0] for elem in sorted_excluded]
-#     unique_excluded_vars = list(set(excluded_vars))
-
-#     for var in unique_excluded_vars:
-
-#         excluded_ids = [elem[1]
-#                         for elem in sorted_excluded if elem[0] == var]
-
-#         filename = f"{var}_excluded.txt"
-#         filepath = os.path.join(GlobalVars.INCLUDE_EXCLUDE_DIR, filename)
-#         with open(filepath, 'w') as f:
-#             for id in excluded_ids:
-#                 f.write(f"{id}\n")
-
-
 def save_included_excluded_goship_vars_dask(included, excluded):
-    # Sort each collection by variable name
-    # and save to separate files
+    """
+        Save included vars
+    """
 
-    sorted_included = sorted(included)
-    included_vars = [elem[0] for elem in sorted_included]
+    included_vars = [elem[0] for elem in included]
     unique_included_vars = list(set(included_vars))
 
     for var in unique_included_vars:
 
-        # Save included var
-        included_ids = [elem[1]
-                        for elem in sorted_included if elem[0] == var]
+        included_str = [f"{elem[1]} {elem[2]}"
+                        for elem in included if elem[0] == var]
 
         filename = f"{var}_included.txt"
         filepath = os.path.join(GlobalVars.INCLUDE_EXCLUDE_DIR, filename)
-        with open(filepath, 'w') as f:
-            for id in included_ids:
+        file = Path(filepath)
+        file.touch(exist_ok=True)
+        with file.open("a") as f:
+            for id in included_str:
                 f.write(f"{id}\n")
 
-    # Save excluded var
-    sorted_excluded = sorted(excluded)
+    """
+        Save excluded vars
+    """
+
     excluded_vars = [
-        elem[0] for elem in sorted_excluded]
+        elem[0] for elem in excluded]
     unique_excluded_vars = list(set(excluded_vars))
 
     for var in unique_excluded_vars:
 
-        excluded_ids = [elem[1]
-                        for elem in sorted_excluded if elem[0] == var]
+        excluded_str = [f"{elem[1]} {elem[2]}"
+                        for elem in excluded if elem[0] == var]
 
         filename = f"{var}_excluded.txt"
         filepath = os.path.join(GlobalVars.INCLUDE_EXCLUDE_DIR, filename)
-        with open(filepath, 'w') as f:
-            for id in excluded_ids:
+        file = Path(filepath)
+        file.touch(exist_ok=True)
+        with file.open("a") as f:
+            for id in excluded_str:
                 f.write(f"{id}\n")
 
 
@@ -245,3 +213,107 @@ def save_all_profiles_one_type(checked_ctd_variables):
 
     for checked_vars in checked_ctd_variables:
         save_profile_one_type(checked_vars)
+
+
+def check_and_save_per_type(file_obj_profile):
+
+    # Now check if profiles have CTD vars and should be saved
+    # And filter btl and ctd measurements separately
+
+    data_type = file_obj_profile['data_type']
+    file_profiles = file_obj_profile['profiles']
+
+    # filter measurements for core using hierarchy
+    file_profiles = filter_measurements(file_profiles, data_type)
+
+    checked_ctd_variables, ctd_vars_flag = check_of_ctd_vars(file_profiles)
+
+    if ctd_vars_flag:
+        logging.info('----------------------')
+        logging.info('Saving files')
+        logging.info('----------------------')
+
+        write_profile_goship_units(
+            checked_ctd_variables)
+
+        save_all_profiles_one_type(checked_ctd_variables)
+
+    else:
+        logging.info("*** Cruise not converted ***")
+
+        profile = file_profiles[0]
+        cruise_expocode = profile['profile_dict']['meta']['expocode']
+
+        filename = 'cruises_not_converted.txt'
+        filepath = os.path.join(GlobalVars.LOGGING_DIR, filename)
+        with open(filepath, 'a') as f:
+            f.write(f"{cruise_expocode}\n")
+
+
+def check_and_save_combined(profiles_btl_ctd):
+
+    # Now check if profiles have CTD vars and should be saved
+    # And filter btl and ctd measurements separately
+
+    checked_ctd_variables, ctd_vars_flag = check_of_ctd_vars(
+        profiles_btl_ctd)
+
+    if ctd_vars_flag:
+        logging.info('----------------------')
+        logging.info('Saving files')
+        logging.info('----------------------')
+        write_profile_goship_units(checked_ctd_variables)
+
+        save_all_btl_ctd_profiles(checked_ctd_variables)
+
+    else:
+        logging.info("*** Cruise not converted ***")
+
+        profile = profiles_btl_ctd[0]
+        cruise_expocode = profile['profile_dict']['meta']['expocode']
+
+        filename = 'cruises_not_converted.txt'
+        filepath = os.path.join(GlobalVars.LOGGING_DIR, filename)
+        with open(filepath, 'a') as f:
+            f.write(f"{cruise_expocode}\n")
+
+
+# # This is wrong
+# def check_and_save_by_collection_type(cruises_profiles_objs, profiles_btl_ctd_objs):
+
+#     # TODO
+#     # Need a for loop  over all cruises
+
+#     for cruise_profiles_obj in cruises_profiles_objs:
+
+#         is_btl = any([True if profiles_obj['data_type'] ==
+#                       'btl' else False for profiles_obj in cruise_profiles_obj])
+
+#         is_ctd = any([True if profiles_obj['data_type'] ==
+#                       'ctd' else False for profiles_obj in cruise_profiles_obj])
+
+#         # Determine if both btl and ctd, if there is,
+#         # create a combined profile
+#         # created after individual profiles
+
+#         if is_btl and is_ctd:
+#             pass
+
+#             #logging.info("Combining btl and ctd")
+
+#             # # filter measurements by hierarchy
+#             # #  when combine btl and ctd profiles.
+#             # # didn't filter btl or ctd first in case need
+#             # # a variable from both
+#             # profiles_btl_ctd_objs = create_profiles_combined_type_dask(
+#             #     cruises_profiles_objs)
+
+#             # Now check if profiles have CTD vars and should be saved
+#             # filter btl and ctd measurements separately
+#             # for curise_profiles_obj in cruises_profiles_objs:
+#             #     check_and_save_combined(profiles_btl_ctd_objs)
+
+#         else:
+#             pass
+#             # for file_obj_profiles in cruise_profiles_obj:
+#             #     check_and_save_per_type(file_obj_profiles)

@@ -1,6 +1,7 @@
 import os
 import logging
 import errno
+from pathlib import Path
 
 
 from global_vars import GlobalVars
@@ -51,6 +52,10 @@ def delete_logs(append_logs):
         remove_file('diff_cruise_and_file_expocodes.txt', logging_dir)
         remove_file('cruises_not_converted.txt', logging_dir)
         remove_file('cruises_w_ctd_temp_unk.txt', logging_dir)
+
+    include_exclude_dir = GlobalVars.INCLUDE_EXCLUDE_DIR
+
+    [f.unlink() for f in Path(include_exclude_dir).glob("*") if f.is_file()]
 
 
 def setup_logging(append_logs):

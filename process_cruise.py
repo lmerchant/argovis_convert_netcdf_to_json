@@ -104,7 +104,7 @@ def process_cruise(cruise_json, files_info, time_range, cruise_count):
     excluded = []
 
     active_file_ids = files_info['active_file_ids']
-    file_id_hash_mapping = files_info['file_hash_mapping']
+    file_id_hash_mapping = files_info['file_id_hash_mapping']
 
     in_time_range = check_if_in_time_range(cruise_json, time_range)
 

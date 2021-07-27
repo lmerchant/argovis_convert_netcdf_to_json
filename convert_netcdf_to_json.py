@@ -11,7 +11,7 @@ from process_cruise import process_cruise
 from tests.setup_test_objs import setup_test_objs
 from process_files import process_files
 from process_cruises_dask import process_cruises_dask
-from check_and_save.save_output import save_included_excluded_goship_vars_dask
+#from check_and_save.save_output import save_included_excluded_goship_vars_dask
 
 
 pbar = ProgressBar()
@@ -34,6 +34,8 @@ def main(start_year, end_year, append):
     time_range['start'] = datetime(start_year, 1, 1)
     time_range['end'] = datetime(end_year, 12, 31)
 
+    cruises_json, files_info = get_all_cruises_file_info()
+
     os.makedirs(GlobalVars.JSON_DIR, exist_ok=True)
 
     if GlobalVars.TEST:
@@ -41,13 +43,20 @@ def main(start_year, end_year, append):
         process_files(test_objs)
         exit(1)
 
-    cruises_json, files_info = get_all_cruises_file_info()
+    if GlobalVars.PROCESS_IN_CHUNKS:
 
-    # TODO
-    # Is it faster to read in all the files and then
-    # process using Dask?
+        # TODO
+        # Is it faster to read in all the files and then
+        # process in chunks
 
-    #process_cruises_dask(cruises_json, files_info, time_range)
+        process_cruises_dask(cruises_json, files_info, time_range)
+
+        logging.info("Time to run program")
+        logging.info(datetime.now() - program_start_time)
+
+        exit(1)
+
+    # ----------------
 
     cruise_count = 0
 
@@ -68,7 +77,7 @@ def main(start_year, end_year, append):
 
     logging.info("Save included and excluded goship vars")
 
-    save_included_excluded_goship_vars_dask(included, excluded)
+    #save_included_excluded_goship_vars_dask(included, excluded)
 
     logging.info(f"Total number of cruises converted {cruise_count}")
     logging.info('=======================================')

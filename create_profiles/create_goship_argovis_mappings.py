@@ -4,6 +4,7 @@ def filter_argovis_mapping(nc_mappings, all_name_mapping):
 
     # Take param mapping and filter it to only  contain all_name_mapping
     # for each station_cast
+    # to take into account for dropped empty cols
 
     units = argovis_param_mapping['units']
     ref_scale = argovis_param_mapping['ref_scale']
@@ -62,7 +63,13 @@ def get_goship_argovis_name_mapping_per_type(data_type):
 
 
 def create_goship_argovis_mappings(
-        nc_mappings, all_argovis_param_mapping, data_type):
+        nc_mappings, all_argovis_param_mapping_list, data_type):
+
+    # nc_mappings gives properties of the xarray object of
+    # all profiles at once
+
+    # all_argovis_param_mapping_list gives the properties
+    # of each profile
 
     goship_meta_mapping = nc_mappings['goship_meta']
     goship_param_mapping = nc_mappings['goship_param']
@@ -71,7 +78,16 @@ def create_goship_argovis_mappings(
 
     all_mapping_profiles = []
 
-    for argovis_param_mapping in all_argovis_param_mapping:
+    # Loop over number of statin_cast mappings
+    # Since meta and param have the same number,
+    # loop over filtered  all_argovis_param_mapping_list
+
+    # So for all profiles of xr object, it can include
+    # parameters with empty cols, but in each
+    # profile of  all_argovis_param_mapping_list, the
+    # names are filtered to  remove empty cols of each profile
+
+    for argovis_param_mapping in all_argovis_param_mapping_list:
 
         new_mapping = {}
 

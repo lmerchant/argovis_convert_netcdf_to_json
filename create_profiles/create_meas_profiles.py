@@ -250,19 +250,16 @@ def create_meas_profiles(df_param, data_type):
 
     logging.info('create all_meas profiles')
 
-    # dask_meta = ddf_param.dtypes.to_dict()
-    # ddf_meas = ddf_param.map_partitions(
-    #     lambda part: part.groupby('N_PROF').apply(proc_param.create_measurements_df_all, data_type), meta=dask_meta)
-
-    # # Now both indexed by N_PROF  and retained as a column
-    # # drop the column
-    # ddf_meas = ddf_meas.drop('N_PROF', axis=1)
-
     # Returns a variable col df depending on which core vars exist
     df_meas = df_param.groupby('N_PROF').apply(
         create_measurements_df_all, data_type)
 
+    # Remove N_PROF as index and drop because
+    # already have an N_PROF column used for groupby
     df_meas = df_meas.reset_index(drop=True)
+
+    # Change NaN to None so in json, converted to null
+    df_meas = df_meas.replace({np.nan: None})
 
     meas_df_groups = dict(tuple(df_meas.groupby('N_PROF')))
 
