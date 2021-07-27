@@ -1,7 +1,8 @@
 .DS_Store
 .python-version
 .ipynb_checkpoints/
-temp/
-andrews_method/
-data/
+converted_data/
+logging/
+__pycache__/
+*.pyc
 
