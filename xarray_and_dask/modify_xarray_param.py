@@ -5,7 +5,6 @@ import numpy as np
 from global_vars import GlobalVars
 
 
-# used
 def get_goship_argovis_unit_name_mapping():
 
     return {
@@ -15,7 +14,6 @@ def get_goship_argovis_unit_name_mapping():
     }
 
 
-# used
 def change_units_to_argovis(nc):
 
     # Rename units (no conversion)
@@ -96,7 +94,6 @@ class FormatFloat(float):
 #     return nc
 
 
-# used
 def apply_c_format_param_dask(nc, param_mapping):
 
     float_types = ['float64', 'float32']
@@ -139,7 +136,6 @@ def apply_c_format_param_dask(nc, param_mapping):
     return nc
 
 
-# used
 def add_qc_if_no_temp_qc(nc):
 
     # Now check so see if there is a ctd temperature  column and a corresponding

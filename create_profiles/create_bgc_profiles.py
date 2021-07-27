@@ -18,7 +18,6 @@ def to_int_qc(obj):
     return obj
 
 
-# used
 def remove_empty_cols(df):
 
     # Delete columns with all null, empty, or 'NaT' values

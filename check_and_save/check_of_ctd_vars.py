@@ -7,8 +7,6 @@ import logging
 
 from global_vars import GlobalVars
 
-# used
-
 
 def check_missing_variables(profile, variables_check):
 
@@ -179,8 +177,6 @@ def check_missing_variables(profile, variables_check):
     check_of_ctd_vars['profile_checked'] = profile
 
     return check_of_ctd_vars
-
-# used
 
 
 def check_ctd_vars_one_profile(profile):

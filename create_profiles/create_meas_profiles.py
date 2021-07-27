@@ -30,7 +30,6 @@ def convert_boolean(obj):
     return obj
 
 
-# used
 def get_measurements_source(df_meas, data_type):
 
     if 'qc_temp' in df_meas.columns:
@@ -130,7 +129,6 @@ def get_measurements_source(df_meas, data_type):
     return measurements_source, measurements_source_qc
 
 
-# used
 def get_argovis_core_meas_values_per_type(data_type):
 
     # Add in bottle_salinity since will use this in
@@ -140,7 +138,6 @@ def get_argovis_core_meas_values_per_type(data_type):
     return ['pres', f"temp_{data_type}", f"temp_{data_type}_qc", f"psal_{data_type}",  f"psal_{data_type}_qc", 'salinity_btl', 'salinity_btl_qc']
 
 
-# used
 def create_measurements_df_all(df, data_type):
 
     # For measurements, keep core vars pres, temp, psal, salinity

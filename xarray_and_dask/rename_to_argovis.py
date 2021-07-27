@@ -22,7 +22,6 @@ def has_both_oxygen(names):
         return False
 
 
-# used
 def get_goship_argovis_name_mapping_per_type(type):
 
     return {
@@ -44,7 +43,6 @@ def get_goship_argovis_name_mapping_per_type(type):
     }
 
 
-# used
 def rename_to_argovis(nc, type):
 
     goship_argovis_name_mapping = get_goship_argovis_name_mapping_per_type(

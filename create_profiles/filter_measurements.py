@@ -12,7 +12,6 @@ def convert_boolean(obj):
     return obj
 
 
-# used
 def filter_measurements_one_profile(measurements, use_elems):
 
     # If a ctd file, filter on whether have salinity,
@@ -45,8 +44,6 @@ def filter_measurements_one_profile(measurements, use_elems):
             del new_obj['salinity']
 
     return new_measurements
-
-# used
 
 
 def find_measurements_hierarchy(measurements):
@@ -93,8 +90,6 @@ def find_measurements_hierarchy(measurements):
     }
 
     return use_elems
-
-# used
 
 
 def get_filtered_measurements_for_profile_dict(measurements, type):

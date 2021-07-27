@@ -8,8 +8,6 @@ import logging
 
 from global_vars import GlobalVars
 
-# used
-
 
 def get_goship_argovis_unit_name_mapping():
 
@@ -18,8 +16,6 @@ def get_goship_argovis_unit_name_mapping():
         'degC': 'Celsius',
         'umol/kg': 'micromole/kg'
     }
-
-# used
 
 
 def change_units_to_argovis(nc):
@@ -45,7 +41,6 @@ def change_units_to_argovis(nc):
     return nc
 
 
-# used
 def drop_coords(nc):
 
     # Drop profile_type and instrument_id and geometry_container if exist
@@ -68,7 +63,6 @@ def drop_coords(nc):
     return nc
 
 
-# used
 def add_extra_coords(nc, data_obj):
 
     filename = data_obj['filename']
@@ -237,7 +231,6 @@ class FormatFloat(float):
         return 'nan' if pd.isnull(self) else float.__format__(self, format_spec)
 
 
-# used
 def apply_c_format_meta(nc, meta_mapping):
 
     # apply c_format to float values to limit
@@ -283,7 +276,6 @@ def apply_c_format_meta(nc, meta_mapping):
     return nc
 
 
-# used
 def apply_c_format_meta_dask(nc, meta_mapping):
 
     # apply c_format to float values to limit

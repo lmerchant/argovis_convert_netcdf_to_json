@@ -55,7 +55,6 @@ def add_file_data(netcdf_cruise_obj):
     return cruise_obj_w_data
 
 
-# used
 def get_cruises_data_objs(netcdf_cruises_objs):
 
     # Add file data into objs
@@ -74,7 +73,6 @@ def get_cruises_data_objs(netcdf_cruises_objs):
     return cruise_objs_w_data
 
 
-# used
 def create_file_obj(cruise_json, file_id, file_json, file_hash):
 
     woce_lines_list = cruise_json['collections']['woce_lines']
@@ -104,7 +102,6 @@ def create_file_obj(cruise_json, file_id, file_json, file_hash):
     return file_obj
 
 
-# used
 def check_if_netcdf_data(file_json):
 
     file_role = file_json['role']
@@ -176,7 +173,6 @@ def check_if_netcdf_data(file_json):
 #     return cruise_obj
 
 
-# used
 def check_if_in_time_range(cruise_json, time_range):
 
     cruise_start_date = cruise_json['startDate']

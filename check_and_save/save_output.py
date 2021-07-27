@@ -23,7 +23,6 @@ def convert(o):
         return int(o)
 
 
-# used
 def write_profile_goship_units(checked_ctd_variables):
 
     # Write one profile goship units to
@@ -59,8 +58,6 @@ def write_profile_goship_units(checked_ctd_variables):
         # Skip writing file
         pass
 
-# used
-
 
 def prepare_profile_json(profile_dict):
 
@@ -87,8 +84,6 @@ def prepare_profile_json(profile_dict):
     data_dict = {**meta_dict, **profile_dict}
 
     return data_dict
-
-# used
 
 
 def write_profile_json(profile_dict):
@@ -133,8 +128,6 @@ def write_profile_json(profile_dict):
         json.dump(data_dict, f, indent=4,
                   sort_keys=False, default=convert)
 
-# used
-
 
 def save_one_btl_ctd_profile(ctd_var_check):
 
@@ -150,15 +143,11 @@ def save_one_btl_ctd_profile(ctd_var_check):
     if has_all_ctd_vars['btl'] or has_all_ctd_vars['ctd']:
         write_profile_json(profile_dict)
 
-# used
-
 
 def save_all_btl_ctd_profiles(checked_ctd_variables):
 
     for checked_vars in checked_ctd_variables:
         save_one_btl_ctd_profile(checked_vars)
-
-# used
 
 
 def save_included_excluded_goship_vars_dask(included, excluded):
@@ -204,7 +193,6 @@ def save_included_excluded_goship_vars_dask(included, excluded):
                 f.write(f"{id}\n")
 
 
-# used
 def save_profile_one_type(checked_vars):
 
     has_all_ctd_vars = checked_vars['has_all_ctd_vars']
@@ -221,14 +209,12 @@ def save_profile_one_type(checked_vars):
         write_profile_json(profile_dict)
 
 
-# used
 def save_all_profiles_one_type(checked_ctd_variables):
 
     for checked_vars in checked_ctd_variables:
         save_profile_one_type(checked_vars)
 
 
-# used
 def check_and_save_per_type(file_obj_profile):
 
     # Now check if profiles have CTD vars and should be saved

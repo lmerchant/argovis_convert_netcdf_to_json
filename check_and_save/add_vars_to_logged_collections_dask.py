@@ -174,7 +174,6 @@ def find_param_excluded(profile_dict, included_param_goship_btl, included_param_
     return excluded_goship_param_names_btl, excluded_goship_param_names_ctd, excluded_goship_param_names
 
 
-# used
 def add_vars_one_profile(profile_dict):
 
     # Don't save qc or meta vars
@@ -242,7 +241,6 @@ def add_vars_one_profile(profile_dict):
     return included, excluded
 
 
-# used
 def add_vars_one_cruise(files_profiles_objs):
 
     vars_included = []
