@@ -2,7 +2,6 @@ from datetime import datetime
 import logging
 from collections import defaultdict
 import itertools
-import dask
 
 
 from xarray_and_dask.modify_xarray_obj import modify_xarray_obj
@@ -27,7 +26,6 @@ def combine_profiles(meta_profiles, bgc_profiles, meas_profiles, meas_source_pro
         new_obj = {}
         new_obj['station_cast'] = key
         val['data_type'] = data_type
-        # Add stationCast to the dict itself
         val['stationCast'] = key
         new_obj['profile_dict'] = val
         all_profiles.append(new_obj)
@@ -35,7 +33,7 @@ def combine_profiles(meta_profiles, bgc_profiles, meas_profiles, meas_source_pro
     return all_profiles
 
 
-# def process_cruise_objs_by_type_dask_old(cruise_objs):
+# def process_cruise_objs_by_type_dask_bunched(cruise_objs):
 
 #     logging.info('Process all cruise objects in xarray objects')
 

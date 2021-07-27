@@ -2,6 +2,7 @@ import logging
 import numpy as np
 
 
+# used
 def remove_empty_rows(df):
 
     # If have '' and 'NaT' values, need to do more to remove these rows

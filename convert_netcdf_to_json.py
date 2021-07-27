@@ -6,12 +6,9 @@ from dask.diagnostics import ProgressBar
 
 from global_vars import GlobalVars
 from setup_logging import setup_logging
-from get_cruises_file_info import get_all_cruises_file_info
-from process_cruise import process_cruise
+from process_cruises.get_cruises_file_info import get_all_cruises_file_info
 from tests.setup_test_objs import setup_test_objs
-from process_files import process_files
-from process_cruises_dask import process_cruises_dask
-#from check_and_save.save_output import save_included_excluded_goship_vars_dask
+from process_cruises.process_cruises_dask import process_cruises_dask
 
 
 pbar = ProgressBar()
@@ -40,47 +37,14 @@ def main(start_year, end_year, append):
 
     if GlobalVars.TEST:
         test_objs = setup_test_objs()
-        process_files(test_objs)
-        exit(1)
-
-    if GlobalVars.PROCESS_IN_CHUNKS:
-
         # TODO
-        # Is it faster to read in all the files and then
-        # process in chunks
-
-        process_cruises_dask(cruises_json, files_info, time_range)
-
-        logging.info("Time to run program")
-        logging.info(datetime.now() - program_start_time)
-
+        # Set up to use batch processing
         exit(1)
 
-    # ----------------
+    process_cruises_dask(cruises_json, files_info, time_range)
 
-    cruise_count = 0
-
-    all_included = []
-    all_excluded = []
-
-    for cruise_json in cruises_json:
-
-        cruise_count, included,  excluded = process_cruise(
-            cruise_json, files_info, time_range, cruise_count)
-
-        all_included.extend(included)
-        all_excluded.extend(excluded)
-
-    # ***********************************
-    # Write included/excluded goship vars
-    # ***********************************
-
-    logging.info("Save included and excluded goship vars")
-
-    #save_included_excluded_goship_vars_dask(included, excluded)
-
-    logging.info(f"Total number of cruises converted {cruise_count}")
-    logging.info('=======================================')
+    # logging.info(f"Total number of cruises converted {cruise_count}")
+    # logging.info('=======================================')
 
     logging.info("Time to run program")
     logging.info(datetime.now() - program_start_time)

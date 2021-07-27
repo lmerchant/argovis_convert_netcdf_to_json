@@ -1,3 +1,4 @@
+# used
 def get_argovis_mappings_param(nc):
 
     param_mapping = {}
@@ -38,6 +39,8 @@ def get_argovis_mappings_param(nc):
     param_mapping['dtype'] = param_dtype
 
     return param_mapping
+
+# used
 
 
 def get_argovis_mappings_meta(nc):
@@ -81,6 +84,7 @@ def get_argovis_mappings_meta(nc):
     return meta_mapping
 
 
+# used
 def get_goship_mappings_param(nc):
 
     param_mapping = {}
@@ -121,6 +125,8 @@ def get_goship_mappings_param(nc):
     param_mapping['dtype'] = param_dtype
 
     return param_mapping
+
+# used
 
 
 def get_goship_mappings_meta(nc):
