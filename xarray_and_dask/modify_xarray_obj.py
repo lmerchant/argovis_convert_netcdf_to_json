@@ -132,6 +132,8 @@ def modify_xarray_obj(file_obj):
     nc = mod_xr_meta.change_units_to_argovis(nc)
     nc = mod_xr_param.change_units_to_argovis(nc)
 
+    exit(1)
+
     # **************************
     # Rename varables to ArgoVis
     # **************************'
