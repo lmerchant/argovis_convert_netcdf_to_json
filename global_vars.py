@@ -14,6 +14,4 @@ class GlobalVars:
 
     CHUNK_SIZE = 20
 
-    PROCESS_IN_CHUNKS = False
-
     NUM_IN_BATCH = 200

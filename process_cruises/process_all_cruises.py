@@ -210,12 +210,24 @@ def process_all_cruises(cruises_json, files_info, time_range):
     logging.info(f"num  cruises json {num_netcdf_cruises_objs}")
     logging.info(f"num batches {num_batches} and num leftover {num_leftover}")
 
-    # # Testing
-    num_in_batch = 2
-    num_batches = 1
-    num_leftover = 0
-    logging.info(f"testing num in batch {num_in_batch}")
-    logging.info(f"num leftover {num_leftover}")
+    if GlobalVars.TEST:
+        # Testing
+        num_in_batch = 1
+        num_batches = 1
+        num_leftover = 0
+        logging.info(f"testing num in batch {num_in_batch}")
+        logging.info(f"num leftover {num_leftover}")
+
+        # This cruise is BTL_CTD
+        #test_cruise_expocode = '06HF991_1'
+
+        # This cruise is BTL_CTD
+        # Don't set as BTL_CTD if
+        # temp is null while using a btl value such as psal
+        test_cruise_expocode = '64TR90_3'
+
+        netcdf_cruises_objs = [
+            cruise_obj for cruise_obj in netcdf_cruises_objs if cruise_obj['cruise_expocode'] == test_cruise_expocode]
 
     for start in range(0, num_batches):
 
@@ -234,17 +246,20 @@ def process_all_cruises(cruises_json, files_info, time_range):
         process_batch_of_cruises(cruises_data_objs_w_data)
 
     if num_leftover:
-        logging.info(f"Inside leftover loop")
 
-        try:
-            # If continuing from a bunch, end_batch exists
-            netcdf_cruises_objs_batch = netcdf_cruises_objs[end_batch: num_netcdf_cruises_objs]
-        except UnboundLocalError:
-            # If end_batch doesn't exist because number
-            # of cruises to process is less than bunch
-            # size, Set to zero
-            end_batch = 0
-            netcdf_cruises_objs_batch = netcdf_cruises_objs[end_batch: num_netcdf_cruises_objs]
+        start_batch = num_batches * num_in_batch
+
+        netcdf_cruises_objs_batch = netcdf_cruises_objs[start_batch: num_netcdf_cruises_objs]
+
+        # try:
+        #     # If continuing from a bunch, start_batch exists
+        #     netcdf_cruises_objs_batch = netcdf_cruises_objs[start_batch: num_netcdf_cruises_objs]
+        # except UnboundLocalError:
+        #     # If start_batch doesn't exist because number
+        #     # of cruises to process is less than bunch
+        #     # size, Set to zero
+        #     start_batch = 0
+        #     netcdf_cruises_objs_batch = netcdf_cruises_objs[start_batch: num_netcdf_cruises_objs]
 
         # Add data to the objs
         cruises_data_objs_w_data = get_cruises_data_objs(

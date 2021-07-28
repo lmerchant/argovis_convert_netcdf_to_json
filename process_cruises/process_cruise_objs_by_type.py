@@ -66,6 +66,8 @@ def create_profiles_objs(cruises_ddf_objs):
 
             all_bgc_profiles, all_name_mapping = create_bgc_profiles(df_param)
 
+            # If removed params with all empty values,
+            # filter the mappings to only non-null params
             all_argovis_param_mapping_list = filter_argovis_mapping(
                 nc_mappings, all_name_mapping)
 
@@ -160,7 +162,7 @@ def create_dask_dataframe_objs(cruises_xr_objs):
             ddf_objs.append(ddf_obj)
 
     cruise_ddf_obj = {}
-    cruise_ddf_obj['cruise_expocode'] = cruise_xr_obj['cruise_expocode']
+    cruise_ddf_obj['cruise_expocode'] = cruise_expocode
     cruise_ddf_obj['ddf_objs'] = ddf_objs
 
     cruises_ddf_objs.append(cruise_ddf_obj)

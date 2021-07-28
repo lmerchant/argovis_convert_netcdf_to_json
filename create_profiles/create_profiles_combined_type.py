@@ -98,6 +98,11 @@ def filter_btl_ctd_combined_measurements(btl_measurements, ctd_measurements, use
 
     combined_measurements = [*new_ctd_measurements, *new_btl_measurements]
 
+    # Now filter out if don't have a temp coming from btl or ctd
+    # so don't include temp = None
+    combined_measurements = [
+        meas for meas in combined_measurements if meas['temp']]
+
     if not use_temp_btl and not use_temp_ctd:
         combined_measurements = []
 
@@ -106,12 +111,13 @@ def filter_btl_ctd_combined_measurements(btl_measurements, ctd_measurements, use
     # But remove for final product
 
     measurements_sources = {}
-    #measurements_source['source'] = flag
 
     # TODO
     # how do I know qc = 2?
+    # get qc of temp used
 
     measurements_sources['qc'] = 2
+
     measurements_sources['use_temp_ctd'] = use_temp_ctd
     measurements_sources['use_psal_ctd'] = use_psal_ctd
     measurements_sources['use_temp_btl'] = use_temp_btl
@@ -203,7 +209,13 @@ def find_measurements_hierarchy_btl_ctd(btl_measurements, ctd_measurements):
     }
 
     # Get measurements flag
-    if use_btl and use_ctd:
+    if not use_temp_btl and not use_temp_ctd:
+        flag = None
+    # elif use_temp_btl and not use_temp_ctd:
+    #     flag = 'BTL'
+    # elif not use_temp_btl and use_temp_ctd:
+    #     flag = 'CTD'
+    elif use_btl and use_ctd:
         flag = 'BTL_CTD'
     elif use_btl:
         flag = 'BTL'

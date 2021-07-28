@@ -36,12 +36,6 @@ def main(start_year, end_year, append):
 
     os.makedirs(GlobalVars.JSON_DIR, exist_ok=True)
 
-    if GlobalVars.TEST:
-        test_objs = setup_test_objs()
-        # TODO
-        # Set up to use batch processing
-        exit(1)
-
     process_all_cruises(cruises_json, files_info, time_range)
 
     logging.info("Time to run program")
