@@ -33,368 +33,197 @@ def combine_profiles(meta_profiles, bgc_profiles, meas_profiles, meas_source_pro
     return all_profiles
 
 
-# def process_cruise_objs_by_type_bunched(cruise_objs):
+def create_profiles_objs(cruises_ddf_objs):
 
-#     logging.info('Process all cruise objects in xarray objects')
+    cruises_profiles_objs = []
 
-#     start_time = datetime.now()
+    for cruise_ddf_obj in cruises_ddf_objs:
 
-#     cruises_xr_objs = []
+        cruise_expocode = cruise_ddf_obj['cruise_expocode']
+        ddf_objs = cruise_ddf_obj['ddf_objs']
 
-#     for cruise_obj in cruise_objs:
+        logging.info
+        logging.info(f"Converting dask to pandas and dicts")
+        logging.info(f"cruise {cruise_expocode}")
 
-#         logging.info(f"Modify xarray cruise object")
-#         logging.info(f"cruise {cruise_obj['cruise_expocode']}")
+        profiles_objs = []
 
-#         file_objs = cruise_obj['file_objs']
+        # Loop through each data type
+        for ddf_obj in ddf_objs:
 
-#         xr_file_objs = []
+            data_type = ddf_obj['data_type']
 
-#         for file_obj in file_objs:
+            logging.info(f"Create profiles obj for type {data_type}")
 
-#             # ********************************
-#             # Modify Xarray object
-#             # and get before and after mappings
-#             # *********************************
+            nc_mappings = ddf_obj['nc_mappings']
+            all_meta_profiles = ddf_obj['all_meta_profiles']
+            ddf_param = ddf_obj['ddf_param']
 
-#             nc, nc_mappings = modify_xarray_obj(file_obj)
+            df_param = ddf_param.compute()
 
-#             file_obj['nc'] = nc
-#             file_obj['nc_mappings'] = nc_mappings
+            all_meas_profiles, all_meas_source_profiles = create_meas_profiles(
+                df_param, data_type)
 
-#             xr_file_objs.append(file_obj)
+            all_bgc_profiles, all_name_mapping = create_bgc_profiles(df_param)
 
-#         cruise_xr_obj = {}
-#         cruise_xr_obj['cruise_expocode'] = cruise_obj['cruise_expocode']
-#         cruise_xr_obj['xr_file_objs'] = xr_file_objs
+            all_argovis_param_mapping_list = filter_argovis_mapping(
+                nc_mappings, all_name_mapping)
 
-#         cruises_xr_objs.append(cruise_xr_obj)
+            goship_argovis_mapping_profiles = create_goship_argovis_mappings(
+                nc_mappings, all_argovis_param_mapping_list, data_type)
 
-#     # ***************************
-#     # Convert xarray objects into
-#     # Dask dataframe objects
-#     # ***************************
+            # ******************************************************
+            # Combine all the profile parts into one dictionary list
+            # ******************************************************
 
-#     logging.info('Process all xarray objects in Dask dataframe objects')
+            #  all_profiles is a list of profile objs with
+            # keys 'station_cast' and 'profile_dict'
+            logging.info('start combining profiles')
+            all_profiles = combine_profiles(all_meta_profiles, all_bgc_profiles,
+                                            all_meas_profiles, all_meas_source_profiles, goship_argovis_mapping_profiles, data_type)
 
-#     cruises_ddf_objs = []
+            # Create profiles_obj to hold profiles for one data type
+            profiles_obj = {}
+            profiles_obj['data_type'] = data_type
+            profiles_obj['profiles'] = all_profiles
+            profiles_obj['data_type_profiles_list'] = all_profiles
 
-#     for cruise_xr_obj in cruises_xr_objs:
+            profiles_objs.append(profiles_obj)
 
-#         # *************************
-#         # Convert to Dask dataframe
-#         # *************************
+        # cruise_profiles_obj['profiles_objs'] is a list of
+        # profiles for each data type
+        cruise_profiles_obj = {}
+        cruise_profiles_obj['cruise_expocode'] = cruise_ddf_obj['cruise_expocode']
+        cruise_profiles_obj['all_data_types_profile_objs'] = profiles_objs
 
-#         cruise_expocode = cruise_xr_obj['cruise_expocode']
-#         xr_file_objs = cruise_xr_obj['xr_file_objs']
+        cruises_profiles_objs.append(cruise_profiles_obj)
 
-#         logging.info(f"Converting xarray to Dask")
-#         logging.info(f"cruise {cruise_expocode}")
+    return cruises_profiles_objs
 
-#         ddf_objs = []
 
-#         for xr_file_obj in xr_file_objs:
+def create_dask_dataframe_objs(cruises_xr_objs):
 
-#             nc = xr_file_obj['nc']
-#             data_type = xr_file_obj['data_type']
-#             nc_mappings = xr_file_obj['nc_mappings']
+    cruises_ddf_objs = []
 
-#             # process metadata and parameter data separately
-#             meta_keys = list(nc.coords)
-#             param_keys = list(nc.keys())
+    for cruise_xr_obj in cruises_xr_objs:
 
-#             # nc was read in with Dask xarray, so now save to dask dataframe
-#             ddf = nc.to_dask_dataframe(dim_order=['N_PROF', 'N_LEVELS'])
+        cruise_expocode = cruise_xr_obj['cruise_expocode']
+        xr_file_objs = cruise_xr_obj['xr_file_objs']
 
-#             # Add dimensions and have station_cast for both
-#             meta_keys.extend(['N_PROF', 'N_LEVELS'])
-#             param_keys.extend(['N_PROF', 'N_LEVELS', 'station_cast'])
+        logging.info('*************************')
+        logging.info(f"Converting xarray to Dask")
+        logging.info(f"cruise {cruise_expocode}")
 
-#             ddf_meta = ddf[meta_keys].copy()
-#             ddf_param = ddf[param_keys].copy()
+        ddf_objs = []
 
-#             ddf_obj = {}
+        # xr_file_objs is collection for each data type
+        for xr_file_obj in xr_file_objs:
 
-#             ddf_obj['data_type'] = data_type
-#             ddf_obj['nc_mappings'] = nc_mappings
+            nc = xr_file_obj['nc']
 
-#             logging.info('create all_meta profiles')
+            # process metadata and parameter data separately
+            meta_keys = list(nc.coords)
+            param_keys = list(nc.keys())
 
-#             ddf_obj['all_meta_profiles'] = create_meta_profile(ddf_meta)
+            # nc was read in with Dask xarray, so now save to dask dataframe
+            ddf = nc.to_dask_dataframe(dim_order=['N_PROF', 'N_LEVELS'])
 
-#             logging.info('Modify Dask param dataframe')
+            # Add dimensions and have station_cast for both
+            meta_keys.extend(['N_PROF', 'N_LEVELS'])
+            param_keys.extend(['N_PROF', 'N_LEVELS', 'station_cast'])
 
-#             # ******************************************
-#             # Remove empty rows so don't include in JSON
-#             # Change NaN to None for JSON to be null
-#             # Add back in temp_qc = 0 col if existed
-#             # ******************************************
+            ddf_meta = ddf[meta_keys].copy()
+            ddf_param = ddf[param_keys].copy()
 
-#             ddf_param = modify_dask_obj(ddf_param, data_type)
+            ddf_obj = {}
+            ddf_obj['data_type'] = xr_file_obj['data_type']
+            ddf_obj['nc_mappings'] = xr_file_obj['nc_mappings']
 
-#             ddf_obj['ddf_param'] = ddf_param
+            logging.info('create all_meta profiles')
+            ddf_obj['all_meta_profiles'] = create_meta_profile(ddf_meta)
 
-#             ddf_objs.append(ddf_obj)
+            data_type = xr_file_obj['data_type']
+            logging.info(f'Modify Dask param dataframe for {data_type}')
 
-#         cruise_ddf_obj = {}
-#         cruise_ddf_obj['cruise_expocode'] = cruise_expocode
-#         cruise_ddf_obj['ddf_objs'] = ddf_objs
+            # ******************************************
+            # Remove empty rows so don't include in JSON
+            # Change NaN to None for JSON to be null
+            # Add back in temp_qc = 0 col if existed
+            # ******************************************
 
-#         cruises_ddf_objs.append(cruise_ddf_obj)
+            data_type = xr_file_obj['data_type']
 
-#     # ******************************
-#     # Convert Dask dataframe objects
-#     # into Pandas dataframe objects
-#     # and then python dictionaries
-#     # ******************************
+            ddf_param = modify_dask_obj(ddf_param, data_type)
 
-#     cruises_profiles_objs = []
+            ddf_obj['ddf_param'] = ddf_param
 
-#     for cruise_ddf_obj in cruises_ddf_objs:
+            ddf_objs.append(ddf_obj)
 
-#         cruise_expocode = cruise_ddf_obj['cruise_expocode']
-#         ddf_objs = cruise_ddf_obj['ddf_objs']
+    cruise_ddf_obj = {}
+    cruise_ddf_obj['cruise_expocode'] = cruise_xr_obj['cruise_expocode']
+    cruise_ddf_obj['ddf_objs'] = ddf_objs
 
-#         logging.info(f"Converting dask to pandas")
-#         logging.info(f"cruise {cruise_expocode}")
+    cruises_ddf_objs.append(cruise_ddf_obj)
 
-#         profiles_objs = []
+    return cruises_ddf_objs
 
-#         # Loop through each data type
-#         for ddf_obj in ddf_objs:
 
-#             data_type = ddf_obj['data_type']
-#             nc_mappings = ddf_obj['nc_mappings']
-#             all_meta_profiles = ddf_obj['all_meta_profiles']
-#             ddf_param = ddf_obj['ddf_param']
+def create_xr_objs(cruise_objs):
 
-#             df_param = ddf_param.compute()
+    cruises_xr_objs = []
 
-#             all_meas_profiles, all_meas_source_profiles = create_meas_profiles(
-#                 df_param, data_type)
+    for cruise_obj in cruise_objs:
 
-#             all_bgc_profiles, all_name_mapping = create_bgc_profiles(df_param)
+        logging.info('*****************************')
+        logging.info(f"Modify xarray cruise object")
+        logging.info(f"cruise {cruise_obj['cruise_expocode']}")
 
-#             all_argovis_param_mapping_list = filter_argovis_mapping(
-#                 nc_mappings, all_name_mapping)
+        file_objs = cruise_obj['file_objs']
 
-#             goship_argovis_mapping_profiles = create_goship_argovis_mappings(
-#                 nc_mappings, all_argovis_param_mapping_list, data_type)
+        xr_file_objs = []
 
-#             # ******************************************************
-#             # Combine all the profile parts into one dictionary list
-#             # ******************************************************
+        for file_obj in file_objs:
 
-#             #  all_profiles is a list of profile objs with
-#             # keys 'station_cast' and 'profile_dict'
-#             logging.info('start combining profiles')
-#             all_profiles = combine_profiles(all_meta_profiles, all_bgc_profiles,
-#                                             all_meas_profiles, all_meas_source_profiles, goship_argovis_mapping_profiles, data_type)
+            # ********************************
+            # Modify Xarray object
+            # and get before and after mappings
+            # *********************************
 
-#             # Create profiles_obj to hold profiles for one data type
-#             profiles_obj = {}
-#             profiles_obj['data_type'] = data_type
-#             profiles_obj['profiles'] = all_profiles
-#             profiles_obj['data_type_profiles_list'] = all_profiles
+            nc, nc_mappings = modify_xarray_obj(file_obj)
 
-#             profiles_objs.append(profiles_obj)
+            file_obj['nc'] = nc
+            file_obj['nc_mappings'] = nc_mappings
 
-#         # cruise_profiles_obj['profiles_objs'] is a list of
-#         # profiles for each data type
-#         cruise_profiles_obj = {}
-#         cruise_profiles_obj['cruise_expocode'] = cruise_expocode
-#         cruise_profiles_obj['profiles_objs'] = profiles_objs
-#         cruise_profiles_obj['all_data_types_profile_objs'] = profiles_objs
+            xr_file_objs.append(file_obj)
 
-#         cruises_profiles_objs.append(cruise_profiles_obj)
+        cruise_xr_obj = {}
+        cruise_xr_obj['cruise_expocode'] = cruise_obj['cruise_expocode']
+        cruise_xr_obj['xr_file_objs'] = xr_file_objs
 
-#     logging.info("Time to run function create_profiles_one_type")
-#     logging.info(datetime.now() - start_time)
+        cruises_xr_objs.append(cruise_xr_obj)
 
-#     return cruises_profiles_objs
-
-
-def create_profiles_objs(cruise_ddf_obj):
-
-    cruise_expocode = cruise_ddf_obj['cruise_expocode']
-    ddf_objs = cruise_ddf_obj['ddf_objs']
-
-    logging.info(f"Converting dask to pandas")
-    logging.info(f"cruise {cruise_expocode}")
-
-    profiles_objs = []
-
-    # Loop through each data type
-    for ddf_obj in ddf_objs:
-
-        data_type = ddf_obj['data_type']
-
-        logging.info(f"Create profiles obj for type {data_type}")
-
-        nc_mappings = ddf_obj['nc_mappings']
-        all_meta_profiles = ddf_obj['all_meta_profiles']
-        ddf_param = ddf_obj['ddf_param']
-
-        df_param = ddf_param.compute()
-
-        all_meas_profiles, all_meas_source_profiles = create_meas_profiles(
-            df_param, data_type)
-
-        all_bgc_profiles, all_name_mapping = create_bgc_profiles(df_param)
-
-        all_argovis_param_mapping_list = filter_argovis_mapping(
-            nc_mappings, all_name_mapping)
-
-        goship_argovis_mapping_profiles = create_goship_argovis_mappings(
-            nc_mappings, all_argovis_param_mapping_list, data_type)
-
-        # ******************************************************
-        # Combine all the profile parts into one dictionary list
-        # ******************************************************
-
-        #  all_profiles is a list of profile objs with
-        # keys 'station_cast' and 'profile_dict'
-        logging.info('start combining profiles')
-        all_profiles = combine_profiles(all_meta_profiles, all_bgc_profiles,
-                                        all_meas_profiles, all_meas_source_profiles, goship_argovis_mapping_profiles, data_type)
-
-        # Create profiles_obj to hold profiles for one data type
-        profiles_obj = {}
-        profiles_obj['data_type'] = data_type
-        profiles_obj['profiles'] = all_profiles
-        profiles_obj['data_type_profiles_list'] = all_profiles
-
-        profiles_objs.append(profiles_obj)
-
-    return profiles_objs
-
-
-def create_dask_dataframe_objs(cruise_xr_obj):
-
-    cruise_expocode = cruise_xr_obj['cruise_expocode']
-    xr_file_objs = cruise_xr_obj['xr_file_objs']
-
-    logging.info(f"Converting xarray to Dask")
-    logging.info(f"cruise {cruise_expocode}")
-
-    ddf_objs = []
-
-    for xr_file_obj in xr_file_objs:
-
-        nc = xr_file_obj['nc']
-
-        # process metadata and parameter data separately
-        meta_keys = list(nc.coords)
-        param_keys = list(nc.keys())
-
-        # nc was read in with Dask xarray, so now save to dask dataframe
-        ddf = nc.to_dask_dataframe(dim_order=['N_PROF', 'N_LEVELS'])
-
-        # Add dimensions and have station_cast for both
-        meta_keys.extend(['N_PROF', 'N_LEVELS'])
-        param_keys.extend(['N_PROF', 'N_LEVELS', 'station_cast'])
-
-        ddf_meta = ddf[meta_keys].copy()
-        ddf_param = ddf[param_keys].copy()
-
-        ddf_obj = {}
-        ddf_obj['data_type'] = xr_file_obj['data_type']
-        ddf_obj['nc_mappings'] = xr_file_obj['nc_mappings']
-
-        logging.info('create all_meta profiles')
-        ddf_obj['all_meta_profiles'] = create_meta_profile(ddf_meta)
-
-        logging.info('Modify Dask param dataframe')
-
-        # ******************************************
-        # Remove empty rows so don't include in JSON
-        # Change NaN to None for JSON to be null
-        # Add back in temp_qc = 0 col if existed
-        # ******************************************
-
-        data_type = xr_file_obj['data_type']
-
-        ddf_param = modify_dask_obj(ddf_param, data_type)
-
-        ddf_obj['ddf_param'] = ddf_param
-
-        ddf_objs.append(ddf_obj)
-
-    return ddf_objs
-
-
-def create_xr_obj(cruise_obj):
-
-    logging.info(f"Modify xarray cruise object")
-    logging.info(f"cruise {cruise_obj['cruise_expocode']}")
-
-    file_objs = cruise_obj['file_objs']
-
-    xr_file_objs = []
-
-    for file_obj in file_objs:
-
-        # ********************************
-        # Modify Xarray object
-        # and get before and after mappings
-        # *********************************
-
-        nc, nc_mappings = modify_xarray_obj(file_obj)
-
-        file_obj['nc'] = nc
-        file_obj['nc_mappings'] = nc_mappings
-
-        xr_file_objs.append(file_obj)
-
-    cruise_xr_obj = {}
-    cruise_xr_obj['cruise_expocode'] = cruise_obj['cruise_expocode']
-    cruise_xr_obj['xr_file_objs'] = xr_file_objs
-
-    return cruise_xr_obj
+    return cruises_xr_objs
 
 
 def process_cruise_objs_by_type(cruise_objs):
 
-    # TODO
-    # Was hoping to speed up groups but can't use
-    # dask.delayed on objects that change size
-
-    logging.info('Process all cruise objects in xarray objects')
+    start_time = datetime.now()
 
     # ************************************
     # Convert cruise objs into xarray objs
     # Modify xr obj and get mappings
     # *************************************
 
-    start_time = datetime.now()
-
-    cruises_xr_objs = []
-
-    for cruise_obj in cruise_objs:
-
-        cruise_xr_obj = create_xr_obj(cruise_obj)
-        cruises_xr_objs.append(cruise_xr_obj)
-
-    logging.info('Process all xarray objects in Dask dataframe objects')
+    logging.info('Process all cruise objects in xarray objects')
+    cruises_xr_objs = create_xr_objs(cruise_objs)
 
     # ***************************
     # Convert xarray objects into
     # Dask dataframe objects
     # ***************************
 
-    cruises_ddf_objs = []
-
-    for cruise_xr_obj in cruises_xr_objs:
-
-        ddf_objs = create_dask_dataframe_objs(cruise_xr_obj)
-
-        cruise_ddf_obj = {}
-        cruise_ddf_obj['cruise_expocode'] = cruise_xr_obj['cruise_expocode']
-        cruise_ddf_obj['ddf_objs'] = ddf_objs
-
-        cruises_ddf_objs.append(cruise_ddf_obj)
-
-    logging.info("Convert dask dataframe objs to Pandas")
+    logging.info('Process all xarray objects in Dask dataframe objects')
+    cruises_ddf_objs = create_dask_dataframe_objs(cruises_xr_objs)
 
     # ******************************
     # Convert Dask dataframe objects
@@ -402,78 +231,10 @@ def process_cruise_objs_by_type(cruise_objs):
     # and then python dictionaries
     # ******************************
 
-    cruises_profiles_objs = []
+    logging.info("Convert dask dataframe objs to Pandas and dicts")
+    cruises_profiles_objs = create_profiles_objs(cruises_ddf_objs)
 
-    for cruise_ddf_obj in cruises_ddf_objs:
-
-        profiles_objs = create_profiles_objs(cruise_ddf_obj)
-
-        # cruise_profiles_obj['profiles_objs'] is a list of
-        # profiles for each data type
-        cruise_profiles_obj = {}
-        cruise_profiles_obj['cruise_expocode'] = cruise_ddf_obj['cruise_expocode']
-        #cruise_profiles_obj['profiles_objs'] = profiles_objs
-        cruise_profiles_obj['all_data_types_profile_objs'] = profiles_objs
-
-        cruises_profiles_objs.append(cruise_profiles_obj)
-
-    logging.info("Time to run function create_profiles_one_type")
-    logging.info(datetime.now() - start_time)
-
-    return cruises_profiles_objs
-
-
-def process_cruise_objs_by_type_series(cruise_objs):
-
-    logging.info('Process all cruise objects in xarray objects')
-
-    # ************************************
-    # Convert cruise objs into xarray objs
-    # Modify xr obj and get mappings
-    # *************************************
-
-    start_time = datetime.now()
-
-    cruises_profiles_objs = []
-
-    for cruise_obj in cruise_objs:
-
-        cruise_xr_obj = create_xr_obj(cruise_obj)
-
-        logging.info('Process all xarray objects in Dask dataframe objects')
-
-        # ***************************
-        # Convert xarray objects into
-        # Dask dataframe objects
-        # ***************************
-
-        ddf_objs = create_dask_dataframe_objs(cruise_xr_obj)
-
-        cruise_ddf_obj = {}
-        cruise_ddf_obj['cruise_expocode'] = cruise_xr_obj['cruise_expocode']
-        cruise_ddf_obj['ddf_objs'] = ddf_objs
-
-        # cruises_ddf_objs.append(cruise_ddf_obj)
-
-        logging.info("Convert dask dataframe objs to Pandas")
-
-        # ******************************
-        # Convert Dask dataframe objects
-        # into Pandas dataframe objects
-        # and then python dictionaries
-        # ******************************
-
-        profiles_objs = create_profiles_objs(cruise_ddf_obj)
-
-        # cruise_profiles_obj['profiles_objs'] is a list of
-        # profiles for each data type
-        cruise_profiles_obj = {}
-        cruise_profiles_obj['cruise_expocode'] = cruise_ddf_obj['cruise_expocode']
-        cruise_profiles_obj['all_data_types_profile_objs'] = profiles_objs
-
-        cruises_profiles_objs.append(cruise_profiles_obj)
-
-    logging.info("Time to run function create_profiles_one_type")
+    logging.info("Time to run function process_cruise_objs_by_type")
     logging.info(datetime.now() - start_time)
 
     return cruises_profiles_objs

@@ -93,7 +93,7 @@ def modify_xarray_obj(file_obj):
     # Convert units and reference scale
     # *********************************
 
-    logging.info("Apply conversions")
+    logging.info(f"Apply conversions for {data_type}")
 
     # Apply units before change unit names
 
@@ -109,7 +109,7 @@ def modify_xarray_obj(file_obj):
     # Apply C_format print format
     # ****************************
 
-    logging.info("Apply c_format")
+    logging.info(f"Apply c_format for {data_type}")
 
     chunk_size = GlobalVars.CHUNK_SIZE
 

@@ -211,11 +211,11 @@ def process_all_cruises(cruises_json, files_info, time_range):
     logging.info(f"num batches {num_batches} and num leftover {num_leftover}")
 
     # # Testing
-    # num_in_batch = 5
-    # num_batches = 1
-    # num_leftover = 0
-    # logging.info(f"testing num in batch {num_in_batch}")
-    # logging.info(f"num leftover {num_leftover}")
+    num_in_batch = 2
+    num_batches = 1
+    num_leftover = 0
+    logging.info(f"testing num in batch {num_in_batch}")
+    logging.info(f"num leftover {num_leftover}")
 
     for start in range(0, num_batches):
 
