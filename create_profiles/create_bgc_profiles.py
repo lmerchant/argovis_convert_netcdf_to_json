@@ -68,6 +68,9 @@ def create_bgc_profiles(df_param):
     logging.info('create all_bgc profile and get name mapping')
 
     # Sort columns so qc next to its var
+    # TODO
+    # Just for testing preview
+    # remove when finished
     df_param = df_param.reindex(sorted(df_param.columns), axis=1)
 
     bgc_df_groups = dict(tuple(df_param.groupby('N_PROF')))

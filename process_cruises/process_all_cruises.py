@@ -211,13 +211,19 @@ def process_all_cruises(cruises_json, files_info, time_range):
     logging.info(f"num batches {num_batches} and num leftover {num_leftover}")
 
     # # Testing
-    # num_in_batch = 1
+    # num_in_batch = 5
     # num_batches = 1
+    # num_leftover = 0
+    # logging.info(f"testing num in batch {num_in_batch}")
+    # logging.info(f"num leftover {num_leftover}")
 
     for start in range(0, num_batches):
 
         start_batch = start * num_in_batch
         end_batch = start_batch + num_in_batch
+
+        logging.info(f"start batch {start_batch}")
+        logging.info(f"end batch {end_batch}")
 
         netcdf_cruises_objs_batch = netcdf_cruises_objs[start_batch: end_batch]
 
@@ -234,7 +240,9 @@ def process_all_cruises(cruises_json, files_info, time_range):
             # If continuing from a bunch, end_batch exists
             netcdf_cruises_objs_batch = netcdf_cruises_objs[end_batch: num_netcdf_cruises_objs]
         except UnboundLocalError:
-            # If no bunch size, end_batch doesn't exist. Set to zero
+            # If end_batch doesn't exist because number
+            # of cruises to process is less than bunch
+            # size, Set to zero
             end_batch = 0
             netcdf_cruises_objs_batch = netcdf_cruises_objs[end_batch: num_netcdf_cruises_objs]
 

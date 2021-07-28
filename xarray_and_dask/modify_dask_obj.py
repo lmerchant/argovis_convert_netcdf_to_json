@@ -4,12 +4,14 @@ import numpy as np
 
 def remove_empty_rows(df):
 
-    # If have '' and 'NaT' values, need to do more to remove these rows
-    df_copy = df.copy()
+    # If have '' and 'NaT' values, replace with NaN,
+    # drop the rows, then replace with previous
+    # values of '' and 'NaT'
 
-    # Replace 'NaT' and '' with  NaN but first
     # make a copy of df so after remove null rows,
     # can substitute back in any 'NaT' or '' values
+
+    df_copy = df.copy()
 
     df = df.replace(r'^\s*$', np.NaN, regex=True)
     df = df.replace(r'^NaT$', np.NaN, regex=True)
@@ -17,11 +19,11 @@ def remove_empty_rows(df):
     exclude_columns = ['N_PROF', 'N_LEVELS', 'station_cast']
     subset_cols = [col for col in df.columns if col not in exclude_columns]
 
-    df = df.dropna(subset=subset_cols, how='all')
+    df_dropped = df.dropna(subset=subset_cols, how='all').copy()
 
-    df.update(df_copy)
+    df_dropped.update(df_copy)
 
-    return df
+    return df_dropped
 
 
 def modify_dask_obj(ddf_param, data_type):

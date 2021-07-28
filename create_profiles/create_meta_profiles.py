@@ -29,7 +29,6 @@ def create_meta_profile(ddf_meta):
 
     # N_LEVELS is an index
     ddf_meta = ddf_meta[ddf_meta['N_LEVELS'] == 0]
-
     ddf_meta = ddf_meta.drop('N_LEVELS', axis=1)
 
     df_meta = ddf_meta.compute()

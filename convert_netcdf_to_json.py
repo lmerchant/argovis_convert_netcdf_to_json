@@ -3,6 +3,7 @@ import os
 import logging
 import click
 from dask.diagnostics import ProgressBar
+from dask.distributed import Client
 
 from global_vars import GlobalVars
 from setup_logging import setup_logging
@@ -48,5 +49,8 @@ def main(start_year, end_year, append):
 
 
 if __name__ == '__main__':
+
+    # slower with local cluster
+    #client = Client()
 
     main()

@@ -5,6 +5,10 @@ import re
 from datetime import datetime
 import logging
 
+# Doesn't seem to do much
+# https://stackoverflow.com/questions/47776936/why-is-a-computation-much-slower-within-a-dask-distributed-worker
+#pd.options.mode.chained_assignment = None
+
 
 def dtjson(o):
     if isinstance(o, datetime):
@@ -282,9 +286,6 @@ def create_meas_profiles(df_param, data_type):
         cols = [col for col in columns if col in core_cols]
 
         val_df = val_df[cols]
-
-        # Change NaN to None so in json, converted to null
-        #val_df = val_df.where(pd.notnull(val_df), None)
 
         meas_dict_list = val_df.to_dict('records')
 

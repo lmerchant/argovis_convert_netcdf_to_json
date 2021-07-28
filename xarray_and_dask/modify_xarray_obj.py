@@ -33,15 +33,12 @@ def rearrange_nc(nc):
     # move params from coords to variables
     # Move if not in nc.coords
     coords_to_move_to_vars = [
-        name for name in param_names if name not in nc.keys()]
+        name for name in param_names if name not in list(nc.keys())]
     vars_to_move_to_coords = [
-        name for name in meta_names if name not in nc.coords]
+        name for name in meta_names if name not in list(nc.coords)]
 
     nc = nc.reset_coords(names=coords_to_move_to_vars, drop=False)
     nc = nc.set_coords(names=vars_to_move_to_coords)
-
-    # move pressure from coordinate to variable
-    nc = nc.reset_coords(names=['pressure'], drop=False)
 
     return nc
 

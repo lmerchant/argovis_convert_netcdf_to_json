@@ -423,7 +423,7 @@ def process_cruise_objs_by_type(cruise_objs):
     return cruises_profiles_objs
 
 
-def process_cruise_objs_by_type_alt(cruise_objs):
+def process_cruise_objs_by_type_series(cruise_objs):
 
     logging.info('Process all cruise objects in xarray objects')
 
