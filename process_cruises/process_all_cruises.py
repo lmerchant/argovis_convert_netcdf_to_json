@@ -224,15 +224,19 @@ def process_all_cruises(cruises_json, files_info, time_range):
         # This cruise is BTL_CTD
         # Don't set as BTL_CTD if
         # temp is null while using a btl value such as psal
-        test_cruise_expocode = '64TR90_3'
+        #test_cruise_expocode = '64TR90_3'
+
+        # has both btl and ctd and want to filter
+        # out meas objs without a temp var
+        test_cruise_expocode = '09AR9601_1'
 
         netcdf_cruises_objs = [
             cruise_obj for cruise_obj in netcdf_cruises_objs if cruise_obj['cruise_expocode'] == test_cruise_expocode]
 
-    netcdf_cruises_objs = netcdf_cruises_objs[0:5]
-    num_in_batch = 2
-    num_batches = 1
-    num_leftover = len(netcdf_cruises_objs) - num_in_batch*num_batches
+        # netcdf_cruises_objs = netcdf_cruises_objs[0:5]
+        # num_in_batch = 2
+        # num_batches = 1
+        # num_leftover = len(netcdf_cruises_objs) - num_in_batch*num_batches
 
     for start in range(0, num_batches):
 

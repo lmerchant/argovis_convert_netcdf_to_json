@@ -9,6 +9,7 @@ import logging
 from global_vars import GlobalVars
 from check_and_save.check_of_ctd_vars import check_of_ctd_vars
 from create_profiles.filter_measurements import filter_measurements
+from check_and_save.save_as_zip import save_as_zip
 
 
 def convert(o):
@@ -235,7 +236,9 @@ def check_and_save_per_type(file_obj_profile):
         write_profile_goship_units(
             checked_ctd_variables)
 
-        save_all_profiles_one_type(checked_ctd_variables)
+        save_as_zip(checked_ctd_variables)
+
+        # save_all_profiles_one_type(checked_ctd_variables)
 
     else:
         logging.info("*** Cruise not converted ***")
@@ -265,7 +268,9 @@ def check_and_save_combined(profiles_btl_ctd):
         logging.info('----------------------')
         write_profile_goship_units(checked_ctd_variables)
 
-        save_all_btl_ctd_profiles(checked_ctd_variables)
+        save_as_zip(checked_ctd_variables)
+
+        # save_all_btl_ctd_profiles(checked_ctd_variables)
 
     else:
         logging.info("*** Cruise not converted ***")

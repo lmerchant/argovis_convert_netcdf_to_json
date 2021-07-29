@@ -98,26 +98,18 @@ def filter_btl_ctd_combined_measurements(btl_measurements, ctd_measurements, use
 
     combined_measurements = [*new_ctd_measurements, *new_btl_measurements]
 
-    # Now filter out if don't have a temp coming from btl or ctd
-    # so don't include temp = None
-    combined_measurements = [
-        meas for meas in combined_measurements if meas['temp']]
-
     if not use_temp_btl and not use_temp_ctd:
         combined_measurements = []
 
-    # TODO
-    # mark what is  being used for testing
-    # But remove for final product
+    else:
+        # Now filter out if don't have a temp coming from btl or ctd
+        # so don't include temp = None
+        # And filter out if there is not 'temp' var
+        combined_measurements = [
+            meas for meas in combined_measurements if 'temp' in meas.keys() and meas['temp']]
 
     measurements_sources = {}
-
-    # TODO
-    # how do I know qc = 2?
-    # get qc of temp used
-
-    measurements_sources['qc'] = 2
-
+    #measurements_sources['qc'] = 2
     measurements_sources['use_temp_ctd'] = use_temp_ctd
     measurements_sources['use_psal_ctd'] = use_psal_ctd
     measurements_sources['use_temp_btl'] = use_temp_btl
@@ -232,10 +224,10 @@ def combine_btl_ctd_measurements(btl_measurements, ctd_measurements):
     use_elems, flag = find_measurements_hierarchy_btl_ctd(
         btl_measurements, ctd_measurements)
 
-    combined_btl_ctd_measurements, measurements_source, measurements_source_qc = filter_btl_ctd_combined_measurements(
+    combined_btl_ctd_measurements, measurements_source, measurements_sources = filter_btl_ctd_combined_measurements(
         btl_measurements, ctd_measurements, use_elems, flag)
 
-    return combined_btl_ctd_measurements, measurements_source, measurements_source_qc
+    return combined_btl_ctd_measurements, measurements_source, measurements_sources
 
 
 def combine_mapping_per_profile_btl_ctd(combined_btl_ctd_dict, btl_dict, ctd_dict):
@@ -371,13 +363,24 @@ def combine_output_per_profile_btl_ctd(btl_profile, ctd_profile):
         btl_meta = btl_dict['meta']
         btl_bgc_meas = btl_dict['bgcMeas']
         btl_measurements = btl_dict['measurements']
+        btl_qc = btl_dict['measurementsSourceQC']
+        qc = btl_qc
 
     if ctd_dict:
         ctd_meta = ctd_dict['meta']
         ctd_bgc_meas = ctd_dict['bgcMeas']
         ctd_measurements = ctd_dict['measurements']
+        ctd_qc = ctd_dict['measurementsSourceQC']
+        qc = ctd_qc
 
     if btl_dict and ctd_dict:
+
+        if btl_qc == 0 and ctd_qc == 0:
+            qc = 0
+        elif btl_qc == 2 and ctd_qc == 2:
+            qc = 2
+        elif btl_qc == 0 and ctd_qc == 2:
+            qc = 2
 
         # Put suffix of '_btl' in  bottle meta
         # Remove _btl variables that are the same as CTD
@@ -392,14 +395,16 @@ def combine_output_per_profile_btl_ctd(btl_profile, ctd_profile):
     meta = {**ctd_meta, **btl_meta}
     bgc_meas = [*ctd_bgc_meas, *btl_bgc_meas]
 
-    measurements, measurements_source, measurements_source_qc = combine_btl_ctd_measurements(
+    measurements, measurements_source, measurements_sources = combine_btl_ctd_measurements(
         btl_measurements, ctd_measurements)
+
+    measurements_sources['qc'] = qc
 
     combined_btl_ctd_dict['meta'] = meta
     combined_btl_ctd_dict['bgcMeas'] = bgc_meas
     combined_btl_ctd_dict['measurements'] = measurements
     combined_btl_ctd_dict['measurementsSource'] = measurements_source
-    combined_btl_ctd_dict['measurementsSourceQC'] = measurements_source_qc
+    combined_btl_ctd_dict['measurementsSourceQC'] = measurements_sources
 
     combined_btl_ctd_dict = combine_mapping_per_profile_btl_ctd(combined_btl_ctd_dict,
                                                                 btl_dict, ctd_dict)
