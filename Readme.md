@@ -47,7 +47,7 @@ Parameter Data:
 
     "bgcMeas", "measurements"
 
-Mappings and variables from the initial file before any temperature conversion:
+Mappings and variables from the initial file before any conversions:
 
     "goship_names", "goship_ref_scale", "goship_units"
 
@@ -116,16 +116,6 @@ bottle salinity, and latitude and longitude.
         "pressure": "pres"
     }
 
-The mapping goshipArgovisUnitNameMapping lists the ArgoVis naming of units.
-
-    "goshipArgovisUnitNameMapping": {
-        "1": "psu",
-        "dbar": "decibar",
-        "degC": "Celsius",
-        "meters": "meters",
-        "umol/kg": "micromole/kg"
-    }
-
 The reference scale mapping argovisReferenceScale lists the reference scale of
 core variables.
 
@@ -151,8 +141,6 @@ are the same.
 
 The unique identifier is a combination of <expocode>_<station>_<cast>
 
-> TODO. Zero pad the station and cast number to 3 places
-
 ## To create conda environment
 
     In a conda environment to copy and create yml file:
@@ -165,14 +153,9 @@ The unique identifier is a combination of <expocode>_<station>_<cast>
 
 ## To Run it
 
-Main script is convert_bot_ctd_goship_to_argovis_json.py
-
-To run, use python 3
-
-    python convert_bot_ctd_goship_to_argovis_json.py
+    python convert_netcdf_to_json.py
 
 ## Folder for converted data
 
-A folder named converted_data is created in the same folder as the script unless
-it already exists. This is where converted data is stored. Each dataset is saved
-in a subfolder named with the expocode of the cruise.
+The data output is saved to converted_data. Each cruise dataset is saved as a
+zip archive named with the cruise expocode.
