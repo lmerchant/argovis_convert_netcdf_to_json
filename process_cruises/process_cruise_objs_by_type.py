@@ -153,19 +153,17 @@ def create_dask_dataframe_objs(cruises_xr_objs):
             # Add back in temp_qc = 0 col if existed
             # ******************************************
 
-            data_type = xr_file_obj['data_type']
-
             ddf_param = modify_dask_obj(ddf_param, data_type)
 
             ddf_obj['ddf_param'] = ddf_param
 
             ddf_objs.append(ddf_obj)
 
-    cruise_ddf_obj = {}
-    cruise_ddf_obj['cruise_expocode'] = cruise_expocode
-    cruise_ddf_obj['ddf_objs'] = ddf_objs
+        cruise_ddf_obj = {}
+        cruise_ddf_obj['cruise_expocode'] = cruise_expocode
+        cruise_ddf_obj['ddf_objs'] = ddf_objs
 
-    cruises_ddf_objs.append(cruise_ddf_obj)
+        cruises_ddf_objs.append(cruise_ddf_obj)
 
     return cruises_ddf_objs
 

@@ -219,7 +219,7 @@ def process_all_cruises(cruises_json, files_info, time_range):
         logging.info(f"num leftover {num_leftover}")
 
         # This cruise is BTL_CTD
-        #test_cruise_expocode = '06HF991_1'
+        # test_cruise_expocode = '06HF991_1'
 
         # This cruise is BTL_CTD
         # Don't set as BTL_CTD if
@@ -228,6 +228,11 @@ def process_all_cruises(cruises_json, files_info, time_range):
 
         netcdf_cruises_objs = [
             cruise_obj for cruise_obj in netcdf_cruises_objs if cruise_obj['cruise_expocode'] == test_cruise_expocode]
+
+    netcdf_cruises_objs = netcdf_cruises_objs[0:5]
+    num_in_batch = 2
+    num_batches = 1
+    num_leftover = len(netcdf_cruises_objs) - num_in_batch*num_batches
 
     for start in range(0, num_batches):
 
@@ -246,6 +251,8 @@ def process_all_cruises(cruises_json, files_info, time_range):
         process_batch_of_cruises(cruises_data_objs_w_data)
 
     if num_leftover:
+
+        logging.info("Inside cruise objs leftover loop")
 
         start_batch = num_batches * num_in_batch
 

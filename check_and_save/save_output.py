@@ -137,9 +137,6 @@ def save_one_btl_ctd_profile(ctd_var_check):
 
     profile_dict = profile['profile_dict']
 
-    # add_vars_to_included_excluded_collections(
-    #     profile_dict, cruises_collections)
-
     if has_all_ctd_vars['btl'] or has_all_ctd_vars['ctd']:
         write_profile_json(profile_dict)
 
@@ -217,6 +214,8 @@ def save_all_profiles_one_type(checked_ctd_variables):
 
 def check_and_save_per_type(file_obj_profile):
 
+    logging.info("inside check_and_save_per_type")
+
     # Now check if profiles have CTD vars and should be saved
     # And filter btl and ctd measurements separately
 
@@ -251,6 +250,8 @@ def check_and_save_per_type(file_obj_profile):
 
 
 def check_and_save_combined(profiles_btl_ctd):
+
+    logging.info("inside check_and_save_combined")
 
     # Now check if profiles have CTD vars and should be saved
     # And filter btl and ctd measurements separately

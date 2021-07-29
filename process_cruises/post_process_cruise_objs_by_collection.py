@@ -9,6 +9,8 @@ def post_process_cruise_objs_by_collection(cruises_profiles_objs):
 
     for cruise_profiles_obj in cruises_profiles_objs:
 
+        logging.info(f"INSIDE post_process_cruise_objs_by_collection")
+
         expocode = cruise_profiles_obj['cruise_expocode']
         #profiles_objs = cruise_profiles_obj['profiles_objs']
         profiles_objs = cruise_profiles_obj['all_data_types_profile_objs']
