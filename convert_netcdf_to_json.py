@@ -8,7 +8,6 @@ from dask.distributed import Client
 from global_vars import GlobalVars
 from setup_logging import setup_logging
 from process_cruises.get_cruises_file_info import get_all_cruises_file_info
-from tests.setup_test_objs import setup_test_objs
 from process_cruises.process_all_cruises import process_all_cruises
 
 
