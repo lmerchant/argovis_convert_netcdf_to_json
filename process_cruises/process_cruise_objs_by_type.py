@@ -2,6 +2,7 @@ from datetime import datetime
 import logging
 from collections import defaultdict
 import itertools
+from dask.diagnostics import Profiler
 
 
 from xarray_and_dask.modify_xarray_obj import modify_xarray_obj
@@ -223,7 +224,11 @@ def process_cruise_objs_by_type(cruise_objs):
     # ***************************
 
     logging.info('Process all xarray objects in Dask dataframe objects')
+
+    # with Profiler() as prof:
     cruises_ddf_objs = create_dask_dataframe_objs(cruises_xr_objs)
+
+    # prof.visualize()
 
     # ******************************
     # Convert Dask dataframe objects

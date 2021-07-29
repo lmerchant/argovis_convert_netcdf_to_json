@@ -4,6 +4,7 @@ import logging
 import click
 from dask.diagnostics import ProgressBar
 from dask.distributed import Client
+from dask.diagnostics import Profiler
 
 from global_vars import GlobalVars
 from setup_logging import setup_logging
@@ -44,6 +45,11 @@ def main(start_year, end_year, append):
 if __name__ == '__main__':
 
     # slower with local cluster
-    #client = Client()
+    #client = Client(memory_limit='4GB', n_workers=2, threads_per_worker=1)
+
+    client = Client(memory_limit='4GB', processes=False,
+                    n_workers=1, threads_per_worker=2, dashboard_address=None)
 
     main()
+
+    client.close()
