@@ -8,7 +8,7 @@ import logging
 from global_vars import GlobalVars
 
 
-def check_missing_variables(profile, variables_check):
+def log_missing_variables(profile, variables_check):
 
     logging_dir = GlobalVars.LOGGING_DIR
 
@@ -171,13 +171,6 @@ def check_missing_variables(profile, variables_check):
                 f.write(f"collection type {data_type} and indiv type CTD\n")
                 f.write(f"station cast {station_cast}\n")
 
-    check_of_ctd_vars = {}
-    check_of_ctd_vars['has_all_ctd_vars'] = False
-    check_of_ctd_vars['collection_type'] = data_type
-    check_of_ctd_vars['profile_checked'] = profile
-
-    return check_of_ctd_vars
-
 
 def check_ctd_vars_one_profile(profile):
 
@@ -250,56 +243,56 @@ def check_ctd_vars_one_profile(profile):
     variables_check['has_ctd_temp_unk_ctd'] = has_ctd_temp_unk_ctd
 
     # Summary of variables with CTD variables
-    check_of_ctd_vars = {}
-    check_of_ctd_vars['data_type'] = data_type
-    check_of_ctd_vars['station_cast'] = station_cast
-    check_of_ctd_vars['profile_checked'] = profile
-    check_of_ctd_vars['has_all_ctd_vars'] = {}
-    check_of_ctd_vars['has_ctd_vars_no_qc'] = {}
-    check_of_ctd_vars['has_ctd_temp_unk'] = {}
+    checked_profile_info = {}
+    checked_profile_info['data_type'] = data_type
+    checked_profile_info['station_cast'] = station_cast
+    checked_profile_info['profile_checked'] = profile
+    checked_profile_info['has_all_ctd_vars'] = {}
+    checked_profile_info['has_ctd_vars_no_qc'] = {}
+    checked_profile_info['has_ctd_temp_unk'] = {}
 
     # Test if have all CTD vars including temp qc and ref scale
-    check_of_ctd_vars['has_all_ctd_vars']['btl'] = False
-    check_of_ctd_vars['has_all_ctd_vars']['ctd'] = False
+    checked_profile_info['has_all_ctd_vars']['btl'] = False
+    checked_profile_info['has_all_ctd_vars']['ctd'] = False
 
     # partial CTD vars are pres, ctd_temp, ref_scale but no qc
-    check_of_ctd_vars['has_ctd_vars_no_qc']['btl'] = False
-    check_of_ctd_vars['has_ctd_vars_no_qc']['ctd'] = False
+    checked_profile_info['has_ctd_vars_no_qc']['btl'] = False
+    checked_profile_info['has_ctd_vars_no_qc']['ctd'] = False
 
     # ctd temp but unkown ref scale
-    check_of_ctd_vars['has_ctd_temp_unk']['btl'] = False
-    check_of_ctd_vars['has_ctd_temp_unk']['ctd'] = False
+    checked_profile_info['has_ctd_temp_unk']['btl'] = False
+    checked_profile_info['has_ctd_temp_unk']['ctd'] = False
 
     if has_pres and has_ctd_temp_btl and has_ctd_temp_qc_btl and has_ctd_temp_w_ref_scale_btl:
-        check_of_ctd_vars['has_all_ctd_vars']['btl'] = True
+        checked_profile_info['has_all_ctd_vars']['btl'] = True
 
     if has_pres and has_ctd_temp_ctd and has_ctd_temp_qc_ctd and has_ctd_temp_w_ref_scale_ctd:
-        check_of_ctd_vars['has_all_ctd_vars']['ctd'] = True
+        checked_profile_info['has_all_ctd_vars']['ctd'] = True
 
     if has_pres and has_ctd_temp_btl and has_ctd_temp_qc_btl and has_ctd_temp_w_ref_scale_btl:
-        check_of_ctd_vars['has_all_ctd_vars']['btl'] = True
+        checked_profile_info['has_all_ctd_vars']['btl'] = True
 
     if has_ctd_temp_btl and not has_ctd_temp_qc_btl:
-        check_of_ctd_vars['has_ctd_vars_no_qc']['btl'] = True
+        checked_profile_info['has_ctd_vars_no_qc']['btl'] = True
 
     if has_ctd_temp_ctd and not has_ctd_temp_qc_ctd:
 
-        check_of_ctd_vars['has_ctd_vars_no_qc']['ctd'] = True
+        checked_profile_info['has_ctd_vars_no_qc']['ctd'] = True
 
     if has_ctd_temp_unk_btl:
-        check_of_ctd_vars['has_ctd_temp_unk']['btl'] = True
+        checked_profile_info['has_ctd_temp_unk']['btl'] = True
 
     if has_ctd_temp_unk_ctd:
-        check_of_ctd_vars['has_ctd_temp_unk']['ctd'] = True
+        checked_profile_info['has_ctd_temp_unk']['ctd'] = True
 
     # Now find which variables that are missing and write to files
 
-    check_missing_variables(profile, variables_check)
+    log_missing_variables(profile, variables_check)
 
-    return check_of_ctd_vars
+    return checked_profile_info
 
 
-def check_of_ctd_vars(profiles):
+def check_of_ctd_vars(data_type_profiles):
 
     # Check to see if have all ctd vars
     # CTD vars are ctd temperature and pressure
@@ -308,28 +301,29 @@ def check_of_ctd_vars(profiles):
     logging.info("Check if have CTD variables")
     logging.info("---------------------------")
 
-    all_profiles_checked_ctd_vars = []
+    checked_profiles_info = []
 
     flags = []
 
-    for profile in profiles:
+    for data_profile in data_type_profiles:
 
-        checked_ctd_vars_one_profile = check_ctd_vars_one_profile(profile)
+        checked_profile_info = check_ctd_vars_one_profile(data_profile)
 
-        has_btl = checked_ctd_vars_one_profile['has_all_ctd_vars']['btl']
-        has_ctd = checked_ctd_vars_one_profile['has_all_ctd_vars']['ctd']
+        has_btl = checked_profile_info['has_all_ctd_vars']['btl']
+        has_ctd = checked_profile_info['has_all_ctd_vars']['ctd']
 
         if has_btl or has_ctd:
             flags.append(True)
 
-        all_profiles_checked_ctd_vars.append(checked_ctd_vars_one_profile)
+        checked_profiles_info.append(checked_profile_info)
 
-    # sum(flags) gives number of True values, so if it is 0, no ctd vars
+    # sum(flags) gives number of True values, so if it is 0,
+    # no ctd vars for entire cruise (all profiles)
 
     logging.info("-------------------------------------------")
     logging.info("Finished checking for CTD variables")
-    logging.info(f"Number of profiles  {len(profiles)}")
+    logging.info(f"Number of profiles  {len(data_type_profiles)}")
     logging.info(f"Found {sum(flags)} profiles with CTD vars")
     logging.info("-------------------------------------------")
 
-    return all_profiles_checked_ctd_vars, sum(flags)
+    return checked_profiles_info, sum(flags)

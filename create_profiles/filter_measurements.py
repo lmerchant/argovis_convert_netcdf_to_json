@@ -1,5 +1,6 @@
 # Filter  measurements object by element hierarchy
 import pandas as pd
+import logging
 
 
 def convert_boolean(obj):
@@ -15,7 +16,7 @@ def convert_boolean(obj):
 def filter_measurements_one_profile(measurements, use_elems):
 
     # If a ctd file, filter on whether have salinity,
-    # if not, set it to  nan
+    # if not, set it to  None
 
     # If a bottle file, keep temp_btl and then choose psal_btl
     # first but if doesn't exist and salinity_btl does, use that
@@ -98,45 +99,28 @@ def get_filtered_measurements_for_profile_dict(measurements, type):
 
     measurements = filter_measurements_one_profile(measurements, use_elems)
 
-    # Get measurements flag
-    if type == 'btl':
-        flag = 'BTL'
-    if type == 'ctd':
-        flag = 'CTD'
-
-    return measurements, flag, use_elems
+    return measurements
 
 
-def filter_measurements(profiles, type):
+def filter_measurements(data_type_profiles, type):
+
+    # For measurements, already filtered whether to
+    # keep psal or salinity, but didn't rename the
+    # salinity col.
 
     output_profiles_list = []
 
-    for profile in profiles:
+    for profile in data_type_profiles:
 
         profile_dict = profile['profile_dict']
         station_cast = profile['station_cast']
 
         measurements = profile_dict['measurements']
 
-        measurements, flag, use_elems = get_filtered_measurements_for_profile_dict(
+        measurements = get_filtered_measurements_for_profile_dict(
             measurements, type)
 
-        # TODO
-        # check if this flag overrules starting source flag
-        source = profile_dict['measurementsSource']
-        sources = profile_dict['measurementsSourceQC']
-        #measurements_source['source'] = flag
-
-        if use_elems['use_salinity']:
-            sources['salinity_used'] = True
-
         profile_dict['measurements'] = measurements
-        #profile_dict['measurementsSource'] = source
-
-        # TODO
-        # check if already did check
-        # profile_dict['measurementsSourceQC'] = convert_boolean(
-        #     sources)
 
         output_profile = {}
         output_profile['profile_dict'] = profile_dict

@@ -1,5 +1,7 @@
+import ctypes
 from datetime import date, datetime
 import os
+import shutil
 import logging
 import click
 from dask.diagnostics import ProgressBar
@@ -34,7 +36,10 @@ def main(start_year, end_year, append):
 
     cruises_json, files_info = get_all_cruises_file_info()
 
-    os.makedirs(GlobalVars.JSON_DIR, exist_ok=True)
+    data_dir = GlobalVars.JSON_DIR
+    if os.path.exists(data_dir):
+        shutil.rmtree(data_dir)
+        os.makedirs(data_dir)
 
     process_all_cruises(cruises_json, files_info, time_range)
 
@@ -44,12 +49,26 @@ def main(start_year, end_year, append):
 
 if __name__ == '__main__':
 
-    # slower with local cluster
-    #client = Client(memory_limit='4GB', n_workers=2, threads_per_worker=1)
+    # To troubleshoot, set dask config to ?
+    # So it is not parallel
+    # dask.config.set(scheduler='single-threaded')
+    # client()
 
-    client = Client(memory_limit='4GB', processes=False,
-                    n_workers=1, threads_per_worker=2, dashboard_address=None)
+    # does this change dask config yaml file?
+    # if so, need to use refresh option to update  it
+    # if change anything
+
+    # client = Client(memory_limit='4GB', processes=True,
+    #                 n_workers=4, dashboard_address=None)
+
+    # client
+
+    # def trim_memory() -> int:
+    #     libc = ctypes.CDLL("libc.so.6")
+    #     return libc.malloc_trim(0)
+
+    # client.run(trim_memory)
 
     main()
 
-    client.close()
+    # client.close()

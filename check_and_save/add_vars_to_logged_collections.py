@@ -241,19 +241,20 @@ def add_vars_one_profile(profile_dict):
     return included, excluded
 
 
-def add_vars_one_cruise(files_profiles_objs):
+def add_vars_one_cruise(data_type_profiles_objs):
 
     vars_included = []
     vars_excluded = []
 
     # Loop over the profiles for the collection of files with profiles
-    for file_profiles_obj in files_profiles_objs:
+    for data_type_profiles_obj in data_type_profiles_objs:
 
-        file_profiles = file_profiles_obj['profiles']
+        #data_type_profiles = data_type_profiles_obj['profiles']
+        data_type_profiles = data_type_profiles_obj['data_type_profiles_list']
 
-        for file_profile in file_profiles:
+        for data_type_profile in data_type_profiles:
 
-            profile_dict = file_profile['profile_dict']
+            profile_dict = data_type_profile['profile_dict']
 
             included, excluded = add_vars_one_profile(
                 profile_dict)

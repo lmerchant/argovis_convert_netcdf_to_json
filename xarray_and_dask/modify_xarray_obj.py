@@ -11,9 +11,6 @@ from global_vars import GlobalVars
 
 def rearrange_nc(nc):
 
-    # TODO
-    # Think of a better way
-
     # Move all meta data to coords
     # Move all param data to vars
 

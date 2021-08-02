@@ -62,7 +62,7 @@ def get_cruises_data_objs(netcdf_cruises_objs):
     for netcdf_cruise_obj in netcdf_cruises_objs:
 
         logging.info(
-            f"Processing cruise {netcdf_cruise_obj['cruise_expocode']}")
+            f"Creating cruise obj {netcdf_cruise_obj['cruise_expocode']}")
 
         # Each object is a dict with keys
         netcdf_cruise_obj_w_data = add_file_data(netcdf_cruise_obj)
@@ -135,6 +135,48 @@ def check_if_in_time_range(cruise_json, time_range):
     return True
 
 
+def setup_test_cruise_objs(netcdf_cruises_objs):
+
+    by_expocode = True
+    by_batch = False
+
+    if by_expocode:
+
+        # This cruise is BTL_CTD
+        # test_cruise_expocode = '06HF991_1'
+
+        # This cruise is BTL_CTD
+        # Don't set as BTL_CTD if
+        # temp is null while using a btl value such as psal
+        # test_cruise_expocode = '64TR90_3'
+
+        # has both btl and ctd and want to filter
+        # out meas objs without a temp var
+        # test_cruise_expocode = '09AR9601_1'
+
+        # test temp_unk for ctd and temp for btl
+        # when combining. Want to exclude ctd in this case
+        # test_cruise_expocode = '09AR9601_1'
+
+        # missing ctd vars
+        # test_cruise_expocode = '33RO20070710'
+
+        # has btl and ctd
+        #test_cruise_expocode = '325020210316'
+        #test_cruise_expocode = '325020210420'
+
+        # btl and ctd have diff # of N_PROF
+        #test_cruise_expocode = '096U20160426'
+
+        netcdf_cruises_objs = [
+            cruise_obj for cruise_obj in netcdf_cruises_objs if cruise_obj['cruise_expocode'] == test_cruise_expocode]
+
+    if by_batch:
+        netcdf_cruises_objs = netcdf_cruises_objs[0:4]
+
+    return netcdf_cruises_objs
+
+
 def process_all_cruises(cruises_json, files_info, time_range):
 
     file_id_hash_mapping = files_info['file_id_hash_mapping']
@@ -201,42 +243,17 @@ def process_all_cruises(cruises_json, files_info, time_range):
         if cruise_obj:
             netcdf_cruises_objs.append(cruise_obj)
 
+    if GlobalVars.TEST:
+        netcdf_cruises_objs = setup_test_cruise_objs(netcdf_cruises_objs)
+
     num_netcdf_cruises_objs = len(netcdf_cruises_objs)
     num_in_batch = GlobalVars.NUM_IN_BATCH
 
     num_batches = math.floor(num_netcdf_cruises_objs/num_in_batch)
     num_leftover = num_netcdf_cruises_objs % num_in_batch
 
-    logging.info(f"num  cruises json {num_netcdf_cruises_objs}")
+    logging.info(f"Total cruises {num_netcdf_cruises_objs}")
     logging.info(f"num batches {num_batches} and num leftover {num_leftover}")
-
-    if GlobalVars.TEST:
-        # Testing
-        num_in_batch = 1
-        num_batches = 1
-        num_leftover = 0
-        logging.info(f"testing num in batch {num_in_batch}")
-        logging.info(f"num leftover {num_leftover}")
-
-        # This cruise is BTL_CTD
-        # test_cruise_expocode = '06HF991_1'
-
-        # This cruise is BTL_CTD
-        # Don't set as BTL_CTD if
-        # temp is null while using a btl value such as psal
-        #test_cruise_expocode = '64TR90_3'
-
-        # has both btl and ctd and want to filter
-        # out meas objs without a temp var
-        test_cruise_expocode = '09AR9601_1'
-
-        netcdf_cruises_objs = [
-            cruise_obj for cruise_obj in netcdf_cruises_objs if cruise_obj['cruise_expocode'] == test_cruise_expocode]
-
-        # netcdf_cruises_objs = netcdf_cruises_objs[0:5]
-        # num_in_batch = 2
-        # num_batches = 1
-        # num_leftover = len(netcdf_cruises_objs) - num_in_batch*num_batches
 
     for start in range(0, num_batches):
 
@@ -261,16 +278,6 @@ def process_all_cruises(cruises_json, files_info, time_range):
         start_batch = num_batches * num_in_batch
 
         netcdf_cruises_objs_batch = netcdf_cruises_objs[start_batch: num_netcdf_cruises_objs]
-
-        # try:
-        #     # If continuing from a bunch, start_batch exists
-        #     netcdf_cruises_objs_batch = netcdf_cruises_objs[start_batch: num_netcdf_cruises_objs]
-        # except UnboundLocalError:
-        #     # If start_batch doesn't exist because number
-        #     # of cruises to process is less than bunch
-        #     # size, Set to zero
-        #     start_batch = 0
-        #     netcdf_cruises_objs_batch = netcdf_cruises_objs[start_batch: num_netcdf_cruises_objs]
 
         # Add data to the objs
         cruises_data_objs_w_data = get_cruises_data_objs(

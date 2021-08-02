@@ -96,9 +96,6 @@ def create_bgc_profiles(df_param):
 
         val_df = val_df.sort_values(by=['pres'])
 
-        # TODO
-        #  maybe here drop  'N_PROF'
-
         bgc_dict_list = val_df.to_dict('records')
 
         bgc_obj = {}

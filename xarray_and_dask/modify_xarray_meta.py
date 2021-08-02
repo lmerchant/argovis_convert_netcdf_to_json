@@ -146,25 +146,18 @@ def add_extra_coords(nc, data_obj):
    # cast_number is an integer
     cast_list = nc.coords['cast'].values
 
-    # The file expocode is a string
-    file_expocode_list = nc.coords['file_expocode'].values
-
     # Add in station_cast var for later
     # processing of groups. But in
     # final JSON, it's dropped
 
+    # lower case the station since BTL and CTD
+    # could have the same station but won't compare
+    # the same because case difference
+
     def create_station_cast(s, c):
-        station = str(s).zfill(3)
+        station = (str(s).zfill(3)).lower()
         cast = str(c).zfill(3)
         return f"{station}_{cast}"
-
-    # def create_file_expo_station_cast(e, s, c):
-    #     station = str(s).zfill(3)
-    #     cast = str(c).zfill(3)
-    #     return f"{e}_{station}_{cast}"
-
-    # expo_station_cast = list(
-    #     map(create_file_expo_station_cast, file_expocode_list, station_list, cast_list))
 
     station_cast = list(
         map(create_station_cast, station_list, cast_list))
@@ -173,7 +166,7 @@ def add_extra_coords(nc, data_obj):
 
     # Create unique id
     def create_id(x, y):
-        station = str(x).zfill(3)
+        station = (str(x).zfill(3)).lower()
         cast = str(y).zfill(3)
         return f"expo_{expocode}_sta_{station}_cast_{cast}"
 

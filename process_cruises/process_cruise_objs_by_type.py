@@ -3,6 +3,7 @@ import logging
 from collections import defaultdict
 import itertools
 from dask.diagnostics import Profiler
+import dask
 
 
 from xarray_and_dask.modify_xarray_obj import modify_xarray_obj
@@ -167,6 +168,39 @@ def create_dask_dataframe_objs(cruises_xr_objs):
         cruises_ddf_objs.append(cruise_ddf_obj)
 
     return cruises_ddf_objs
+
+
+def create_one_xr_obj(cruise_obj):
+
+    logging.info('*****************************')
+    logging.info(f"Modify xarray cruise object")
+    logging.info(f"cruise {cruise_obj['cruise_expocode']}")
+
+    file_objs = cruise_obj['file_objs']
+
+    xr_file_objs = []
+
+    for file_obj in file_objs:
+
+        # ********************************
+        # Modify Xarray object
+        # and get before and after mappings
+        # *********************************
+
+        nc, nc_mappings = modify_xarray_obj(file_obj)
+
+        file_obj['nc'] = nc
+        file_obj['nc_mappings'] = nc_mappings
+
+        xr_file_objs.append(file_obj)
+
+    cruise_xr_obj = {}
+    cruise_xr_obj['cruise_expocode'] = cruise_obj['cruise_expocode']
+    cruise_xr_obj['xr_file_objs'] = xr_file_objs
+
+    # cruises_xr_objs.append(cruise_xr_obj)
+
+    return cruise_xr_obj
 
 
 def create_xr_objs(cruise_objs):
