@@ -219,10 +219,14 @@ def set_qc_scale_for_oxygen_conversion(nc):
 
     oxy_qc = c[:, 0].T
 
+    # Xarray doesn't know what I mean to assign a new
+    # variable when just working with one dimension here
+    # Try returnin oxy_qc, building it up and then assiging
     if 'ctd_oxygen_ml_l_qc' in nc.keys():
         nc['ctd_oxygen_ml_l_qc'] = oxy_qc
     else:
-        nc.assign(ctd_oxygen_ml_l_qc=oxy_qc)
+        # nc.assign(ctd_oxygen_ml_l_qc=oxy_qc)
+        pass
 
     return nc
 
@@ -313,9 +317,13 @@ def convert_oxygen(nc, var):
 
     def convert_units(oxy, temp, sal_pr, pres, lon, lat):
 
+        # How about if temp, sal, not a qc =0 or 2, set
+        # oxy value to NaN? Reset vars after conversion
+
         sal_abs = gsw.SA_from_SP(sal_pr, pres, lon, lat)
         rho = gsw.density.rho_t_exact(sal_abs, temp, pres)
         converted_oxygen = ((oxy * 1000)/rho)/0.022403
+
         return converted_oxygen
 
     def get_converted_oxy(oxy, temp, sal_pr, pres, lon, lat, oxy_dtype):
@@ -347,7 +355,18 @@ def convert_oxygen(nc, var):
     nc[var] = converted_oxygen
     nc[var].attrs['units'] = 'micromole/kg'
 
-    nc = set_qc_scale_for_oxygen_conversion(nc)
+    # TODO
+    # xarray is confused when try to add a qc col
+    # when none existed. Especially when only addng
+    # for one profile. Maybe just don't convert?
+    # Could pass along N_PROF dim and use that?
+    # If oxy qc var for ml_l doesn't exist, create it earlier
+    # in the program
+
+    # How about if temp, sal, not a qc =0 or 2, set
+    # oxy value to NaN?
+
+    # nc = set_qc_scale_for_oxygen_conversion(nc)
 
     return nc
 
@@ -383,6 +402,7 @@ def convert_goship_to_argovis_units(nc):
                 nc_profile = nc_group[1]
 
                 out = convert_oxygen(nc_profile, var)
+
                 converted_groups.append(out)
 
             ds_grid = [converted_groups]
