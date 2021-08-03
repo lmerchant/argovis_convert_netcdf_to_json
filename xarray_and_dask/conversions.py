@@ -138,7 +138,7 @@ def get_argovis_reference_scale_per_type():
     }
 
 
-def set_qc_scale_for_oxygen_conversion(nc):
+def get_qc_scale_for_oxygen_conversion(nc, var):
 
     # TODO
 
@@ -163,8 +163,8 @@ def set_qc_scale_for_oxygen_conversion(nc):
     # This is already just one N_PROF group.
     # Could work with numpy arrays of the qc vars.
 
-    if 'ctd_oxygen_ml_l_qc' in nc.keys():
-        oxy_qc = nc['ctd_oxygen_ml_l_qc']
+    if f"{var}_qc" in nc.keys():
+        oxy_qc = nc[f"{var}_qc"]
     else:
         # TODO, check if this matches dims of
         # oxygen
@@ -219,12 +219,172 @@ def set_qc_scale_for_oxygen_conversion(nc):
 
     oxy_qc = c[:, 0].T
 
-    if 'ctd_oxygen_ml_l_qc' in nc.keys():
-        nc['ctd_oxygen_ml_l_qc'] = oxy_qc
-    else:
-        nc.assign(ctd_oxygen_ml_l_qc=oxy_qc)
+    # Xarray doesn't know what I mean to assign a new
+    # variable when just working with one dimension here
+    # Try returnin oxy_qc, building it up and then assiging
+    # if 'ctd_oxygen_ml_l_qc' in nc.keys():
+    #     nc['ctd_oxygen_ml_l_qc'] = oxy_qc
+    # else:
+    #     # nc.assign(ctd_oxygen_ml_l_qc=oxy_qc)
+    #     pass
 
-    return nc
+    # return nc
+
+    return oxy_qc
+
+
+def convert_units(oxy, temp, sal_pr, pres, lon, lat):
+
+    # How about if temp, sal, not a qc =0 or 2, set
+    # oxy value to NaN?
+
+    # Would have to submit temp_qc and sal_pr_qc cols
+    # Would NaN values mess up the calculation and
+    # result in an error?
+
+    sal_abs = gsw.SA_from_SP(sal_pr, pres, lon, lat)
+    rho = gsw.density.rho_t_exact(sal_abs, temp, pres)
+    converted_oxygen = ((oxy * 1000)/rho)/0.022403
+
+    return converted_oxygen
+
+
+def get_converted_oxy(oxy, temp, sal_pr, pres, lon, lat, oxy_dtype):
+
+    return xr.apply_ufunc(
+        convert_units,
+        oxy,
+        temp,
+        sal_pr,
+        pres,
+        lon,
+        lat,
+        input_core_dims=[['N_LEVELS'],
+                         ['N_LEVELS'], ['N_LEVELS'],
+                         ['N_LEVELS'], [], []],
+        output_core_dims=[['N_LEVELS']],
+        output_dtypes=[oxy_dtype],
+        keep_attrs=True,
+        # dask="parallelized"
+    )
+
+
+def get_temp_and_salinity(nc):
+
+    # Use ctd_salinity first (practical salinity)
+    # and if not exist, use bottle_salinity
+    # TODO
+    # make sure there are at least qc=2 in the ctd_salinity,
+    # otherwise use bottle_salinity assuming it has some
+    # qc = 2, otherwise can't convert. What
+    # to do with naming the var doxy then? Would have to
+    # rename if doxy_ml_l
+
+    missing_var_flag = False
+
+    if 'ctd_salinity' in nc.keys():
+        sal_pr = nc['ctd_salinity']
+        sal_ref_scale = sal_pr.attrs['reference_scale']
+
+        # If sal_pr_qc is != 0 or != 2, set sal_pr to NaN
+        # Have a temporary var sal_pr so don't overwrite ctd_salinity
+
+        sal_pr_values = sal_pr.values
+        nc.assign({'sal_pr': sal_pr_values})
+
+        if 'ctd_salinity_qc' in nc.keys():
+
+            # replace all values not equal to 0 or 2 with np.nan
+            xr.where(nc['ctd_salinity_qc'] != 0 &
+                     nc['ctd_salinity_qc'] != 2, np.nan, nc['sal_pr'])
+
+            sal_pr = nc['sal_pr']
+
+    elif 'bottle_salinity' in nc.keys():
+        sal_pr = nc['bottle_salinity']
+        sal_ref_scale = sal_pr.attrs['reference_scale']
+
+        # If sal_pr_qc is != 0 or != 2, set sal_pr to NaN
+        # Have a temporary var sal_pr so don't overwrite ctd_salinity
+
+        sal_pr_values = sal_pr.values
+        nc.assign({'sal_pr': sal_pr_values})
+
+        if 'bottle_salinity_qc' in nc.keys():
+
+            # replace all values not equal to 0 or 2 with np.nan
+            xr.where(nc['bottle_salinity_qc'] != 0 &
+                     nc['bottle_salinity_qc'] != 2, np.nan, nc['sal_pr'])
+
+            sal_pr = nc['sal_pr']
+
+    else:
+        logging.info("************************************")
+        logging.info("No salinity to convert oxygen units")
+        logging.info("************************************")
+        missing_var_flag = True
+
+    # Check if salinity ref scale is PSS-78
+    if sal_ref_scale != 'PSS-78':
+        missing_var_flag = True
+
+    # Use ctd_temperature first,  then ctd_temperature_68
+    # These have just been converted to the ITS-90 scale
+
+    if 'ctd_temperature' in nc.keys():
+        temp = nc['ctd_temperature']
+        temp_ref_scale = temp.attrs['reference_scale']
+
+        # If temp_qc is != 0 or != 2, set temp to NaN
+        # Have a temporary var temp so don't overwrite ctd_salinity
+
+        temp_values = temp.values
+        nc.assign({'temp': temp_values})
+
+        if 'ctd_temperature_qc' in nc.keys():
+            # replace all values not equal to 0 or 2 with np.nan
+            xr.where(nc['ctd_temperature_qc'] != 0 &
+                     nc['ctd_temperature_qc'] != 2, np.nan, nc['temp'])
+
+            temp = nc['temp']
+
+    elif 'ctd_temperature_68' in nc.keys():
+        temp = nc['ctd_temperature_68']
+        temp_ref_scale = temp.attrs['reference_scale']
+
+        # If temp_qc is != 0 or != 2, set temp to NaN
+        # Have a temporary var temp so don't overwrite ctd_salinity
+
+        temp_values = temp.values
+        nc.assign({'temp': temp_values})
+
+        if 'ctd_temperature_68_qc' in nc.keys():
+            # replace all values not equal to 0 or 2 with np.nan
+            xr.where(nc['ctd_temperature_68_qc'] != 0 &
+                     nc['ctd_temperature_68_qc'] != 2, np.nan, nc['temp'])
+
+            temp = nc['temp']
+
+    else:
+        # This shouldn't happen since checked for required
+        # CTD vars, ctd temp with ref scale, at the start
+        # of the program, and excluded files if there
+        # was no ctd temp with a ref scale.
+        logging.info("************************************")
+        logging.info("No ctd temp to convert oxygen units")
+        logging.info("************************************")
+        missing_var_flag = True
+
+    # Check if temperature ref scale is ITS-90
+    # Which it should be since did this conversion first
+    if temp_ref_scale != 'ITS-90':
+        missing_var_flag = True
+
+    # Now drop these temporary vars from nc
+    nc = nc.drop_vars(['temp'])
+    nc = nc.drop_vars(['sal_pr'])
+
+    return temp, sal_pr, missing_var_flag
 
 
 def convert_oxygen(nc, var):
@@ -259,82 +419,16 @@ def convert_oxygen(nc, var):
     oxy = nc[var]
     oxy_dtype = nc[var].dtype
 
-    # Use ctd_salinity first (practical salinity)
-    # and if not exist, use bottle_salinity
-    # TODO
-    # make sure there are at least qc=2 in the ctd_salinity,
-    # otherwise use bottle_salinity assuming it has some
-    # qc = 2, otherwise can't convert. What
-    # to do with naming the var doxy then? Would have to
-    # rename if doxy_ml_l
-    if 'ctd_salinity' in nc.keys():
-        sal_pr = nc['ctd_salinity']
-        sal_ref_scale = sal_pr.attrs['reference_scale']
-    elif 'bottle_salinity' in nc.keys():
-        sal_pr = nc['bottle_salinity']
-        sal_ref_scale = sal_pr.attrs['reference_scale']
-    else:
-        logging.info("************************************")
-        logging.info("No salinity to convert oxygen units")
-        logging.info("************************************")
-        return nc
+    temp, sal_pr, missing_var_flag = get_temp_and_salinity(nc)
 
-    # Check if salinity ref scale is PSS-78
-    if sal_ref_scale != 'PSS-78':
-        return nc
-
-    # Use ctd_temperature first,  then ctd_temperature_68
-    # These have just been converted to the ITS-90 scale
-
-    if 'ctd_temperature' in nc.keys():
-        temp = nc['ctd_temperature']
-        temp_ref_scale = temp.attrs['reference_scale']
-    elif 'ctd_temperature_68' in nc.keys():
-        temp = nc['ctd_temperature_68']
-        temp_ref_scale = temp.attrs['reference_scale']
-    else:
-        # This shouldn't happen since checked for required
-        # CTD vars, ctd temp with ref scale, at the start
-        # of the program, and excluded files if there
-        # was no ctd temp with a ref scale.
-        logging.info("************************************")
-        logging.info("No ctd temp to convert oxygen units")
-        logging.info("************************************")
-        return nc
-
-    # Check if temperature ref scale is ITS-90
-    # Which it should be since did this conversion first
-    if temp_ref_scale != 'ITS-90':
+    if missing_var_flag:
+        logging.info("Missing temp or sal needed to do Oxygen conversion")
+        logging.info(f"Didn't convert {var}")
         return nc
 
     pres = nc['pressure']
     lat = nc['latitude']
     lon = nc['longitude']
-
-    def convert_units(oxy, temp, sal_pr, pres, lon, lat):
-
-        sal_abs = gsw.SA_from_SP(sal_pr, pres, lon, lat)
-        rho = gsw.density.rho_t_exact(sal_abs, temp, pres)
-        converted_oxygen = ((oxy * 1000)/rho)/0.022403
-        return converted_oxygen
-
-    def get_converted_oxy(oxy, temp, sal_pr, pres, lon, lat, oxy_dtype):
-        return xr.apply_ufunc(
-            convert_units,
-            oxy,
-            temp,
-            sal_pr,
-            pres,
-            lon,
-            lat,
-            input_core_dims=[['N_LEVELS'],
-                             ['N_LEVELS'], ['N_LEVELS'],
-                             ['N_LEVELS'], [], []],
-            output_core_dims=[['N_LEVELS']],
-            output_dtypes=[oxy_dtype],
-            keep_attrs=True,
-            # dask="parallelized"
-        )
 
     converted_oxygen = get_converted_oxy(oxy,
                                          temp,
@@ -347,7 +441,44 @@ def convert_oxygen(nc, var):
     nc[var] = converted_oxygen
     nc[var].attrs['units'] = 'micromole/kg'
 
-    nc = set_qc_scale_for_oxygen_conversion(nc)
+    return nc
+
+
+def convert_oxygen_to_new_units(nc, var):
+
+    converted_groups = []
+
+    all_oxy_qc = []
+    for nc_group in nc.groupby('N_PROF'):
+
+        nc_profile = nc_group[1]
+
+        out = convert_oxygen(nc_profile, var)
+
+        converted_groups.append(out)
+
+        oxy_qc = get_qc_scale_for_oxygen_conversion(out, var)
+
+        # This stacks downward
+        # Compare to oxy_qc before changes
+        all_oxy_qc = np.vstack((all_oxy_qc, oxy_qc))
+
+    ds_grid = [converted_groups]
+
+    nc = xr.combine_nested(
+        ds_grid, concat_dim=["N_LEVELS", "N_PROF"], combine_attrs='identical')
+
+    # TODO
+    # Check this
+    # look at nc and extract out oxygen
+    # see if nan values match up with qc
+    # Or maybe don't even add a qc column?
+
+    if f"{var}_qc" in nc.keys():
+        nc[f"{var}_qc"] = all_oxy_qc
+    else:
+        # Do I need to provide coords and dims?
+        nc = nc.assign({f"{var}_qc": all_oxy_qc})
 
     return nc
 
@@ -372,23 +503,7 @@ def convert_goship_to_argovis_units(nc):
             continue
 
         if 'oxygen' in var and var_goship_units == 'ml/l':
-
-            converted_groups = []
-
-            # TODO
-            # Consider a groupby apply u_func or is
-            # this too confusing since convert_oxygen
-            # is a ufunc?
-            for nc_group in nc.groupby('N_PROF'):
-                nc_profile = nc_group[1]
-
-                out = convert_oxygen(nc_profile, var)
-                converted_groups.append(out)
-
-            ds_grid = [converted_groups]
-
-            nc = xr.combine_nested(
-                ds_grid, concat_dim=["N_LEVELS", "N_PROF"], combine_attrs='identical')
+            nc = convert_oxygen_to_new_units(nc, var)
 
     return nc
 

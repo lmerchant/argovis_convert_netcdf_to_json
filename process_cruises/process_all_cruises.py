@@ -155,7 +155,13 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
         # temp and qc_source are None and 2.0 but has psal val
         # so temp included but what does that mean if it's null?
         # 218_001 station cast
-        test_cruise_expocode = '18HU20130507'
+        #test_cruise_expocode = '18HU20130507'
+
+        # test for cacl oxygen_ml_l with qc
+        test_cruise_expocode = '06PO20110601'
+
+        # meas source qc not unique. [3.0 2.0]
+        #test_cruise_expocode = '29HE06_1'
 
         # This cruise is BTL_CTD
         # Don't set as BTL_CTD if
