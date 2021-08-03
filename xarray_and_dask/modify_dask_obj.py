@@ -4,6 +4,9 @@ import numpy as np
 
 def remove_empty_rows(df):
 
+    # TODO
+    # Do qc cols mess this up or are they NaN also?
+
     # If have '' and 'NaT' values, replace with NaN,
     # drop the rows, then replace with previous
     # values of '' and 'NaT'
@@ -55,6 +58,14 @@ def modify_dask_obj(ddf_param, data_type):
         if ddf_param[f"temp_{data_type}_qc"].isnull().values.all():
             ddf_param[f"temp_{data_type}_qc"] = ddf_param[f"temp_{data_type}_qc"].fillna(
                 0)
+
+    except KeyError:
+        pass
+
+    # Add back in pres_qc = 1 if column exists and all np.nan
+    try:
+        if ddf_param[f"pres_qc"].isnull().values.all():
+            ddf_param[f"pres_qc"] = ddf_param[f"pres_qc"].fillna(1)
 
     except KeyError:
         pass

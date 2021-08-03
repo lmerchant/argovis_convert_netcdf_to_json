@@ -12,9 +12,9 @@
 # conda install -c conda-forge gsw
 
 import logging
-
 import gsw
 import xarray as xr
+import numpy as np
 
 
 # def convert_oxygen(nc, var, chunk_size):
@@ -138,7 +138,102 @@ def get_argovis_reference_scale_per_type():
     }
 
 
+def set_qc_scale_for_oxygen_conversion(nc):
+
+    # TODO
+
+    # If the temp_qc is bad, use in calculation but set qc
+    # of that oxygen value to qc of temperature. Can't
+    # convert an oxygen with a bad temperature qc. Same
+    # for the salinity.
+
+    # Creat a new col where Oxygen qc = 2 if
+    # temp qc = 0 or 2, the ctd_salinity qc = 2,
+    # and the oxygen qc = 2
+
+    # Create new column and set good qc to True
+    # and bad qc to False. Then using the boolean of
+    # these 3 columns, get another column. Set
+    # True to qc = 2 and False to qc = 4 (bad meas). Then delete
+    # the oxygen qc and rename this column as the
+    # oxygen qc. Drop the 3 true/false columns
+
+    # Can I do this within the xarray object or do
+    # I need to convert to a dask dataframe and back.
+    # This is already just one N_PROF group.
+    # Could work with numpy arrays of the qc vars.
+
+    if 'ctd_oxygen_ml_l_qc' in nc.keys():
+        oxy_qc = nc['ctd_oxygen_ml_l_qc']
+    else:
+        # TODO, check if this matches dims of
+        # oxygen
+        # Set ctd_oxygen_qc to array of length N_LEVELS
+        # with qc=2 value
+        length = nc.dims['N_LEVELS']
+        oxy_qc = np.full((1, length), 2.0)
+
+    if 'ctd_salinity_qc' in nc.keys():
+        sal_qc = nc['ctd_salinity_qc']
+    elif 'bottle_salinity_qc' in nc.keys():
+        sal_qc = nc['bottle_salinity_qc']
+    else:
+        # TODO, check if this matches dims of
+        # salinity
+        # Set ctd_salinity_qc to array of length N_LEVELS
+        # with qc=2 value
+        N_LEVELS, N_PROF = nc.dims
+        sal_qc = np.full((1, N_LEVELS), 2.0)
+
+    if 'ctd_temperature_qc' in nc.keys():
+        temp_qc = nc['ctd_temperature_qc']
+    elif 'ctd_temperature_68_qc' in nc.keys():
+        temp_qc = nc['ctd_temperature_68_qc']
+    else:
+        # TODO, check if this matches dims of
+        # temperature
+        # Set ctd_temperature_qc to array of length N_LEVELS
+        # with qc=2 value
+        N_LEVELS, N_PROF = nc.dims
+        temp_qc = np.full((1, N_LEVELS), 2.0)
+
+    # TODO
+    # This doesn't give me horiz concat
+    qc_comb_array = np.column_stack([oxy_qc, sal_qc, temp_qc])
+
+    qc_comb_array = np.where(qc_comb_array != 2.0, 0, qc_comb_array)
+    qc_comb_array = np.where(qc_comb_array == 2.0, 1, qc_comb_array)
+
+    # Sum values row by row. If get 3, they are all true and so a good qc = 2
+    qc_array = np.sum(qc_comb_array, axis=1)
+
+    # Now set the sum values back  to qc values
+    qc_array = np.where(qc_array != 3, 4, qc_array)
+    qc_array = np.where(qc_array == 3, 2, qc_array)
+
+    # Combine qc_array with oxy_qc array, If
+    # oxy_qc = 2, and qc_array = 4, change oxy_qc to 4,
+    # otherwise, leave oxy qc alone.
+    c = np.column_stack([oxy_qc, qc_array])
+    c[:, 0] = np.where((c[:, 0] == 2) & (c[:, 1] == 4), 4, c[:, 0])
+
+    oxy_qc = c[:, 0].T
+
+    if 'ctd_oxygen_ml_l_qc' in nc.keys():
+        nc['ctd_oxygen_ml_l_qc'] = oxy_qc
+    else:
+        nc.assign(ctd_oxygen_ml_l_qc=oxy_qc)
+
+    return nc
+
+
 def convert_oxygen(nc, var):
+
+    # TODO
+    # If the temp_qc is bad, use in calculation but set qc
+    # of that oxygen value to qc of temperature. Can't
+    # convert an oxygen with a bad temperature qc. Same
+    # for the salinity.
 
     # Convert ml/l to micromole/kg
 
@@ -166,6 +261,12 @@ def convert_oxygen(nc, var):
 
     # Use ctd_salinity first (practical salinity)
     # and if not exist, use bottle_salinity
+    # TODO
+    # make sure there are at least qc=2 in the ctd_salinity,
+    # otherwise use bottle_salinity assuming it has some
+    # qc = 2, otherwise can't convert. What
+    # to do with naming the var doxy then? Would have to
+    # rename if doxy_ml_l
     if 'ctd_salinity' in nc.keys():
         sal_pr = nc['ctd_salinity']
         sal_ref_scale = sal_pr.attrs['reference_scale']
@@ -192,6 +293,10 @@ def convert_oxygen(nc, var):
         temp = nc['ctd_temperature_68']
         temp_ref_scale = temp.attrs['reference_scale']
     else:
+        # This shouldn't happen since checked for required
+        # CTD vars, ctd temp with ref scale, at the start
+        # of the program, and excluded files if there
+        # was no ctd temp with a ref scale.
         logging.info("************************************")
         logging.info("No ctd temp to convert oxygen units")
         logging.info("************************************")
@@ -242,6 +347,8 @@ def convert_oxygen(nc, var):
     nc[var] = converted_oxygen
     nc[var].attrs['units'] = 'micromole/kg'
 
+    nc = set_qc_scale_for_oxygen_conversion(nc)
+
     return nc
 
 
@@ -268,6 +375,10 @@ def convert_goship_to_argovis_units(nc):
 
             converted_groups = []
 
+            # TODO
+            # Consider a groupby apply u_func or is
+            # this too confusing since convert_oxygen
+            # is a ufunc?
             for nc_group in nc.groupby('N_PROF'):
                 nc_profile = nc_group[1]
 

@@ -136,6 +136,24 @@ def apply_c_format_param(nc, param_mapping):
     return nc
 
 
+def add_pres_qc(nc):
+
+    # Donata wants to add pres_qc = 1
+    qc_name = f"pressure_qc"
+
+    # Add a qc column with values np.nan first
+    # and later set = 1. Do np.nan first to make it easier to remove rows
+    # with all nan values including np.nan
+
+    pres_shape = np.shape(nc['pressure'])
+    shape = np.transpose(pres_shape)
+    pres_qc = np.empty(shape)
+    pres_qc[:] = np.nan
+    nc[qc_name] = (['N_PROF', 'N_LEVELS'], pres_qc)
+
+    return nc
+
+
 def add_qc_if_no_temp_qc(nc):
 
     # Now check so see if there is a ctd temperature  column and a corresponding

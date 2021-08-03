@@ -26,6 +26,7 @@ def get_goship_argovis_name_mapping_per_type(type):
 
     return {
         'pressure': 'pres',
+        'pressure_qc': 'pres_qc',
         'ctd_salinity': f'psal_{type}',
         'ctd_salinity_qc': f'psal_{type}_qc',
         'ctd_temperature': f'temp_{type}',

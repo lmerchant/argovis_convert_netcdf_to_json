@@ -31,7 +31,7 @@ def filter_btl_ctd_measurements(btl_meas, ctd_meas, use_elems):
     use_temp_ctd = use_elems['use_temp_ctd']
     use_psal_btl = use_elems['use_psal_btl']
     use_psal_ctd = use_elems['use_psal_ctd']
-    #use_salinity_btl = use_elems['use_salinity_btl']
+    # use_salinity_btl = use_elems['use_salinity_btl']
 
     # For btl file, already filtered to use psal over salinity
     # and if there was no psal but was salinity, salinity
@@ -248,6 +248,21 @@ def find_meas_hierarchy_btl_ctd(btl_meas, ctd_meas, btl_qc, ctd_qc):
     if use_elems['use_salinity_btl']:
         meas_sources['use_salinty_btl'] = use_salinity_btl
 
+    meas_names = []
+    meas_names.append('pres')
+
+    if use_temp_ctd or use_temp_btl:
+        meas_names.append('temp')
+
+    if use_psal_ctd or use_psal_btl:
+        meas_names.append('psal')
+
+    if use_salinity_btl:
+        meas_names.append('psal')
+
+    # Only want unique names and not psal twice
+    meas_names = list(set(meas_names))
+
     # For JSON conversion later
     meas_sources = convert_boolean(meas_sources)
 
@@ -264,12 +279,12 @@ def find_meas_hierarchy_btl_ctd(btl_meas, ctd_meas, btl_qc, ctd_qc):
     else:
         meas_source = None
 
-    return use_elems, meas_source, meas_sources
+    return use_elems, meas_source, meas_sources, meas_names
 
 
 def combine_btl_ctd_measurements(btl_meas, ctd_meas, btl_qc, ctd_qc):
 
-    use_elems, meas_source, meas_sources = find_meas_hierarchy_btl_ctd(
+    use_elems, meas_source, meas_sources, meas_names = find_meas_hierarchy_btl_ctd(
         btl_meas, ctd_meas, btl_qc, ctd_qc)
 
     # filter measurement objs by hierarchy
@@ -286,7 +301,7 @@ def combine_btl_ctd_measurements(btl_meas, ctd_meas, btl_qc, ctd_qc):
     combined_measurements = [
         meas for meas in combined_measurements if 'temp' in meas.keys() and meas['temp']]
 
-    return combined_measurements, meas_source, meas_sources
+    return combined_measurements, meas_source, meas_sources, meas_names
 
 
 def add_combined_mapping(combined_btl_ctd_dict, btl_dict, ctd_dict):
@@ -313,6 +328,7 @@ def add_combined_mapping(combined_btl_ctd_dict, btl_dict, ctd_dict):
         combined_btl_ctd_dict['goshipArgovisParamMapping'] = btl_dict['goshipArgovisParamMapping']
         combined_btl_ctd_dict['goshipReferenceScale'] = btl_dict['goshipReferenceScale']
         combined_btl_ctd_dict['goshipUnits'] = btl_dict['goshipUnits']
+        combined_btl_ctd_dict['bgcMeasKeys'] = btl_dict['bgcMeasKeys']
 
     if ctd_dict and not btl_dict:
         combined_btl_ctd_dict['argovisMetaNames'] = ctd_dict['argovisMetaNames']
@@ -326,6 +342,7 @@ def add_combined_mapping(combined_btl_ctd_dict, btl_dict, ctd_dict):
         combined_btl_ctd_dict['goshipArgovisParamMapping'] = ctd_dict['goshipArgovisParamMapping']
         combined_btl_ctd_dict['goshipReferenceScale'] = ctd_dict['goshipReferenceScale']
         combined_btl_ctd_dict['goshipUnits'] = ctd_dict['goshipUnits']
+        combined_btl_ctd_dict['bgcMeasKeys'] = ctd_dict['bgcMeasKeys']
 
     if btl_dict and ctd_dict:
 
@@ -387,6 +404,9 @@ def add_combined_mapping(combined_btl_ctd_dict, btl_dict, ctd_dict):
 
         combined_btl_ctd_dict['argovisReferenceScale'] = argovis_ref_scale_mapping
         combined_btl_ctd_dict['argovisUnits'] = argovis_units_mapping
+
+        combined_btl_ctd_dict['bgcMeasKeys'] = [
+            *btl_dict['bgcMeasKeys'], *ctd_dict['bgcMeasKeys']]
 
     return combined_btl_ctd_dict
 
@@ -492,7 +512,7 @@ def combine_output_per_profile_btl_ctd(btl_profile, ctd_profile):
     meta = {**ctd_meta, **btl_meta}
     bgc_meas = [*ctd_bgc_meas, *btl_bgc_meas]
 
-    measurements, meas_source, meas_sources = combine_btl_ctd_measurements(
+    measurements, meas_source, meas_sources, meas_names = combine_btl_ctd_measurements(
         btl_meas, ctd_meas, btl_qc, ctd_qc)
 
     if btl_dict and ctd_dict:
@@ -507,6 +527,7 @@ def combine_output_per_profile_btl_ctd(btl_profile, ctd_profile):
     combined_btl_ctd_dict['measurements'] = measurements
     combined_btl_ctd_dict['measurementsSource'] = meas_source
     combined_btl_ctd_dict['measurementsSourceQC'] = meas_sources
+    combined_btl_ctd_dict['station_parameters'] = meas_names
 
     combined_btl_ctd_dict = add_combined_mapping(combined_btl_ctd_dict,
                                                  btl_dict, ctd_dict)

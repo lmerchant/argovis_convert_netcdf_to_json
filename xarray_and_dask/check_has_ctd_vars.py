@@ -40,7 +40,7 @@ def log_ctd_var_status(file_obj, has_pres,
         #     f.write(f"collection type {data_type}\n")
 
         filename = 'cruises_not_converted.txt'
-        filepath = os.path.join(GlobalVars.LOGGING_DIR, filename)
+        filepath = os.path.join(logging_dir, filename)
         with open(filepath, 'a') as f:
             f.write(f"{expocode} {data_type}\n")
 
@@ -49,9 +49,7 @@ def log_ctd_var_status(file_obj, has_pres,
         filename = 'cruises_no_ctd_temp.txt'
         filepath = os.path.join(logging_dir, filename)
         with open(filepath, 'a') as f:
-            f.write('-----------\n')
-            f.write(f"expocode {expocode}\n")
-            f.write(f"collection type {data_type} and indiv type BTL\n")
+            f.write(f"expocode {expocode} {data_type}\n")
 
 
 def check_has_ctd_vars(file_obj):

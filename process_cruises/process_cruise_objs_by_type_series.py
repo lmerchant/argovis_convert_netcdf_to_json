@@ -14,12 +14,12 @@ from create_profiles.create_goship_argovis_mappings import create_goship_argovis
 from create_profiles.create_goship_argovis_mappings import filter_argovis_mapping
 
 
-def combine_profiles(meta_profiles, bgc_profiles, meas_profiles, meas_source_profiles, mapping_profiles, data_type):
+def combine_profiles(meta_profiles, bgc_profiles, all_meas_profiles, meas_source_profiles, meas_names, mapping_profiles, data_type):
 
     #  https://stackoverflow.com/questions/5501810/join-two-lists-of-dictionaries-on-a-single-key
 
     profile_dict = defaultdict(dict)
-    for elem in itertools.chain(meta_profiles, bgc_profiles,  meas_profiles, meas_source_profiles, mapping_profiles):
+    for elem in itertools.chain(meta_profiles, bgc_profiles,  all_meas_profiles, meas_names, meas_source_profiles, mapping_profiles):
         profile_dict[elem['station_cast']].update(elem)
 
     all_profiles = []
@@ -55,7 +55,7 @@ def create_profiles_objs(cruise_ddf_obj):
 
         df_param = ddf_param.compute()
 
-        all_meas_profiles, all_meas_source_profiles = create_meas_profiles(
+        all_meas_profiles, all_meas_source_profiles, all_meas_names = create_meas_profiles(
             df_param, data_type)
 
         all_bgc_profiles, all_name_mapping = create_bgc_profiles(df_param)
@@ -74,7 +74,7 @@ def create_profiles_objs(cruise_ddf_obj):
         # keys 'station_cast' and 'profile_dict'
         logging.info('start combining profiles')
         all_profiles = combine_profiles(all_meta_profiles, all_bgc_profiles,
-                                        all_meas_profiles, all_meas_source_profiles, goship_argovis_mapping_profiles, data_type)
+                                        all_meas_profiles, all_meas_source_profiles, all_meas_names, goship_argovis_mapping_profiles, data_type)
 
         # Create profiles_obj to hold profiles for one data type
         profiles_obj = {}

@@ -1,12 +1,11 @@
 
-
 def filter_argovis_mapping(nc_mappings, all_name_mapping):
 
     argovis_param_mapping = nc_mappings['argovis_param']
 
-    # Take param mapping and filter it to only  contain all_name_mapping
-    # for each station_cast
-    # to take into account for dropped empty cols
+    # Take param mapping and filter it to only contain all_name_mapping
+    # list of non-empty columnn for each station_cast
+    # Taking into account for dropped empty cols
 
     units = argovis_param_mapping['units']
     ref_scale = argovis_param_mapping['ref_scale']
@@ -47,6 +46,7 @@ def get_goship_argovis_name_mapping_per_type(data_type):
 
     return {
         'pressure': 'pres',
+        'pressure_qc': 'pres_qc',
         'ctd_salinity': f'psal_{data_type}',
         'ctd_salinity_qc': f'psal_{data_type}_qc',
         'ctd_temperature': f'temp_{data_type}',
@@ -105,6 +105,10 @@ def create_goship_argovis_mappings(
         new_mapping['goshipParamNames'] = all_goship_param_names
         new_mapping['argovisMetaNames'] = all_argovis_meta_names
         new_mapping['argovisParamNames'] = all_argovis_param_names
+
+        # List of non qc parameter names
+        new_mapping['bgcMeasKeys'] = [
+            name for name in all_argovis_param_names if '_qc' not in name]
 
         core_goship_argovis_name_mapping = get_goship_argovis_name_mapping_per_type(
             data_type)

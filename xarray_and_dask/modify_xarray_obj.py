@@ -73,6 +73,13 @@ def modify_xarray_obj(file_obj):
     # when looking for temp_qc all nan. Add it here so it appears in var mappings
     nc = mod_xr_param.add_qc_if_no_temp_qc(nc)
 
+    # TODO
+    # Ask if this is OK
+    # Donata wants to add pres_qc = 1
+    # First  set to np.nan to make dropping empty rows easy
+    # and then in  modify_dask_obj, set it to 1
+    nc = mod_xr_param.add_pres_qc(nc)
+
     # Create mapping object of goship names to nc attributes
     # Before add or drop coords
     # mapping obj: names (list), units (obj), ref_scale (obj)

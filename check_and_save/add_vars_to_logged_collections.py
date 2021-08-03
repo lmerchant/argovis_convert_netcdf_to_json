@@ -249,7 +249,6 @@ def add_vars_one_cruise(data_type_profiles_objs):
     # Loop over the profiles for the collection of files with profiles
     for data_type_profiles_obj in data_type_profiles_objs:
 
-        #data_type_profiles = data_type_profiles_obj['profiles']
         data_type_profiles = data_type_profiles_obj['data_type_profiles_list']
 
         for data_type_profile in data_type_profiles:

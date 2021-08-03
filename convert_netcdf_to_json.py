@@ -39,7 +39,8 @@ def main(start_year, end_year, append):
     data_dir = GlobalVars.JSON_DIR
     if os.path.exists(data_dir):
         shutil.rmtree(data_dir)
-        os.makedirs(data_dir)
+
+    os.makedirs(data_dir, exist_ok=True)
 
     process_all_cruises(cruises_json, files_info, time_range)
 
