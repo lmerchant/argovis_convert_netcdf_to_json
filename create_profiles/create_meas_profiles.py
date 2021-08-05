@@ -155,10 +155,10 @@ def filter_meas_core_cols(df_meas):
     # Or wait to do this when combine if the logic is a psal val
     # makes sense if there is no temperature
     no_temp = df_meas['temp'].isnull().all()
-    df_meas = []
-    meas_source_qc = None
 
     if no_temp:
+        df_meas = []
+        meas_source_qc = None
         return df_meas, meas_source_qc
 
     # Keeping objs with temp: null if psal exists
@@ -173,7 +173,8 @@ def filter_meas_core_cols(df_meas):
     meas_source_qc = pd.unique(df_meas['qc_source'])
 
     # Remove any values not 0 or 2 since that temp qc is bad
-    meas_source_qc = [qc for qc in meas_source_qc if qc == 0 | int(qc) == 2]
+    meas_source_qc = [
+        qc for qc in meas_source_qc if int(qc) == 0 or int(qc) == 2]
 
     if len(meas_source_qc) == 1:
         meas_source_qc = meas_source_qc[0]

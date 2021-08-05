@@ -142,6 +142,8 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
 
     if by_expocode:
 
+        test_cruise_expocode = '325020210420'
+
         # This cruise is BTL_CTD
         # uses salinity_btl  for station3 cast 1
         #test_cruise_expocode = '06HF991_1'
@@ -158,7 +160,7 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
         #test_cruise_expocode = '18HU20130507'
 
         # test for cacl oxygen_ml_l with qc
-        test_cruise_expocode = '06PO20110601'
+        #test_cruise_expocode = '06PO20110601'
 
         # meas source qc not unique. [3.0 2.0]
         #test_cruise_expocode = '29HE06_1'
