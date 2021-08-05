@@ -18,17 +18,18 @@ def get_goship_argovis_unit_name_mapping():
     }
 
 
-def change_units_to_argovis(nc):
+def change_units_to_argovis(nc, goship_meta_mapping):
 
     # Rename units (no conversion)
 
+    names = goship_meta_mapping['names']
     unit_name_mapping = get_goship_argovis_unit_name_mapping()
     goship_unit_names = unit_name_mapping.keys()
 
     # No saliniity in coordinates so don't have to
     # worry about units = 1 being salinity
 
-    for var in nc.coords:
+    for var in names:
 
         # Change units if needed
         try:
@@ -37,28 +38,6 @@ def change_units_to_argovis(nc):
                 nc[var].attrs['units'] = unit_name_mapping[var_units]
         except KeyError:
             pass
-
-    return nc
-
-
-def drop_coords(nc):
-
-    # Drop profile_type and instrument_id and geometry_container if exist
-
-    try:
-        nc = nc.drop_vars(['profile_type'])
-    except:
-        pass
-
-    try:
-        nc = nc.drop_vars(['instrument_id'])
-    except:
-        pass
-
-    try:
-        nc = nc.drop_vars(['geometry_container'])
-    except:
-        pass
 
     return nc
 

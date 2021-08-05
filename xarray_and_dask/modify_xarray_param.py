@@ -14,10 +14,11 @@ def get_goship_argovis_unit_name_mapping():
     }
 
 
-def change_units_to_argovis(nc):
+def change_units_to_argovis(nc, goship_param_mapping):
 
     # Rename units (no conversion)
 
+    param_names = goship_param_mapping['names']
     unit_name_mapping = get_goship_argovis_unit_name_mapping()
     goship_unit_names = unit_name_mapping.keys()
 
@@ -25,7 +26,7 @@ def change_units_to_argovis(nc):
     # can be a goship unit of '1' that is not salinity
     salinity_ref_scale = 'PSS-78'
 
-    for var in nc.keys():
+    for var in param_names:
 
         # Change salinity  unit
         try:
@@ -132,6 +133,28 @@ def apply_c_format_param(nc, param_mapping):
         dtype = dtype_mapping[var]
         nc[var] = apply_c_format_xr(nc[var], f_format, dtype)
         nc[var] = nc[var].chunk({'N_PROF': GlobalVars.CHUNK_SIZE})
+
+    return nc
+
+
+def drop_vars(nc):
+
+    # Drop profile_type and instrument_id and geometry_container if exist
+
+    try:
+        nc = nc.drop_vars(['profile_type'])
+    except:
+        pass
+
+    try:
+        nc = nc.drop_vars(['instrument_id'])
+    except:
+        pass
+
+    try:
+        nc = nc.drop_vars(['geometry_container'])
+    except:
+        pass
 
     return nc
 
