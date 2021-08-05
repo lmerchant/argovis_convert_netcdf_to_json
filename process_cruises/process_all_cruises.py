@@ -142,7 +142,8 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
 
     if by_expocode:
 
-        test_cruise_expocode = '325020210420'
+        # Has ctd temp qc all bad
+        test_cruise_expocode = '096U20160426'
 
         # This cruise is BTL_CTD
         # uses salinity_btl  for station3 cast 1

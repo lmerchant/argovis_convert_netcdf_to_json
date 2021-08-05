@@ -36,11 +36,10 @@ def convert_boolean(obj):
 
 def get_measurements_source(df_meas, meas_qc, data_type):
 
-    # if df.empty:
+    # if df_meas.empty:
     #     meas_source_flag = None
     #     meas_source_qc = {}
     #     meas_source_qc['qc'] = None
-
     #     return meas_source_flag, meas_source_qc
 
     # # Get meas qc source (which is the temp  qc)
@@ -86,8 +85,8 @@ def get_measurements_source(df_meas, meas_qc, data_type):
     if all_ctd_temp_empty:
         logging.info("For single data type file, flag is none because no temp")
         flag = None
-        use_ctd_psal = False
-        use_bottle_salinity = False
+        # use_ctd_psal = False
+        # use_bottle_salinity = False
     elif use_ctd_psal and not use_bottle_salinity:
         flag = 'CTD'
     elif not use_ctd_psal and use_bottle_salinity:
@@ -151,15 +150,15 @@ def filter_meas_core_cols(df_meas):
     df_meas = df_meas.dropna(subset=found_core_cols, how='all')
 
     # TODO
-    # Check if temp is all null, if it is set df_meas = []
+    # Check if temp is all null, if it is set df_meas = empty df
     # Or wait to do this when combine if the logic is a psal val
     # makes sense if there is no temperature
     no_temp = df_meas['temp'].isnull().all()
 
     if no_temp:
-        df_meas = []
-        meas_source_qc = None
-        return df_meas, meas_source_qc
+        df_meas = pd.DataFrame(columns=df_meas.columns)
+        # meas_source_qc = None
+        # return df_meas, meas_source_qc
 
     # Keeping objs with temp: null if psal exists
 
