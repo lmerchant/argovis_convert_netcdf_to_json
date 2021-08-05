@@ -99,18 +99,29 @@ def create_dask_dataframe_objs(cruise_xr_obj):
         nc = xr_file_obj['nc']
 
         # process metadata and parameter data separately
-        meta_keys = list(nc.coords)
-        param_keys = list(nc.keys())
+        # meta_keys = list(nc.coords)
+        # param_keys = list(nc.keys())
+
+        nc_mappings = xr_file_obj['nc_mappings']
+
+        argovis_meta_mapping = nc_mappings['argovis_meta']
+        argovis_param_mapping = nc_mappings['argovis_param']
+
+        meta_names = argovis_meta_mapping['names']
+        param_names = argovis_param_mapping['names']
 
         # nc was read in with Dask xarray, so now save to dask dataframe
         ddf = nc.to_dask_dataframe(dim_order=['N_PROF', 'N_LEVELS'])
 
         # Add dimensions and have station_cast for both
-        meta_keys.extend(['N_PROF', 'N_LEVELS'])
-        param_keys.extend(['N_PROF', 'N_LEVELS', 'station_cast'])
+        # meta_keys.extend(['N_PROF', 'N_LEVELS'])
+        # param_keys.extend(['N_PROF', 'N_LEVELS', 'station_cast'])
 
-        ddf_meta = ddf[meta_keys].copy()
-        ddf_param = ddf[param_keys].copy()
+        meta_names.extend(['N_PROF', 'N_LEVELS'])
+        param_names.extend(['N_PROF', 'N_LEVELS', 'station_cast'])
+
+        ddf_meta = ddf[meta_names].copy()
+        ddf_param = ddf[param_names].copy()
 
         ddf_obj = {}
         ddf_obj['data_type'] = xr_file_obj['data_type']
