@@ -171,7 +171,7 @@ def add_pres_qc(nc):
     pres_shape = np.shape(nc['pressure'])
     shape = np.transpose(pres_shape)
     pres_qc = np.empty(shape)
-    pres_qc[:] = np.nan
+    pres_qc[:] = 0
     nc[qc_name] = (['N_PROF', 'N_LEVELS'], pres_qc)
 
     return nc
@@ -206,7 +206,7 @@ def add_qc_if_no_temp_qc(nc):
         temp_shape = np.shape(nc[temperature_var])
         shape = np.transpose(temp_shape)
         temp_qc = np.empty(shape)
-        temp_qc[:] = np.nan
+        temp_qc[:] = 0
         nc[qc_name] = (['N_PROF', 'N_LEVELS'], temp_qc)
 
     return nc

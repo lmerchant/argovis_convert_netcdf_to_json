@@ -20,6 +20,9 @@ def remove_empty_rows(df):
     df = df.replace(r'^NaT$', np.NaN, regex=True)
 
     exclude_columns = ['N_PROF', 'N_LEVELS', 'station_cast']
+    # Exlude qc columns because only relevant if there are non nan values
+    qc_columns = [col for col in df.columns if col.endswith('_qc')]
+    exclude_columns.extend(qc_columns)
     subset_cols = [col for col in df.columns if col not in exclude_columns]
 
     df_dropped = df.dropna(subset=subset_cols, how='all').copy()
@@ -53,21 +56,21 @@ def modify_dask_obj(ddf_param, data_type):
     # Change NaN to None so in json, converted to null
     ddf_param = ddf_param.replace({np.nan: None})
 
-    # Add back in temp_qc = 0 if column exists and all np.nan
-    try:
-        if ddf_param[f"temp_{data_type}_qc"].isnull().values.all():
-            ddf_param[f"temp_{data_type}_qc"] = ddf_param[f"temp_{data_type}_qc"].fillna(
-                0)
+    # # Add back in temp_qc = 0 if column exists and all np.nan
+    # try:
+    #     if ddf_param[f"temp_{data_type}_qc"].isnull().values.all():
+    #         ddf_param[f"temp_{data_type}_qc"] = ddf_param[f"temp_{data_type}_qc"].fillna(
+    #             0)
 
-    except KeyError:
-        pass
+    # except KeyError:
+    #     pass
 
-    # Add back in pres_qc = 1 if column exists and all np.nan
-    try:
-        if ddf_param[f"pres_qc"].isnull().values.all():
-            ddf_param[f"pres_qc"] = ddf_param[f"pres_qc"].fillna(1)
+    # # Add back in pres_qc = 1 if column exists and all np.nan
+    # try:
+    #     if ddf_param[f"pres_qc"].isnull().values.all():
+    #         ddf_param[f"pres_qc"] = ddf_param[f"pres_qc"].fillna(1)
 
-    except KeyError:
-        pass
+    # except KeyError:
+    #     pass
 
     return ddf_param
