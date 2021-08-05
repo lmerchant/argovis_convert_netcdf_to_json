@@ -144,51 +144,56 @@ def filter_salinity(df_meas):
 
 def filter_meas_core_cols(df_meas):
 
-    # Remove objs where only a pressure value exists
+    # Remove objs where only a pressure value exists so
+    # can remove rows with no values except pressure
     core_cols = ['temp', 'psal', 'salinity']
     found_core_cols = [col for col in df_meas.columns if col in core_cols]
     df_meas = df_meas.dropna(subset=found_core_cols, how='all')
 
     # TODO
-    # clarify keeping objs with temp: null if psal exists
+    # Check if temp is all null, if it is set df_meas = []
+    # Or wait to do this when combine if the logic is a psal val
+    # makes sense if there is no temperature
+    no_temp = df_meas['temp'].isnull().all()
+    df_meas = []
+    meas_source_qc = None
+
+    if no_temp:
+        return df_meas, meas_source_qc
+
+    # Keeping objs with temp: null if psal exists
 
     # I would have filtered out rows with qc_source != 0 or != 2
     # (means temp not valid)
-    # psal could be qc = 2, but won't make sense if no temperature
     # df_meas = df_meas.query('qc_source == 0 | qc_source == 2')
 
     # Set meas_source qc to None and df_meas = [] if all ctd temp are bad
 
-    # Following not working. Still getting NaN in json string
-    # If necessary for json to be null, use simple json
-    df_meas = df_meas.where(pd.notnull(df_meas), None)
-
     # Get meas qc source (which is the temp qc)
     meas_source_qc = pd.unique(df_meas['qc_source'])
 
+    # Remove any values not 0 or 2 since that temp qc is bad
+    meas_source_qc = [qc for qc in meas_source_qc if qc == 0 | int(qc) == 2]
+
     if len(meas_source_qc) == 1:
         meas_source_qc = meas_source_qc[0]
-    elif len(meas_source_qc) == 0:
+    elif not len(meas_source_qc):
         meas_source_qc = None
     else:
         logging.info(
             f"meas source qc not unique. {meas_source_qc}")
-        # Look for qc = 0 or 2. If can't find any, qc = None
-        # Remove null values
-        qc = [qc for qc in meas_source_qc if qc]
-
-        if len(qc):
-            meas_source_qc = qc[0]
-        else:
-            meas_source_qc = None
-
-        logging.info(f"Found qc {meas_source_qc}")
+        meas_source_qc = None
 
     # Remove any columns that are not core such as  station_cast
+    # and add pres to core cols
     keep_cols = ['pres']
     keep_cols.extend(found_core_cols)
 
     df_meas = df_meas[keep_cols]
+
+    # Following not working. Still getting NaN in json string
+    # If necessary for json to be null, use simple json
+    df_meas = df_meas.where(pd.notnull(df_meas), None)
 
     return df_meas, meas_source_qc
 
