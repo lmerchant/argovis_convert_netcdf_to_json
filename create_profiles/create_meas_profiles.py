@@ -66,6 +66,7 @@ def filter_measurements(data_type_profiles):
             all_vals.extend(vals)
 
         if not len(all_vals):
+            logging.info(f"Station cast {station_cast}")
             logging.info("All elems null so measurements = []")
             measurements = []
 

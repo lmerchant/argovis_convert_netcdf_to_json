@@ -464,14 +464,17 @@ def convert_oxygen_to_new_units(nc, var):
 
     ds_grid = [converted_groups]
 
+    # problem with this where sometimes pressure didn't have 'N_PROF' dim
+    # nc = xr.combine_nested(
+    #     ds_grid, concat_dim=["N_LEVELS", "N_PROF"], combine_attrs='identical')
+
     nc = xr.combine_nested(
-        ds_grid, concat_dim=["N_LEVELS", "N_PROF"], combine_attrs='identical')
+        ds_grid, concat_dim=["N_LEVELS", "N_PROF"], combine_attrs='identical', compat='broadcast_equals')
 
     # TODO
     # Check this
     # look at nc and extract out oxygen
     # see if nan values match up with qc
-    # Or maybe don't even add a qc column?
 
     # If no sal_qc or no temp_qc, all_oxy_qc = []
     # for all groups and so don't change oxy qc
@@ -509,7 +512,7 @@ def convert_sea_water_temp(nc, var, var_goship_ref_scale, argovis_ref_scale):
 
     if var_goship_ref_scale == 'IPTS-68' and argovis_ref_scale == 'ITS-90':
 
-        logging.info("Converting sea water temperature ref scale")
+        logging.info("*** Converting sea water temperature ref scale")
 
         # Convert to ITS-90 scal
         temperature = nc[var].data

@@ -1,6 +1,7 @@
 import xarray as xr
 import pandas as pd
 import numpy as np
+import logging
 
 from global_vars import GlobalVars
 
@@ -54,47 +55,6 @@ class FormatFloat(float):
         return 'nan' if pd.isnull(self) else float.__format__(self, format_spec)
 
 
-# not used
-# def apply_c_format_param(nc, param_mapping):
-
-#     float_types = ['float64', 'float32']
-
-#     c_format_mapping = param_mapping['c_format']
-#     dtype_mapping = param_mapping['dtype']
-
-#     float_vars = [name for name,
-#                   dtype in dtype_mapping.items() if dtype in float_types]
-
-#     c_format_vars = [
-#         name for name in c_format_mapping.keys() if name in float_vars]
-
-#     def format_float(num, f_format):
-#         return float(f"{FormatFloat(num):{f_format}}")
-
-#     def apply_c_format(var, f_format):
-#         vfunc = np.vectorize(format_float)
-#         return vfunc(var, f_format)
-
-#     def apply_c_format_xr(x, f_format, dtype):
-#         return xr.apply_ufunc(
-#             apply_c_format,
-#             x,
-#             f_format,
-#             input_core_dims=[['N_PROF', 'N_LEVELS'], []],
-#             output_core_dims=[['N_PROF', 'N_LEVELS']],
-#             output_dtypes=[dtype],
-#             keep_attrs=True
-#         )
-
-#     for var in c_format_vars:
-#         c_format = c_format_mapping[var]
-#         f_format = c_format.lstrip('%')
-#         dtype = dtype_mapping[var]
-#         nc[var] = apply_c_format_xr(nc[var], f_format, dtype)
-
-#     return nc
-
-
 def apply_c_format_param(nc, param_mapping):
 
     float_types = ['float64', 'float32']
@@ -131,8 +91,24 @@ def apply_c_format_param(nc, param_mapping):
         c_format = c_format_mapping[var]
         f_format = c_format.lstrip('%')
         dtype = dtype_mapping[var]
-        nc[var] = apply_c_format_xr(nc[var], f_format, dtype)
-        nc[var] = nc[var].chunk({'N_PROF': GlobalVars.CHUNK_SIZE})
+
+        try:
+            nc[var] = apply_c_format_xr(nc[var], f_format, dtype)
+            nc[var] = nc[var].chunk({'N_PROF': GlobalVars.CHUNK_SIZE})
+        except:
+            logging.info('====================')
+            logging.info(f"error applying c_format for {var}")
+            logging.info(
+                "xarray obj dimensions different and can't be chunked")
+            logging.info(f"c_format = {c_format}")
+            logging.info(f"dtype {dtype}")
+            logging.info("dimensions")
+            logging.info(nc[var].sizes)
+            logging.info("station")
+            logging.info(nc['station'].values)
+            logging.info("cast")
+            logging.info(nc['cast'].values)
+            logging.info('====================')
 
     return nc
 

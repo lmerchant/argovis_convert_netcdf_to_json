@@ -158,14 +158,48 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
         # 218_001 station cast
         #test_cruise_expocode = '18HU20130507'
 
-        # test for cacl oxygen_ml_l with qc
+        # test for cacl oxygen_ml_l with qc = 1
         #test_cruise_expocode = '06PO20110601'
+
+        # oxygen_ml_l with qc = 9
+        # test_cruise_expocode = '49NZ199909_2'
+
+        # BTL & CTD
+        # oxygen_ml_l with qc = 3 for BTL
+        # oxygen_ml_l with qc = 2 for CTD
+        # ctd_temperature_68 for CTD
+        # Can check qc of oxy CTD
+        # where sal & temp qc = 9.0
+        # Can check qc  of oxy BTL with oxy qc=3
+        # and ctd temp no qc so qc =  0
+        # test_cruise_expocode = '316N154_2'
+
+        # CTD with oxygen_ml_l qc = 2.0 and 4.0
+        # ctd_salinity has 2.0  and 9.0
+        # ctd_temp qc = 2.0 and 9.0
+        # see how the qc match up and if
+        # different from oxygen qc
+        # do I have qc = 2 unless sal and temp not good qc
+        # and leave rest of qc alone?
+        # TODO
+        # 1995
+        # get error for apply_c_format_xr for CTD
+        # some chunks keys are not dimensions on this object: {'N_PROF'}
+        # what does this mean?
+        test_cruise_expocode = '316N145_12'
 
         # oxygen conversion
         # CTD file
         # And has temp:null, psal: #
         # also temp: null, psal: null
-        test_cruise_expocode = '49NZ199909_2'
+        #test_cruise_expocode = '49NZ199909_2'
+
+        # 'N_LEVELS': 6070, 'N_PROF': 152
+        #  test_cruise_expocode  = '33RO200306_01
+
+        # Many Btl parameters
+        # pressure is Geo2D type?
+        # test_cruise_expocode = '325020210420
 
         #test_cruise_expocode = '77DN20010717'
 

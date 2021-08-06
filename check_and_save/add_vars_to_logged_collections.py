@@ -1,3 +1,6 @@
+import logging
+
+
 def get_goship_meta_names(profile_dict):
 
     goship_meta_names_btl = []
@@ -277,6 +280,10 @@ def gather_included_excluded_vars(batch_cruises_profiles_objs):
 
         # Return values are lists of tuples (name, profile_id)
         included, excluded = add_vars_one_cruise(profiles_objs)
+
+        logging.info(f"expocode: {expocode}")
+        logging.info(f"# of included vars {len(included)}")
+        logging.info(f"# of excluded vars {len(excluded)}")
 
         cruises_all_included.extend(included)
         cruises_all_excluded.extend(excluded)
