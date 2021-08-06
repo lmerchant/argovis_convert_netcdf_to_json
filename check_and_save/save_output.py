@@ -7,8 +7,8 @@ from pathlib import Path
 import logging
 
 from global_vars import GlobalVars
-from check_and_save.check_of_ctd_vars import check_of_ctd_vars
-from create_profiles.filter_measurements import filter_measurements
+#from check_and_save.check_of_ctd_vars import check_of_ctd_vars
+from create_profiles.create_meas_profiles import filter_measurements
 from check_and_save.save_as_zip import save_as_zip
 from check_and_save.save_as_zip import save_as_zip_data_type_profiles
 
@@ -252,138 +252,127 @@ def save_all_profiles_one_type(checked_profiles_info):
         save_profile_one_type(checked_profile_info)
 
 
-def check_and_save_per_type(data_type_obj_profiles):
+# def check_and_save_per_type(data_type_obj_profiles):
 
-    # Now check if profiles have CTD vars and should be saved
-    # And filter btl and ctd measurements separately
+#     # Now check if profiles have CTD vars and should be saved
+#     # And filter btl and ctd measurements separately
 
-    data_type = data_type_obj_profiles['data_type']
-    data_type_profiles = data_type_obj_profiles['profiles']
+#     data_type = data_type_obj_profiles['data_type']
+#     data_type_profiles = data_type_obj_profiles['profiles']
 
-    # filter measurements for core using hierarchy
-    data_type_profiles = filter_measurements(data_type_profiles, data_type)
+#     # filter measurements for core using hierarchy
+#     data_type_profiles = filter_measurements(data_type_profiles, data_type)
 
-    # Already filtered measurements, but didn't rename
-    # salinity to psal in case needed to know saliniity
-    # existed and could be used
+#     # Already filtered measurements, but didn't rename
+#     # salinity to psal in case needed to know saliniity
+#     # existed and could be used
 
-    # checked_profiles_info is for combo of data types
-    checked_profiles_info, ctd_vars_flag = check_of_ctd_vars(
-        data_type_profiles)
+#     # checked_profiles_info is for combo of data types
+#     checked_profiles_info, ctd_vars_flag = check_of_ctd_vars(
+#         data_type_profiles)
 
-    if ctd_vars_flag:
-        logging.info('----------------------')
-        logging.info('Saving files')
-        logging.info('----------------------')
+#     if ctd_vars_flag:
+#         logging.info('----------------------')
+#         logging.info('Saving files')
+#         logging.info('----------------------')
 
-        write_profile_goship_units(checked_profiles_info)
+#         write_profile_goship_units(checked_profiles_info)
 
-        save_as_zip(checked_profiles_info)
+#         save_as_zip(checked_profiles_info)
 
-        # save_all_profiles_one_type(checked_profiles_info)
+#         # save_all_profiles_one_type(checked_profiles_info)
 
-    else:
-        logging.info("*** Cruise not converted ***")
+#     else:
+#         logging.info("*** Cruise not converted ***")
 
-        profile = data_type_profiles[0]
-        cruise_expocode = profile['profile_dict']['meta']['expocode']
+#         profile = data_type_profiles[0]
+#         cruise_expocode = profile['profile_dict']['meta']['expocode']
 
-        filename = 'cruises_not_converted.txt'
-        filepath = os.path.join(GlobalVars.LOGGING_DIR, filename)
-        with open(filepath, 'a') as f:
-            f.write(f"{cruise_expocode}\n")
-
-
-def check_and_save_combined(profiles_btl_ctd):
-
-    logging.info("inside check_and_save_combined")
-
-    # Now check if profiles have CTD vars and should be saved
-    checked_profiles_info, ctd_vars_flag = check_of_ctd_vars(
-        profiles_btl_ctd)
-
-    if ctd_vars_flag:
-        logging.info('----------------------')
-        logging.info('Saving files')
-        logging.info('----------------------')
-
-        write_profile_goship_units(checked_profiles_info)
-
-        save_as_zip(checked_profiles_info)
-
-        # save_all_btl_ctd_profiles(checked_profiles_info)
-
-    else:
-        logging.info("*** Cruise not converted ***")
-
-        profile = profiles_btl_ctd[0]
-        cruise_expocode = profile['profile_dict']['meta']['expocode']
-
-        filename = 'cruises_not_converted.txt'
-        filepath = os.path.join(GlobalVars.LOGGING_DIR, filename)
-        with open(filepath, 'a') as f:
-            f.write(f"{cruise_expocode}\n")
+#         filename = 'cruises_not_converted.txt'
+#         filepath = os.path.join(GlobalVars.LOGGING_DIR, filename)
+#         with open(filepath, 'a') as f:
+#             f.write(f"{cruise_expocode}\n")
 
 
-def rename_salinity_to_psal(measurements):
+# def check_and_save_combined(profiles_btl_ctd):
 
-    new_measurements = []
-    for obj in measurements:
-        if 'salinity' in obj.keys():
-            obj['psal'] = obj.pop('salinity')
+#     logging.info("inside check_and_save_combined")
 
-    return new_measurements
+#     # Now check if profiles have CTD vars and should be saved
+#     checked_profiles_info, ctd_vars_flag = check_of_ctd_vars(
+#         profiles_btl_ctd)
+
+#     if ctd_vars_flag:
+#         logging.info('----------------------')
+#         logging.info('Saving files')
+#         logging.info('----------------------')
+
+#         write_profile_goship_units(checked_profiles_info)
+
+#         save_as_zip(checked_profiles_info)
+
+#         # save_all_btl_ctd_profiles(checked_profiles_info)
+
+#     else:
+#         logging.info("*** Cruise not converted ***")
+
+#         profile = profiles_btl_ctd[0]
+#         cruise_expocode = profile['profile_dict']['meta']['expocode']
+
+#         filename = 'cruises_not_converted.txt'
+#         filepath = os.path.join(GlobalVars.LOGGING_DIR, filename)
+#         with open(filepath, 'a') as f:
+#             f.write(f"{cruise_expocode}\n")
 
 
-def rename_salinity_col(data_type_profiles, type):
+# def rename_salinity_to_psal(measurements):
 
-    # For measurements, already filtered whether to
-    # keep psal or salinity, but didn't rename the
-    # salinity col. Do that here
+#     new_measurements = []
+#     for obj in measurements:
+#         if 'salinity' in obj.keys():
+#             obj['psal'] = obj.pop('salinity')
 
-    output_profiles_list = []
+#     return new_measurements
 
-    for profile in data_type_profiles:
 
-        profile_dict = profile['profile_dict']
-        station_cast = profile['station_cast']
+# def rename_salinity_col(data_type_profiles, type):
 
-        measurements = profile_dict['measurements']
+#     # For measurements, already filtered whether to
+#     # keep psal or salinity, but didn't rename the
+#     # salinity col. Do that here
 
-        for obj in measurements:
-            if 'salinity' in obj.keys():
-                obj['psal'] = obj.pop('salinity')
+#     output_profiles_list = []
 
-        profile_dict['measurements'] = measurements
+#     for profile in data_type_profiles:
 
-        output_profile = {}
-        output_profile['profile_dict'] = profile_dict
-        output_profile['station_cast'] = station_cast
+#         profile_dict = profile['profile_dict']
+#         station_cast = profile['station_cast']
 
-        output_profiles_list.append(output_profile)
+#         measurements = profile_dict['measurements']
 
-    return output_profiles_list
+#         for obj in measurements:
+#             if 'salinity' in obj.keys():
+#                 obj['psal'] = obj.pop('salinity')
+
+#         profile_dict['measurements'] = measurements
+
+#         output_profile = {}
+#         output_profile['profile_dict'] = profile_dict
+#         output_profile['station_cast'] = station_cast
+
+#         output_profiles_list.append(output_profile)
+
+#     return output_profiles_list
 
 
 def save_data_type_profiles(data_type_obj_profiles):
 
     logging.info('Saving files single type')
 
-    # Now check if profiles have CTD vars and should be saved
-    # And filter btl and ctd measurements separately
-
-    data_type = data_type_obj_profiles['data_type']
     data_type_profiles = data_type_obj_profiles['data_type_profiles_list']
 
-    # TODO
-    # filter measurements for core using hierarchy.
-    # data_type_profiles = filter_measurements(data_type_profiles, data_type)
-
-    # What does that really do?
-    # and what happens if all measurements are 0?
-    # Do I still save the profile? Would it have
-    # been filtered out if I use a remove  profiles check
-    # Or maybe is
+    # Set measurements = [] if all vals null besides pres
+    data_type_profiles = filter_measurements(data_type_profiles)
 
     profile = data_type_profiles[0]
     write_profile_goship_units_one_profile(profile)
@@ -394,12 +383,6 @@ def save_data_type_profiles(data_type_obj_profiles):
 def save_data_type_profiles_combined(data_type_profiles):
 
     logging.info('Saving files combined type')
-
-    # Now check if profiles have CTD vars and should be saved
-    # And filter btl and ctd measurements separately
-
-    # data_type = data_type_obj_profiles['data_type']
-    # data_type_profiles = data_type_obj_profiles['data_type_profiles_list']
 
     profile = data_type_profiles[0]
     write_profile_goship_units_one_profile(profile)
