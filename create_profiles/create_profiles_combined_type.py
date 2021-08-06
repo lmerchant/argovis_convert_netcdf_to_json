@@ -77,19 +77,21 @@ def filter_btl_ctd_measurements(btl_meas, ctd_meas, use_cols, meas_sources):
     # Filter btl_meas
     btl_meas_df = pd.DataFrame.from_records(btl_meas)
 
-    if has_temp_btl_col and using_temp_ctd:
+    is_empty_btl = btl_meas_df.empty
+
+    if not is_empty_btl and has_temp_btl_col and using_temp_ctd:
         btl_meas_df = btl_meas_df.drop('temp', axis=1)
 
-    elif has_temp_btl_col and not using_temp_btl:
+    elif not is_empty_btl and has_temp_btl_col and not using_temp_btl:
         btl_meas_df = btl_meas_df.drop('temp', axis=1)
 
-    if has_psal_btl_col and using_psal_ctd:
+    if not is_empty_btl and has_psal_btl_col and using_psal_ctd:
         btl_meas_df = btl_meas_df.drop('psal', axis=1)
 
-    elif has_psal_btl_col and (not using_psal_btl or not using_salinity):
+    elif not is_empty_btl and has_psal_btl_col and (not using_psal_btl or not using_salinity):
         btl_meas_df = btl_meas_df.drop('psal', axis=1)
 
-    if 'pres' in btl_meas_df.columns and 'temp' not in btl_meas_df.columns and 'psal' not in btl_meas_df.columns:
+    if not is_empty_btl and 'pres' in btl_meas_df.columns and 'temp' not in btl_meas_df.columns and 'psal' not in btl_meas_df.columns:
         btl_meas_df = btl_meas_df.drop('pres', axis=1)
 
     filtered_btl_meas = btl_meas_df.to_dict('records')
@@ -97,13 +99,15 @@ def filter_btl_ctd_measurements(btl_meas, ctd_meas, use_cols, meas_sources):
     # Filter ctd_meas
     ctd_meas_df = pd.DataFrame.from_records(ctd_meas)
 
-    if has_temp_ctd_col and not using_temp_ctd:
+    is_empty_ctd = ctd_meas_df.empty
+
+    if not is_empty_ctd and has_temp_ctd_col and not using_temp_ctd:
         ctd_meas_df = ctd_meas_df.drop('temp', axis=1)
 
-    if has_psal_ctd_col and not using_psal_ctd:
+    if not is_empty_ctd and has_psal_ctd_col and not using_psal_ctd:
         ctd_meas_df = ctd_meas_df.drop('psal', axis=1)
 
-    if 'pres' in ctd_meas_df.columns and 'temp' not in ctd_meas_df.columns and 'psal' not in ctd_meas_df.columns:
+    if not is_empty_ctd and 'pres' in ctd_meas_df.columns and 'temp' not in ctd_meas_df.columns and 'psal' not in ctd_meas_df.columns:
         ctd_meas_df = ctd_meas_df.drop('pres', axis=1)
 
     filtered_ctd_meas = ctd_meas_df.to_dict('records')

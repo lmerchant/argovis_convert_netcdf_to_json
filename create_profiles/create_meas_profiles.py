@@ -198,22 +198,11 @@ def filter_meas_core_cols(df_meas):
     # # makes sense if there is no temperature
 
     no_temp = df_meas['temp'].isnull().all()
+
     psal_exists = 'psal' in df_meas.columns
     no_psal = False
     if psal_exists:
         no_psal = df_meas['psal'].isnull().all()
-
-    # Keeping objs with temp: null if psal exists
-
-    if no_temp and not psal_exists:
-        df_meas = pd.DataFrame(columns=df_meas.columns)
-        meas_source_qc = None
-        return df_meas, meas_source_qc
-
-    if no_temp and psal_exists and no_psal:
-        df_meas = pd.DataFrame(columns=df_meas.columns)
-        meas_source_qc = None
-        return df_meas, meas_source_qc
 
     # I would have filtered out rows with qc_source != 0 or != 2
     # (means temp not valid)
@@ -249,6 +238,13 @@ def filter_meas_core_cols(df_meas):
     # Following not working. Still getting NaN in json string
     # If necessary for json to be null, use simple json
     df_meas = df_meas.where(pd.notnull(df_meas), None)
+
+    # Keeping objs with temp: null if psal exists
+    if no_temp and not psal_exists:
+        meas_source_qc = None
+
+    if no_temp and psal_exists and no_psal:
+        meas_source_qc = None
 
     return df_meas, meas_source_qc
 
@@ -350,9 +346,6 @@ def create_meas_profiles(df_param, data_type):
         # Now filter to keep psal over salinity and if no
         # psal, keep salinity  but rename to psal
         val_df = filter_salinity(val_df)
-
-        # logging.info('val_df')
-        # logging.info(val_df.head())
 
         # TODO
         # Should I filter out all values here or leave the

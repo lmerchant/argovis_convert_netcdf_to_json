@@ -180,13 +180,12 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
         # see how the qc match up and if
         # different from oxygen qc
         # do I have qc = 2 unless sal and temp not good qc
-        # and leave rest of qc alone?
-        # TODO
-        # 1995
-        # get error for apply_c_format_xr for CTD
-        # some chunks keys are not dimensions on this object: {'N_PROF'}
-        # what does this mean?
-        test_cruise_expocode = '316N145_12'
+        # and leave rest of qc alone
+        #test_cruise_expocode = '316N145_12'
+
+        # Says there are 200 included vars
+        # but that number doesn't exist
+        #test_cruise_expocode = '32MW078_1'
 
         # oxygen conversion
         # CTD file

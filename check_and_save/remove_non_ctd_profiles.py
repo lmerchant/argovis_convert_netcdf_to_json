@@ -71,8 +71,9 @@ def remove_non_ctd_profiles(cruises_profiles_objs):
 
             num_excluded_data_type_profiles = len(excluded_data_type_profiles)
 
-            print(f"Num data type profiles {num_data_type_profiles}")
-            print(f"Num excluded {num_excluded_data_type_profiles}")
+            logging.info(f"Num data type profiles {num_data_type_profiles}")
+            logging.info(
+                f"Num excluded data type profiles {num_excluded_data_type_profiles}")
 
             if num_data_type_profiles == num_excluded_data_type_profiles:
 

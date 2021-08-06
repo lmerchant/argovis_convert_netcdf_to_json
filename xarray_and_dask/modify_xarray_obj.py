@@ -151,9 +151,6 @@ def modify_xarray_obj(file_obj):
     nc = mod_xr_meta.apply_c_format_meta(
         nc, goship_meta_mapping)
 
-    print(nc['station'].values)
-    print(nc['cast'].values)
-
     nc = mod_xr_param.apply_c_format_param(
         nc, goship_param_mapping)
 

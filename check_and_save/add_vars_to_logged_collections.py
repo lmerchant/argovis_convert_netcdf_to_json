@@ -119,7 +119,7 @@ def find_param_included(profile_dict):
 
     included_param_goship_btl = []
     included_param_goship_ctd = []
-    included_param_goship = []
+    included_param_goship_names = []
 
     profile_keys = profile_dict.keys()
 
@@ -130,7 +130,7 @@ def find_param_included(profile_dict):
     # For param data
     try:
         name_mapping = profile_dict['goshipArgovisParamMapping']
-        included_param_goship = [
+        included_param_goship_names = [
             name for name in name_mapping.keys() if '_qc' not in name]
 
     except KeyError:
@@ -143,10 +143,10 @@ def find_param_included(profile_dict):
             included_param_goship_ctd = [
                 name for name in name_mapping_ctd.keys() if '_qc' not in name]
 
-    return included_param_goship, included_param_goship_btl, included_param_goship_ctd
+    return included_param_goship_names, included_param_goship_btl, included_param_goship_ctd
 
 
-def find_param_excluded(profile_dict, included_param_goship_btl, included_param_goship_ctd, included_param_goship):
+def find_param_excluded(profile_dict, included_param_goship_btl, included_param_goship_ctd, included_param_goship_names):
 
     excluded_goship_param_names_btl = []
     excluded_goship_param_names_ctd = []
@@ -168,8 +168,8 @@ def find_param_excluded(profile_dict, included_param_goship_btl, included_param_
         excluded_goship_param_names_ctd = goship_param_names_set.difference(
             included_goship_param_names_set)
 
-    if included_param_goship and goship_param_names:
-        included_goship_param_names_set = set(included_param_goship)
+    if included_param_goship_names and goship_param_names:
+        included_goship_param_names_set = set(included_param_goship_names)
         goship_param_names_set = set(goship_param_names)
         excluded_goship_param_names = goship_param_names_set.difference(
             included_goship_param_names_set)
@@ -199,7 +199,7 @@ def add_vars_one_profile(profile_dict):
         name for name in name_mapping.keys() if '_qc' not in name]
 
     name_mapping = profile_dict['goshipArgovisParamMapping']
-    included_param_goship = [
+    included_param_goship_names = [
         name for name in name_mapping.keys() if '_qc' not in name]
 
     # Get Goship Meta and Param names before filtering out empty cols
@@ -214,13 +214,16 @@ def add_vars_one_profile(profile_dict):
 
     # Get Excluded Goship Meta  and Param names
 
+    # TODO
+    # would this be necessary? Doesn't seem like there would be duplicates
     included_goship_meta_names_set = set(included_meta_goship)
     goship_meta_names_set = set(goship_meta_names)
     excluded_goship_meta_names = goship_meta_names_set.difference(
         included_goship_meta_names_set)
 
-    included_goship_param_names_set = set(included_param_goship)
+    included_goship_param_names_set = set(included_param_goship_names)
     goship_param_names_set = set(goship_param_names)
+
     excluded_goship_param_names = goship_param_names_set.difference(
         included_goship_param_names_set)
 
@@ -235,19 +238,22 @@ def add_vars_one_profile(profile_dict):
 
     data_type = profile_dict['data_type']
 
-    for name in included_param_goship:
+    for name in included_param_goship_names:
         included.append((name, profile_id, data_type))
 
     for name in excluded_goship_param_names:
         excluded.append((name, profile_id, data_type))
 
-    return included, excluded
+    return included, excluded, included_param_goship_names, excluded_goship_param_names
 
 
 def add_vars_one_cruise(data_type_profiles_objs):
 
     vars_included = []
     vars_excluded = []
+
+    included_names = []
+    excluded_names = []
 
     # Loop over the profiles for the collection of files with profiles
     for data_type_profiles_obj in data_type_profiles_objs:
@@ -258,14 +264,24 @@ def add_vars_one_cruise(data_type_profiles_objs):
 
             profile_dict = data_type_profile['profile_dict']
 
-            included, excluded = add_vars_one_profile(
+            # included and excluded are tuples with profile_id
+
+            # included_param_goship_names and excluded_goship_param_names
+            # are the names for one profile
+            included, excluded, included_param_goship_names, excluded_goship_param_names = add_vars_one_profile(
                 profile_dict)
 
             vars_included.extend(included)
             vars_excluded.extend(excluded)
 
+            included_names.extend(included_param_goship_names)
+            excluded_names.extend(excluded_goship_param_names)
+
+    unique_included_names = list(set(included_names))
+    unique_excluded_names = list(set(excluded_names))
+
     # Return values are lists of tuples (name, profile_id)
-    return vars_included, vars_excluded
+    return vars_included, vars_excluded, unique_included_names, unique_excluded_names
 
 
 def gather_included_excluded_vars(batch_cruises_profiles_objs):
@@ -278,12 +294,16 @@ def gather_included_excluded_vars(batch_cruises_profiles_objs):
         expocode = cruise_profiles_obj['cruise_expocode']
         profiles_objs = cruise_profiles_obj['all_data_types_profile_objs']
 
-        # Return values are lists of tuples (name, profile_id)
-        included, excluded = add_vars_one_cruise(profiles_objs)
+        # included and excluded are lists of tuples (name, profile_id, data_type)
+
+        # unique_included_names are unique included names for all cruise
+        # unique_excluded_names are unique excluded names for all cruise
+        included, excluded, unique_included_names, unique_excluded_names = add_vars_one_cruise(
+            profiles_objs)
 
         logging.info(f"expocode: {expocode}")
-        logging.info(f"# of included vars {len(included)}")
-        logging.info(f"# of excluded vars {len(excluded)}")
+        logging.info(f"Num of included vars {len(unique_included_names)}")
+        logging.info(f"Num of excluded vars {len(unique_excluded_names)}")
 
         cruises_all_included.extend(included)
         cruises_all_excluded.extend(excluded)
