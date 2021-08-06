@@ -438,6 +438,8 @@ def convert_oxygen(nc, var):
 
 def convert_oxygen_to_new_units(nc, var):
 
+    logging.info('***** o2 conversion ******')
+
     converted_groups = []
 
     first_group = True
@@ -474,11 +476,9 @@ def convert_oxygen_to_new_units(nc, var):
     # If no sal_qc or no temp_qc, all_oxy_qc = []
     # for all groups and so don't change oxy qc
     if f"{var}_qc" in nc.keys() and len(all_oxy_qc):
-        qc_var = {f"{var}_qc": ('N_PROFS', 'N_LEVELS', all_oxy_qc)}
+        qc_var = {f"{var}_qc": (('N_PROF', 'N_LEVELS'), all_oxy_qc)}
+
         nc = nc.assign(qc_var)
-    # else:
-    #     qc_var = {f"{var}_qc": ('N_PROFS', 'N_LEVELS', all_oxy_qc)}
-    #     nc = nc.assign(qc_var)
 
     return nc
 
@@ -508,6 +508,8 @@ def convert_sea_water_temp(nc, var, var_goship_ref_scale, argovis_ref_scale):
     # Check sea_water_temperature to have goship_reference_scale be ITS-90
 
     if var_goship_ref_scale == 'IPTS-68' and argovis_ref_scale == 'ITS-90':
+
+        logging.info("Converting sea water temperature ref scale")
 
         # Convert to ITS-90 scal
         temperature = nc[var].data
