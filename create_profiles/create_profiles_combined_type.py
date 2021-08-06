@@ -25,108 +25,126 @@ def rename_btl_by_key_meta(obj):
     return new_obj
 
 
-def filter_btl_ctd_measurements(btl_meas, ctd_meas, use_elems, meas_sources):
+def filter_btl_ctd_measurements(btl_meas, ctd_meas, use_cols, meas_sources):
 
-    # use_elems tells what keys exist for meas
-    use_temp_btl = use_elems['use_temp_btl']
-    use_temp_ctd = use_elems['use_temp_ctd']
-    use_psal_btl = use_elems['use_psal_btl']
-    use_psal_ctd = use_elems['use_psal_ctd']
+    # use_cols tells what keys exist for meas
+    has_temp_btl_col = use_cols["has_temp_btl_col"]
+    has_temp_ctd_col = use_cols["has_temp_ctd_col"]
+    has_psal_btl_col = use_cols["has_psal_btl_col"]
+    has_psal_ctd_col = use_cols["has_psal_ctd_col"]
+    has_salinity_col = use_cols["has_salinity_col"]
 
     # meas_sources tells if using a meas key value
-    if use_temp_ctd:
+    # since if all null, not using it
+    if has_temp_ctd_col:
         using_temp_ctd = meas_sources['use_temp_ctd']
     else:
         using_temp_ctd = False
 
-    if use_temp_btl:
+    if has_temp_btl_col:
         using_temp_btl = meas_sources['use_temp_btl']
     else:
         using_temp_btl = False
 
-    if use_psal_ctd:
+    if has_psal_ctd_col:
         using_psal_ctd = meas_sources['use_psal_ctd']
     else:
         using_psal_ctd = False
 
-    if use_psal_btl:
+    if has_psal_btl_col:
         using_psal_btl = meas_sources['use_psal_btl']
     else:
         using_psal_btl = False
 
-    # If both vals are null except pre, don't use obj
-    filtered_btl_meas = []
-    for obj in btl_meas:
-        new_obj = obj.copy()
+    if has_salinity_col:
+        using_salinity = meas_sources['use_salinity_btl']
+    else:
+        using_salinity = False
 
-        if using_temp_btl and not using_psal_btl:
-            temp_btl = obj['temp']
-            if pd.notnull(temp_btl):
-                filtered_btl_meas.append(new_obj)
+    # If all vals are null except pres, don't use obj
+    # logging.info("cols available")
+    # logging.info(use_cols)
 
-        if using_temp_btl and using_psal_btl:
-            temp_btl = obj['temp']
-            psal_btl = obj['psal']
-            if not (pd.isnull(temp_btl) and pd.isnull(psal_btl)):
-                filtered_btl_meas.append(new_obj)
+    # logging.info("meas_sources")
+    # logging.info(meas_sources)
 
-        if not using_temp_btl and using_psal_btl:
-            new_obj['temp'] = None
-            if pd.notnull(obj['psal']):
-                filtered_btl_meas.append(new_obj)
+    # logging.info("btl_meas")
+    # logging.info(btl_meas[0:4])
 
-    filtered_ctd_meas = []
-    for obj in ctd_meas:
+    # logging.info("ctd_meas")
+    # logging.info(ctd_meas[0:4])
 
-        new_obj = obj.copy()
+    # Filter btl_meas
+    btl_meas_df = pd.DataFrame.from_records(btl_meas)
 
-        if using_temp_ctd and not using_psal_ctd:
-            temp_ctd = obj['temp']
-            if pd.notnull(temp_ctd):
-                filtered_ctd_meas.append(new_obj)
+    if has_temp_btl_col and using_temp_ctd:
+        btl_meas_df = btl_meas_df.drop('temp', axis=1)
 
-        if using_temp_ctd and using_psal_ctd:
-            temp_ctd = obj['temp']
-            psal_ctd = obj['psal']
-            if not (pd.isnull(temp_ctd) and pd.isnull(psal_ctd)):
-                filtered_ctd_meas.append(new_obj)
+    elif has_temp_btl_col and not using_temp_btl:
+        btl_meas_df = btl_meas_df.drop('temp', axis=1)
 
-        if not using_temp_ctd and using_psal_ctd:
-            new_obj['temp'] = None
-            if pd.notnull(obj['psal']):
-                filtered_ctd_meas.append(new_obj)
+    if has_psal_btl_col and using_psal_ctd:
+        btl_meas_df = btl_meas_df.drop('psal', axis=1)
+
+    elif has_psal_btl_col and (not using_psal_btl or not using_salinity):
+        btl_meas_df = btl_meas_df.drop('psal', axis=1)
+
+    if 'pres' in btl_meas_df.columns and 'temp' not in btl_meas_df.columns and 'psal' not in btl_meas_df.columns:
+        btl_meas_df = btl_meas_df.drop('pres', axis=1)
+
+    filtered_btl_meas = btl_meas_df.to_dict('records')
+
+    # Filter ctd_meas
+    ctd_meas_df = pd.DataFrame.from_records(ctd_meas)
+
+    if has_temp_ctd_col and not using_temp_ctd:
+        ctd_meas_df = ctd_meas_df.drop('temp', axis=1)
+
+    if has_psal_ctd_col and not using_psal_ctd:
+        ctd_meas_df = ctd_meas_df.drop('psal', axis=1)
+
+    if 'pres' in ctd_meas_df.columns and 'temp' not in ctd_meas_df.columns and 'psal' not in ctd_meas_df.columns:
+        ctd_meas_df = ctd_meas_df.drop('pres', axis=1)
+
+    filtered_ctd_meas = ctd_meas_df.to_dict('records')
+
+    # logging.info("filtered_btl_meas")
+    # logging.info(filtered_btl_meas[0:4])
+
+    # logging.info("filtered_ctd_meas")
+    # logging.info(filtered_ctd_meas[0:4])
 
     return filtered_btl_meas, filtered_ctd_meas
 
 
-def find_meas_hierarchy_btl_ctd(btl_meas, ctd_meas, btl_qc, ctd_qc):
+def find_meas_hierarchy_btl_ctd_orig(btl_meas, ctd_meas, btl_qc, ctd_qc):
 
     # For btl meas, if didn't have psal and had salinity
-    # salinity  was renamed  psal and the flag use_salinity_btl = True.
+    # salinity  was renamed  psal and the flag has_salinity_btl_col = True.
     # If there was both psal and salinity, the salinity was dropped
 
-    use_temp_ctd = False
-    use_psal_ctd = False
-    use_temp_btl = False
-    use_psal_btl = False
-    use_salinity_btl = False
+    has_temp_ctd_col = False
+    has_psal_ctd_col = False
+    has_temp_btl_col = False
+    has_psal_btl_col = False
+    has_salinity_btl_col = False
 
-    has_psal_btl = False
-    has_temp_btl = False
-    has_psal_ctd = False
-    has_temp_ctd = False
+    has_psal_btl_vals = False
+    has_temp_btl_vals = False
+    has_psal_ctd_vals = False
+    has_temp_ctd_vals = False
 
     if 'use_temp_btl' in btl_qc.keys():
-        use_temp_btl = True
+        has_temp_btl_col = True
 
     if 'use_temp_ctd' in ctd_qc.keys():
-        use_temp_ctd = True
+        has_temp_ctd_col = True
 
     if 'use_psal_btl' in btl_qc.keys():
-        use_psal_btl = True
+        has_psal_btl_col = True
 
     if 'use_psal_ctd' in ctd_qc.keys():
-        use_psal_ctd = True
+        has_psal_ctd_col = True
 
     # Already changed name to psal if using salinity btl
     # and so if it has a qc key, means salinity_btl existed
@@ -135,20 +153,20 @@ def find_meas_hierarchy_btl_ctd(btl_meas, ctd_meas, btl_qc, ctd_qc):
     else:
         salinity_exists = False
 
-    if use_temp_btl:
-        has_temp_btl = any([
+    if has_temp_btl_col:
+        has_temp_btl_vals = any([
             True if pd.notnull(obj['temp']) else False for obj in btl_meas])
 
-    if use_temp_ctd:
-        has_temp_ctd = any([
+    if has_temp_ctd_col:
+        has_temp_ctd_vals = any([
             True if pd.notnull(obj['temp']) else False for obj in ctd_meas])
 
-    if use_psal_btl:
-        has_psal_btl = any([
+    if has_psal_btl_col:
+        has_psal_btl_vals = any([
             True if pd.notnull(obj['psal']) else False for obj in btl_meas])
 
-    if use_psal_ctd:
-        has_psal_ctd = any([
+    if has_psal_ctd_col:
+        has_psal_ctd_vals = any([
             True if pd.notnull(obj['psal']) else False for obj in ctd_meas])
 
     use_btl = False
@@ -161,72 +179,67 @@ def find_meas_hierarchy_btl_ctd(btl_meas, ctd_meas, btl_qc, ctd_qc):
     using_psal_ctd = False
     using_salinity_btl = False
 
-    if use_temp_ctd and has_temp_ctd:
+    if has_temp_ctd_col and has_temp_ctd_vals:
         using_temp_ctd = True
-        using_temp_btl = False
         use_ctd = True
 
-    if use_temp_ctd and not has_temp_ctd and use_temp_btl and has_temp_btl:
-        using_temp_ctd = False
+    if has_temp_ctd_col and not has_temp_ctd_vals and has_temp_btl_col and has_temp_btl_vals:
         using_temp_btl = True
         use_ctd = True
 
-    if use_psal_ctd and has_psal_ctd:
+    if has_psal_ctd_col and has_psal_ctd_vals:
         using_psal_ctd = True
-        using_psal_btl = False
         use_ctd = True
 
-    if use_psal_ctd and not has_psal_ctd and use_psal_btl and has_psal_btl and not salinity_exists:
-        using_psal_ctd = False
-        using_psal_btl = True
-        use_ctd = True
-
-    if not use_psal_ctd and use_psal_btl and has_psal_btl and not salinity_exists:
+    if has_psal_ctd_col and not has_psal_ctd_vals and has_psal_btl_col and has_psal_btl_vals and not salinity_exists:
         using_psal_btl = True
         use_ctd = True
 
     # salinity btl already renamed to psal_btl and know
-    # was using salinity_btl for this if has_salinity_btl
-    if not use_psal_ctd and not use_psal_btl and has_psal_btl and salinity_exists:
-        using_psal_btl = False
+    # was using salinity_btl for this if salinity_exists
+    if not has_psal_ctd_col and has_psal_btl_col and has_psal_btl_vals and not salinity_exists:
+        using_psal_btl = True
+        use_ctd = True
+
+    if not has_psal_ctd_col and has_psal_btl_col and has_psal_btl_vals and salinity_exists:
         using_salinity_btl = True
         use_btl = True
 
     # Tells what keys exist for meas
-    use_elems = {
-        "use_temp_btl": use_temp_btl,
-        "use_temp_ctd": use_temp_ctd,
-        "use_psal_btl": use_psal_btl,
-        "use_psal_ctd": use_psal_ctd
+    use_cols = {
+        "has_temp_btl_col": has_temp_btl_col,
+        "has_temp_ctd_col": has_temp_ctd_col,
+        "has_psal_btl_col": has_psal_btl_col,
+        "has_psal_ctd_col": has_psal_ctd_col
     }
 
     # Tells if using a meas key value
     meas_sources = {}
-    if use_temp_ctd:
+    if has_temp_ctd_col:
         meas_sources['use_temp_ctd'] = using_temp_ctd
 
-    if use_temp_btl:
+    if has_temp_btl_col:
         meas_sources['use_temp_btl'] = using_temp_btl
 
-    if use_psal_ctd:
+    if has_psal_ctd_col:
         meas_sources['use_psal_ctd'] = using_psal_ctd
 
-    if use_psal_btl:
+    if has_psal_btl_col:
         meas_sources['use_psal_btl'] = using_psal_btl
 
-    if use_salinity_btl:
+    if has_salinity_btl_col:
         meas_sources['use_salinty_btl'] = using_salinity_btl
 
     meas_names = []
     meas_names.append('pres')
 
-    if use_temp_ctd or use_temp_btl:
+    if has_temp_ctd_col or has_temp_btl_col:
         meas_names.append('temp')
 
-    if use_psal_ctd or use_psal_btl:
+    if has_psal_ctd_col or has_psal_btl_col:
         meas_names.append('psal')
 
-    if use_salinity_btl:
+    if has_salinity_btl_col:
         meas_names.append('psal')
 
     # Only want unique names and not psal twice
@@ -248,17 +261,168 @@ def find_meas_hierarchy_btl_ctd(btl_meas, ctd_meas, btl_qc, ctd_qc):
     else:
         meas_source = None
 
-    return meas_source, meas_sources, meas_names,  use_elems
+    return meas_source, meas_sources, meas_names,  use_cols
+
+
+def find_meas_hierarchy_btl_ctd(btl_qc, ctd_qc):
+
+    # logging.info('***********')
+
+    # logging.info('btl_qc')
+    # logging.info(btl_qc)
+
+    # logging.info('ctd_qc')
+    # logging.info(ctd_qc)
+
+    # For btl meas, if didn't have psal and had salinity
+    # salinity  was renamed  psal and the flag has_salinity_btl_col = True.
+    # If there was both psal and salinity, the salinity was dropped
+
+    # In measurements, for each key, value means there
+    # are non null values
+    has_temp_btl_col = 'use_temp_btl' in btl_qc.keys()
+    if has_temp_btl_col:
+        using_temp_btl = btl_qc['use_temp_btl']
+    else:
+        using_temp_btl = False
+
+    has_temp_ctd_col = 'use_temp_ctd' in ctd_qc.keys()
+    if has_temp_ctd_col:
+        using_temp_ctd = ctd_qc['use_temp_ctd']
+    else:
+        using_temp_ctd = False
+
+    has_psal_btl_col = 'use_psal_btl' in btl_qc.keys()
+    if has_psal_btl_col:
+        using_psal_btl = btl_qc['use_psal_btl']
+    else:
+        using_psal_btl = False
+
+    has_psal_ctd_col = 'use_psal_ctd' in ctd_qc.keys()
+    if has_psal_ctd_col:
+        using_psal_ctd = ctd_qc['use_psal_ctd']
+    else:
+        using_psal_ctd = False
+
+    # Already changed name to psal if using salinity btl
+    # and so if it has a qc key, means salinity_btl existed
+    has_salinity_col = 'use_salinity_btl' in btl_qc.keys()
+    if has_salinity_col:
+        using_salinity = btl_qc['use_salinity_btl']
+    else:
+        using_salinity = False
+
+    btl_flag = False
+    ctd_flag = False
+    btl_ctd_flag = False
+    no_flag = False
+
+    # logging.info(f"using_temp_ctd {using_temp_ctd}")
+    # logging.info(f"using_temp_btl {using_temp_btl}")
+    # logging.info(f"using_psal_ctd {using_psal_ctd}")
+    # logging.info(f"using_psal_btl {using_psal_btl}")
+    # logging.info(f"using salinity {using_salinity}")
+
+    if using_temp_ctd:
+        using_temp_btl = False
+
+    if not using_temp_ctd and using_temp_btl:
+        using_temp_ctd = False
+
+    if using_psal_ctd:
+        using_psal_btl = False
+        using_salinity = False
+
+    if not using_psal_ctd and using_psal_btl:
+        using_psal_ctd = False
+        using_salinity = False
+
+    if not using_psal_ctd and not using_psal_btl and using_salinity:
+        using_psal_ctd = False
+        using_psal_btl = False
+
+    # Determine source flags depending on what is used
+
+    if using_temp_ctd or using_temp_btl:
+        ctd_flag = True
+
+    if using_psal_ctd or using_psal_btl:
+        ctd_flag = True
+
+    elif (using_temp_ctd or using_temp_btl) and not using_psal_ctd and not using_psal_btl and using_salinity:
+        btl_ctd_flag = True
+
+    elif (not using_temp_ctd and not using_temp_btl) and not using_psal_ctd and not using_psal_btl and using_salinity:
+        btl_flag = True
+
+    elif (not using_temp_ctd and not using_temp_btl) and (not using_psal_ctd and not using_psal_btl) and not using_salinity:
+        no_flag = True
+
+    # Tells what cols exist for meas
+    use_cols = {
+        "has_temp_btl_col": has_temp_btl_col,
+        "has_temp_ctd_col": has_temp_ctd_col,
+        "has_psal_btl_col": has_psal_btl_col,
+        "has_psal_ctd_col": has_psal_ctd_col,
+        "has_salinity_col": has_salinity_col
+    }
+
+    # Tells if using a meas col value
+    meas_sources = {}
+    if has_temp_ctd_col:
+        meas_sources['use_temp_ctd'] = using_temp_ctd
+
+    if has_temp_btl_col:
+        meas_sources['use_temp_btl'] = using_temp_btl
+
+    if has_psal_ctd_col:
+        meas_sources['use_psal_ctd'] = using_psal_ctd
+
+    if has_psal_btl_col:
+        meas_sources['use_psal_btl'] = using_psal_btl
+
+    if has_salinity_col:
+        meas_sources['use_salinity_btl'] = using_salinity
+
+    meas_names = []
+    meas_names.append('pres')
+
+    if has_temp_ctd_col or has_temp_btl_col:
+        meas_names.append('temp')
+
+    if has_psal_ctd_col or has_psal_btl_col:
+        meas_names.append('psal')
+
+    if has_salinity_col:
+        meas_names.append('psal')
+
+    # Only want unique names and not psal twice
+    meas_names = list(set(meas_names))
+
+    # For JSON conversion later
+    meas_sources = convert_boolean(meas_sources)
+
+    # Get measurements source flag
+    if no_flag:
+        meas_source = None
+    elif btl_ctd_flag:
+        meas_source = 'BTL_CTD'
+    elif btl_flag:
+        meas_source = 'BTL'
+    elif ctd_flag:
+        meas_source = 'CTD'
+
+    return meas_source, meas_sources, meas_names,  use_cols
 
 
 def combine_btl_ctd_measurements(btl_meas, ctd_meas, btl_qc, ctd_qc):
 
-    meas_source, meas_sources, meas_names, use_elems = find_meas_hierarchy_btl_ctd(
-        btl_meas, ctd_meas, btl_qc, ctd_qc)
+    meas_source, meas_sources, meas_names, use_cols = find_meas_hierarchy_btl_ctd(
+        btl_qc, ctd_qc)
 
     # filter measurement objs by hierarchy and if exists
     filtered_btl_meas, filtered_ctd_meas = filter_btl_ctd_measurements(
-        btl_meas, ctd_meas, use_elems, meas_sources)
+        btl_meas, ctd_meas, use_cols, meas_sources)
 
     # Combine filtered measurements
     combined_measurements = [

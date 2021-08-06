@@ -125,7 +125,7 @@ def modify_xarray_obj(file_obj):
     # Convert units and reference scale
     # *********************************
 
-    logging.info(f"Apply conversions for {data_type}")
+    logging.info(f"Apply conversions for {data_type} if needed")
 
     # Apply units before change unit names
 

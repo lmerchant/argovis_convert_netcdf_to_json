@@ -82,17 +82,21 @@ def filter_measurements(data_type_profiles):
 
 def get_measurements_source(df_meas, meas_qc, data_type):
 
-    has_ctd_temp_col = 'temp' in df_meas.columns
-    if has_ctd_temp_col:
-        all_ctd_temp_empty = df_meas['temp'].isnull().all()
-    else:
-        all_ctd_temp_empty = True
+    using_temp = False
+    using_psal = False
+    using_salinity = False
 
-    has_ctd_salinity_col = 'psal' in df_meas.columns
-    if has_ctd_salinity_col:
-        all_ctd_sal_empty = df_meas['psal'].isnull().all()
+    has_temp_col = 'temp' in df_meas.columns
+    if has_temp_col:
+        all_temp_empty = df_meas['temp'].isnull().all()
     else:
-        all_ctd_sal_empty = True
+        all_temp_empty = True
+
+    has_psal_col = 'psal' in df_meas.columns
+    if has_psal_col:
+        all_psal_empty = df_meas['psal'].isnull().all()
+    else:
+        all_psal_empty = True
 
     has_salinity_column = 'salinity' in df_meas.columns
     if has_salinity_column:
@@ -100,44 +104,45 @@ def get_measurements_source(df_meas, meas_qc, data_type):
     else:
         all_salinity_empty = True
 
-    if has_ctd_temp_col and not all_ctd_temp_empty:
-        use_ctd_temp = True
-    elif has_ctd_temp_col and all_ctd_temp_empty:
-        use_ctd_temp = False
+    if has_temp_col and not all_temp_empty:
+        using_temp = True
+    elif has_temp_col and all_temp_empty:
+        using_temp = False
 
-    if has_ctd_salinity_col and not all_ctd_sal_empty and has_salinity_column:
-        use_ctd_psal = True
-        use_bottle_salinity = False
-    elif has_ctd_salinity_col and all_ctd_sal_empty and has_salinity_column and not all_salinity_empty:
-        use_ctd_psal = False
-        use_bottle_salinity = True
-    elif not has_ctd_salinity_col and has_salinity_column and not all_salinity_empty:
-        use_bottle_salinity = True
-    else:
-        use_ctd_psal = False
-        use_bottle_salinity = False
+    if has_psal_col and not all_psal_empty:
+        using_psal = True
+    elif has_psal_col and all_psal_empty and has_salinity_column and not all_salinity_empty:
+        using_salinity = True
+    elif not has_psal_col and has_salinity_column and not all_salinity_empty:
+        using_salinity = True
 
-    if not use_ctd_temp and not use_ctd_psal and not use_bottle_salinity:
+    # logging.info(f"using_temp {using_temp}")
+    # logging.info(f"using psal {using_psal}")
+    # logging.info(f"using_salinity  {using_salinity}")
+
+    if not using_temp and not using_psal and not using_salinity:
         logging.info(
             "For single data type file, source flag is none because no temp or psal")
-        flag = None
-    elif use_ctd_temp and use_ctd_psal and not use_bottle_salinity:
-        flag = 'CTD'
-    elif use_ctd_temp and not use_ctd_psal and use_bottle_salinity:
-        flag = 'BTL_CTD'  # Or is it just BTL?
-    elif use_ctd_temp and not use_ctd_psal and not use_bottle_salinity:
-        # using ctd_temperature so CTD flag
-        flag = 'CTD'
-
-    meas_source_flag = flag
+        meas_source_flag = None
+    elif not using_temp and using_psal and not using_salinity:
+        meas_source_flag = 'CTD'
+    elif not using_temp and not using_psal and using_salinity:
+        meas_source_flag = 'BTL'
+    elif using_temp and using_psal and not using_salinity:
+        meas_source_flag = 'CTD'
+    elif using_temp and not using_psal and using_salinity:
+        meas_source_flag = 'BTL_CTD'  # Or is it just BTL?
+    elif using_temp and not using_psal and not using_salinity:
+        # using temperature so CTD meas_source_flag
+        meas_source_flag = 'CTD'
 
     meas_source_qc = {}
     meas_source_qc['qc'] = meas_qc
-    meas_source_qc[f'use_temp_{data_type}'] = use_ctd_temp
-    if has_ctd_salinity_col:
-        meas_source_qc[f'use_psal_{data_type}'] = use_ctd_psal
+    meas_source_qc[f'use_temp_{data_type}'] = using_temp
+    if has_psal_col:
+        meas_source_qc[f'use_psal_{data_type}'] = using_psal
     if has_salinity_column:
-        meas_source_qc['use_salinity_btl'] = use_bottle_salinity
+        meas_source_qc['use_salinity_btl'] = using_salinity
 
     # For json_str, convert True, False to 'true','false'
     meas_source_qc = convert_boolean(meas_source_qc)
@@ -330,6 +335,9 @@ def create_meas_profiles(df_param, data_type):
 
         station_cast = val_df['station_cast'].values[0]
 
+        # logging.info('----------------------')
+        # logging.info(f"station cast {station_cast}")
+
         # Now filter to core meas cols
         # still includes salinity because want to see if
         # salinity will be used in measurements
@@ -341,6 +349,9 @@ def create_meas_profiles(df_param, data_type):
         # Now filter to keep psal over salinity and if no
         # psal, keep salinity  but rename to psal
         val_df = filter_salinity(val_df)
+
+        # logging.info('val_df')
+        # logging.info(val_df.head())
 
         # TODO
         # Should I filter out all values here or leave the
