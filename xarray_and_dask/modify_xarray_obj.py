@@ -113,7 +113,7 @@ def modify_xarray_obj(file_obj):
     # Donata wants to add pres_qc = 1
     # First  set to np.nan to make dropping empty rows easy
     # and then in  modify_dask_obj, set it to 1
-    nc = mod_xr_param.add_pres_qc(nc)
+    #nc = mod_xr_param.add_pres_qc(nc)
 
     # Add extra coordinates for ArgoVis metadata
     nc = mod_xr_meta.add_extra_coords(nc, file_obj)

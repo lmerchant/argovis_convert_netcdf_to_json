@@ -375,6 +375,7 @@ def save_data_type_profiles(data_type_obj_profiles):
     data_type_profiles = filter_measurements(data_type_profiles)
 
     profile = data_type_profiles[0]
+
     write_profile_goship_units_one_profile(profile)
 
     save_as_zip_data_type_profiles(data_type_profiles)

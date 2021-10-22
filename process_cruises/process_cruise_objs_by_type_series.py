@@ -42,7 +42,7 @@ def create_profiles_objs(cruise_ddf_obj):
 
     profiles_objs = []
 
-    # Loop through each data type
+    # Loop through each data type (btl,ctd)
     for ddf_obj in ddf_objs:
 
         data_type = ddf_obj['data_type']
@@ -53,6 +53,7 @@ def create_profiles_objs(cruise_ddf_obj):
         all_meta_profiles = ddf_obj['all_meta_profiles']
         ddf_param = ddf_obj['ddf_param']
 
+        # Change from dask dataframe to pandas
         df_param = ddf_param.compute()
 
         all_meas_profiles, all_meas_source_profiles, all_meas_names = create_meas_profiles(
@@ -66,9 +67,9 @@ def create_profiles_objs(cruise_ddf_obj):
         goship_argovis_mapping_profiles = create_goship_argovis_mappings(
             nc_mappings, all_argovis_param_mapping_list, data_type)
 
-        # ******************************************************
-        # Combine all the profile parts into one dictionary list
-        # ******************************************************
+        # **************************************************
+        # Combine all the profile parts into one object list
+        # **************************************************
 
         #  all_profiles is a list of profile objs with
         # keys 'station_cast' and 'profile_dict'
@@ -88,6 +89,7 @@ def create_profiles_objs(cruise_ddf_obj):
 
 def create_dask_dataframe_objs(cruise_xr_obj):
 
+    # File objs are btl, ctd types
     xr_file_objs = cruise_xr_obj['xr_file_objs']
 
     logging.info(f"Converting xarray to Dask")
@@ -114,6 +116,8 @@ def create_dask_dataframe_objs(cruise_xr_obj):
         ddf = nc.to_dask_dataframe(dim_order=['N_PROF', 'N_LEVELS'])
 
         # Add dimensions and have station_cast for both
+        # station_cast acts as a unique identifier
+
         # meta_keys.extend(['N_PROF', 'N_LEVELS'])
         # param_keys.extend(['N_PROF', 'N_LEVELS', 'station_cast'])
 

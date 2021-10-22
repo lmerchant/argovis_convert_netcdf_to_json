@@ -255,7 +255,7 @@ def add_vars_one_cruise(data_type_profiles_objs):
     included_names = []
     excluded_names = []
 
-    # Loop over the profiles for the collection of files with profiles
+    # Loop over the profiles for the collection of files that have profiles
     for data_type_profiles_obj in data_type_profiles_objs:
 
         data_type_profiles = data_type_profiles_obj['data_type_profiles_list']

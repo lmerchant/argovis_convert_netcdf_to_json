@@ -64,7 +64,6 @@ def get_cruises_data_objs(netcdf_cruises_objs):
         logging.info(
             f"Creating cruise obj {netcdf_cruise_obj['cruise_expocode']}")
 
-        # Each object is a dict with keys
         netcdf_cruise_obj_w_data = add_file_data(netcdf_cruise_obj)
 
         cruise_objs_w_data.append(netcdf_cruise_obj_w_data)
@@ -108,7 +107,7 @@ def check_if_netcdf_data(file_json):
     data_type = file_json['data_type']
 
     is_netcdf_file = file_role == "dataset" and data_format == 'cf_netcdf'
-    is_btl = data_type = 'bottle'
+    is_btl = data_type == 'bottle'
     is_ctd = data_type == 'ctd'
 
     if is_netcdf_file and (is_btl or is_ctd):
@@ -129,10 +128,7 @@ def check_if_in_time_range(cruise_json, time_range):
 
     in_date_range = cruise_datetime >= time_range['start'] and cruise_datetime <= time_range['end']
 
-    if not in_date_range:
-        return False
-
-    return True
+    return in_date_range
 
 
 def setup_test_cruise_objs(netcdf_cruises_objs):
@@ -146,7 +142,11 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
         # station cast 016_001 has meas = []
         #  "measurementsSource": null,
         # Has ctd temp qc all bad
-        #test_cruise_expocode = '096U20160426'
+        # No btl station # 16
+
+        # what's up with limited vars of pres and sample
+        # but no other? Seems whole profile should not exist
+        test_cruise_expocode = '096U20160426'
 
         # This cruise is BTL_CTD
         # uses salinity_btl  for station3 cast 1
@@ -186,6 +186,14 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
         # Says there are 200 included vars
         # but that number doesn't exist
         #test_cruise_expocode = '32MW078_1'
+
+        # BTL and  CTD
+        # oxygen and temp conversion
+        # More than one O2 var with ml/l
+        # for ctd_oxy qc = 3
+        # for oxygen, qc = 2 and 9
+        # And CTD converts
+        #test_cruise_expocode = '316N154_2'
 
         # oxygen conversion
         # CTD file

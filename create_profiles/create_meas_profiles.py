@@ -36,10 +36,6 @@ def convert_boolean(obj):
 
 def filter_measurements(data_type_profiles):
 
-    # For measurements, already filtered whether to
-    # keep psal or salinity, but didn't rename the
-    # salinity col.
-
     # TODO
     # Change station_parameters keys if empty meas?
 
@@ -60,14 +56,26 @@ def filter_measurements(data_type_profiles):
 
         # Check if all elems null in measurements besides pressure
         all_vals = []
+        all_temp_vals = []
+
         for obj in measurements:
             vals = [val for key, val in obj.items() if pd.notnull(val)
                     and key != 'pres']
             all_vals.extend(vals)
 
+            # check if no temp vals, then set to empty measurements
+            temp_vals = [val for key, val in obj.items() if pd.notnull(val)
+                         and key == 'temp']
+            all_temp_vals.extend(temp_vals)
+
         if not len(all_vals):
             logging.info(f"Station cast {station_cast}")
             logging.info("All elems null so measurements = []")
+            measurements = []
+
+        if not len(all_temp_vals):
+            logging.info(f"Station cast {station_cast}")
+            logging.info("All temps null so measurements = []")
             measurements = []
 
         profile_dict['measurements'] = measurements
@@ -117,24 +125,30 @@ def get_measurements_source(df_meas, meas_qc, data_type):
     elif not has_psal_col and has_salinity_column and not all_salinity_empty:
         using_salinity = True
 
-    # logging.info(f"using_temp {using_temp}")
-    # logging.info(f"using psal {using_psal}")
-    # logging.info(f"using_salinity  {using_salinity}")
+    logging.info(f"using_temp {using_temp}")
+    logging.info(f"using psal {using_psal}")
+    logging.info(f"using_salinity  {using_salinity}")
 
-    if not using_temp and not using_psal and not using_salinity:
-        logging.info(
-            "For single data type file, source flag is none because no temp or psal")
-        meas_source_flag = None
-    elif not using_temp and using_psal and not using_salinity:
-        meas_source_flag = 'CTD'
-    elif not using_temp and not using_psal and using_salinity:
+    # if not using_temp and not using_psal and not using_salinity:
+    #     logging.info(
+    #         "For single data type file, source flag is none because no temp or psal")
+    #     meas_source_flag = None
+    # elif not using_temp and using_psal and not using_salinity:
+    #     meas_source_flag = 'CTD'
+    # elif not using_temp and not using_psal and using_salinity:
+    #     meas_source_flag = 'BTL'
+    # elif using_temp and using_psal and not using_salinity:
+    #     meas_source_flag = 'CTD'
+    # elif using_temp and not using_psal and using_salinity:
+    #     meas_source_flag = 'BTL_CTD'  # Or is it just BTL?
+    # elif using_temp and not using_psal and not using_salinity:
+    #     # using temperature so CTD meas_source_flag
+    #     meas_source_flag = 'CTD'
+
+    if data_type == 'btl':
         meas_source_flag = 'BTL'
-    elif using_temp and using_psal and not using_salinity:
-        meas_source_flag = 'CTD'
-    elif using_temp and not using_psal and using_salinity:
-        meas_source_flag = 'BTL_CTD'  # Or is it just BTL?
-    elif using_temp and not using_psal and not using_salinity:
-        # using temperature so CTD meas_source_flag
+
+    if data_type == 'ctd':
         meas_source_flag = 'CTD'
 
     meas_source_qc = {}
@@ -192,10 +206,10 @@ def filter_meas_core_cols(df_meas):
     found_core_cols = [col for col in df_meas.columns if col in core_cols]
     df_meas = df_meas.dropna(subset=found_core_cols, how='all')
 
-    # # TODO
-    # # Check if temp is all null, if it is set df_meas = empty df
-    # # Or wait to do this when combine if the logic is a psal val
-    # # makes sense if there is no temperature
+    # TODO
+    # Check if temp is all null, if it is set df_meas = empty df
+    # Or wait to do this when combine if the logic is a psal val
+    # makes sense if there is no temperature
 
     no_temp = df_meas['temp'].isnull().all()
 
@@ -204,8 +218,7 @@ def filter_meas_core_cols(df_meas):
     if psal_exists:
         no_psal = df_meas['psal'].isnull().all()
 
-    # I would have filtered out rows with qc_source != 0 or != 2
-    # (means temp not valid)
+    # I already have filtered out rows with qc_source != 0 or != 2
     # df_meas = df_meas.query('qc_source == 0 | qc_source == 2')
 
     # Get meas qc source (which is the temp qc)
@@ -214,21 +227,18 @@ def filter_meas_core_cols(df_meas):
     # remove null values
     meas_source_qc = [qc for qc in meas_source_qc if pd.notnull(qc)]
 
-    if len(meas_source_qc):
-        # Keep any good qc values 0 or 2
-        meas_source_qc = [
-            qc for qc in meas_source_qc if int(qc) == 0 or int(qc) == 2]
+    meas_source_qc = [
+        qc for qc in meas_source_qc if int(qc) == 0 or int(qc) == 2]
 
     if len(meas_source_qc) == 1:
         meas_source_qc = meas_source_qc[0]
+
     elif not len(meas_source_qc):
         meas_source_qc = None
-    else:
-        logging.info(
-            f"meas source qc not 0 or 2. {meas_source_qc}")
-        meas_source_qc = None
 
-    # Remove any columns that are not core such as  station_cast
+    logging.info(f"meas source qc {meas_source_qc}")
+
+    # Remove any columns that are not core such as station_cast
     # and add pres to core cols
     keep_cols = ['pres']
     keep_cols.extend(found_core_cols)
@@ -240,10 +250,13 @@ def filter_meas_core_cols(df_meas):
     df_meas = df_meas.where(pd.notnull(df_meas), None)
 
     # Keeping objs with temp: null if psal exists
-    if no_temp and not psal_exists:
-        meas_source_qc = None
+    # if no_temp and not psal_exists:
+    #     meas_source_qc = None
 
-    if no_temp and psal_exists and no_psal:
+    # if no_temp and psal_exists and no_psal:
+    #     meas_source_qc = None
+
+    if no_temp:
         meas_source_qc = None
 
     return df_meas, meas_source_qc
@@ -300,6 +313,8 @@ def create_measurements_df_all(df, data_type):
     column_mapping[f"temp_{data_type}"] = 'temp'
     column_mapping[f"salinity_btl"] = 'salinity'
 
+    # Will change name of salinity to psal later when filter it
+
     df_meas = df_meas.rename(columns=column_mapping)
 
     return df_meas
@@ -307,9 +322,11 @@ def create_measurements_df_all(df, data_type):
 
 def create_meas_profiles(df_param, data_type):
 
-    # *******************************
-    # Create all measurement profiles
-    # *******************************
+    # ********************************
+    # Create all measurements profiles
+    # ********************************
+
+    logging.info("Create all Measurements profiles")
 
     df_meas = df_param.groupby('N_PROF').apply(
         create_measurements_df_all, data_type)
@@ -363,11 +380,13 @@ def create_meas_profiles(df_param, data_type):
             logging.info("No temp or sal values. All null")
         elif all_ctd_temp_empty and not psal_exists:
             logging.info(f"station cast {station_cast}")
-            logging.info("No non null temp values and psal not exists.")
+            logging.info("No finite temp values and psal not exists.")
 
         # if all_ctd_temp_empty and psal_exists and all_psal_empty:
+        #     # create empty df
         #     val_df = pd.DataFrame(columns=val_df.columns)
         # elif all_ctd_temp_empty and not psal_exists:
+        #     # create empty df
         #     val_df = pd.DataFrame(columns=val_df.columns)
 
         # if val_df.empty:
