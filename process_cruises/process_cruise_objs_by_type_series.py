@@ -61,6 +61,10 @@ def create_profiles_objs(cruise_ddf_obj):
 
         all_bgc_profiles, all_name_mapping = create_bgc_profiles(df_param)
 
+        # Filter out from var name mappings any that have no values.
+        # This can happen since xarray fills variables if they
+        # don't exist in a station cast to create one array of variables
+        # for the collection
         all_argovis_param_mapping_list = filter_argovis_mapping(
             nc_mappings, all_name_mapping)
 
@@ -180,6 +184,7 @@ def create_xr_obj(cruise_obj):
         # ********************************
         # Modify Xarray object
         # and get before and after mappings
+        # of var names to Argovis names
         # *********************************
 
         logging.info(f"Modify xarray cruise object")

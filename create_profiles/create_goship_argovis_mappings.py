@@ -5,7 +5,7 @@ def filter_argovis_mapping(nc_mappings, all_name_mapping):
 
     # Take param mapping and filter it to only contain all_name_mapping
     # list of non-empty columnn for each station_cast
-    # Taking into account for dropped empty cols
+    # This is taking into account for dropped empty cols
 
     units = argovis_param_mapping['units']
     ref_scale = argovis_param_mapping['ref_scale']

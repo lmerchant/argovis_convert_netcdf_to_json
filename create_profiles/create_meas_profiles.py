@@ -353,8 +353,8 @@ def create_meas_profiles(df_param, data_type):
         # logging.info(f"station cast {station_cast}")
 
         # Now filter to core meas cols
-        # still includes salinity because want to see if
-        # salinity will be used in measurements
+        # still includes bottle salinity because want to see if
+        # it will be kept in measurements if ctd_sal doesn't exist
         val_df, meas_qc = filter_meas_core_cols(val_df)
 
         meas_source_flag, meas_source_qc = get_measurements_source(

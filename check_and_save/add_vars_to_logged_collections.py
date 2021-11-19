@@ -27,6 +27,27 @@ def get_goship_meta_names(profile_dict):
     return goship_meta_names, goship_meta_names_btl, goship_meta_names_ctd
 
 
+def get_argovis_meta_names(profile_dict):
+
+    argovis_meta_names_btl = []
+    argovis_meta_names_ctd = []
+    argovis_meta_names = []
+
+    profile_keys = profile_dict.keys()
+
+    # For meta data
+    try:
+        argovis_meta_names = profile_dict['argovisMetaNames']
+    except KeyError:
+        if 'argovisMetaNamesBtl' in profile_keys:
+            argovis_meta_names_btl = profile_dict['argovisMetaNamesBtl']
+
+        elif 'argovisMetaNamesCtd' in profile_keys:
+            argovis_meta_names_ctd = profile_dict['argovisMetaNamesCtd']
+
+    return argovis_meta_names, argovis_meta_names_btl, argovis_meta_names_ctd
+
+
 def get_goship_param_names(profile_dict):
 
     goship_param_names_btl = []
@@ -53,131 +74,158 @@ def get_goship_param_names(profile_dict):
     return goship_param_names, goship_param_names_btl, goship_param_names_ctd
 
 
+def get_argovis_param_names(profile_dict):
+
+    argovis_param_names_btl = []
+    argovis_param_names_ctd = []
+    argovis_param_names = []
+
+    profile_keys = profile_dict.keys()
+
+    # For param data
+    try:
+        argovis_param_names = profile_dict['argovisParamNames']
+
+    except KeyError:
+        if 'argovisParamNamesBtl' in profile_keys:
+            argovis_param_names_btl = profile_dict['argovisParamNamesBtl']
+
+        elif 'argovisParamNamesCtd' in profile_keys:
+            argovis_param_names_ctd = profile_dict['argovisParamNamesCtd']
+
+    return argovis_param_names, argovis_param_names_btl, argovis_param_names_ctd
+
+
 def find_meta_included(profile_dict):
 
-    included_meta_goship_btl = []
-    included_meta_goship_ctd = []
-    included_meta_goship = []
+    # Case for argovis names
+
+    included_meta_btl = []
+    included_meta_ctd = []
+    included_meta = []
 
     profile_keys = profile_dict.keys()
 
     # For meta data
     try:
         name_mapping = profile_dict['goshipArgovisMetaMapping']
-        included_meta_goship = [
-            name for name in name_mapping.keys() if '_qc' not in name]
+        included_meta = name_mapping.values()
+
     except KeyError:
         if 'goshipArgovisMetaMappingBtl' in profile_keys:
             name_mapping_btl = profile_dict['goshipArgovisMetaMappingBtl']
-            included_meta_goship_btl = [
-                name for name in name_mapping_btl.keys() if '_qc' not in name]
+            included_meta_btl = name_mapping_btl.values()
+
         if 'goshipArgovisMetaMappingCtd' in profile_keys:
             name_mapping_ctd = profile_dict['goshipArgovisMetaMappingCtd']
-            included_meta_goship_ctd = [
-                name for name in name_mapping_ctd.keys() if '_qc' not in name]
+            included_meta_ctd = name_mapping_ctd.values()
 
-    return included_meta_goship, included_meta_goship_btl, included_meta_goship_ctd
+    return included_meta, included_meta_btl, included_meta_ctd
 
 
-def find_meta_excluded(profile_dict, included_meta_goship_btl, included_meta_goship_ctd, included_meta_goship):
+def find_meta_excluded(profile_dict, included_meta_btl, included_meta_ctd, included_meta):
 
-    excluded_goship_meta_names_btl = []
-    excluded_goship_meta_names_ctd = []
-    excluded_goship_meta_names = []
+    # Case for argovis names
 
-    goship_meta_names, goship_meta_names_btl, goship_meta_names_ctd = get_goship_meta_names(
+    excluded_meta_names_btl = []
+    excluded_meta_names_ctd = []
+    excluded_meta_names = []
+
+    # goship_meta_names, goship_meta_names_btl, goship_meta_names_ctd = get_goship_meta_names(
+    #     profile_dict)
+
+    meta_names, meta_names_btl, meta_names_ctd = get_argovis_meta_names(
         profile_dict)
 
     # For meta names
-    if included_meta_goship_btl and goship_meta_names_btl:
-        included_goship_meta_names_set = set(included_meta_goship_btl)
-        goship_meta_names_set = set(goship_meta_names_btl)
-        excluded_goship_meta_names_btl = goship_meta_names_set.difference(
-            included_goship_meta_names_set)
+    if included_meta_btl and meta_names_btl:
+        included_meta_names_set = set(included_meta_btl)
+        meta_names_set = set(meta_names_btl)
+        excluded_meta_names_btl = meta_names_set.difference(
+            included_meta_names_set)
 
-    if included_meta_goship_ctd and goship_meta_names_ctd:
-        included_goship_meta_names_set = set(included_meta_goship_ctd)
-        goship_meta_names_set = set(goship_meta_names_ctd)
-        excluded_goship_meta_names_ctd = goship_meta_names_set.difference(
-            included_goship_meta_names_set)
+    if included_meta_ctd and meta_names_ctd:
+        included_meta_names_set = set(included_meta_ctd)
+        meta_names_set = set(meta_names_ctd)
+        excluded_meta_names_ctd = meta_names_set.difference(
+            included_meta_names_set)
 
-    if included_meta_goship and goship_meta_names:
-        included_goship_meta_names_set = set(included_meta_goship)
-        goship_meta_names_set = set(goship_meta_names)
-        excluded_goship_meta_names = goship_meta_names_set.difference(
-            included_goship_meta_names_set)
+    if included_meta and meta_names:
+        included_meta_names_set = set(included_meta)
+        meta_names_set = set(meta_names)
+        excluded_meta_names = meta_names_set.difference(
+            included_meta_names_set)
 
-    return excluded_goship_meta_names_btl, excluded_goship_meta_names_ctd, excluded_goship_meta_names
+    return excluded_meta_names_btl, excluded_meta_names_ctd, excluded_meta_names
 
 
 def find_param_included(profile_dict):
+
+    # Case for argovis names
 
     # TODO
     # Not  using this routiine with combined for batch, but called
     #  for after profiles are combined. But for regular
     # program, I think I am
 
-    included_param_goship_btl = []
-    included_param_goship_ctd = []
-    included_param_goship_names = []
+    included_param_btl = []
+    included_param_ctd = []
+    included_param_names = []
 
     profile_keys = profile_dict.keys()
 
-    # TODO
-    #  here
-    # In batch mode, it's  only using the names of one cruise
-
-    # For param data
     try:
         name_mapping = profile_dict['goshipArgovisParamMapping']
-        included_param_goship_names = [
-            name for name in name_mapping.keys() if '_qc' not in name]
+        included_param_names = name_mapping.values()
 
     except KeyError:
         if 'goshipArgovisParamMappingBtl' in profile_keys:
             name_mapping_btl = profile_dict['goshipArgovisParamMappingBtl']
-            included_param_goship_btl = [
-                name for name in name_mapping_btl.keys() if '_qc' not in name]
+            included_param_btl = name_mapping_btl.values()
+
         if 'goshipArgovisParamMappingCtd' in profile_keys:
             name_mapping_ctd = profile_dict['goshipArgovisParamMappingCtd']
-            included_param_goship_ctd = [
-                name for name in name_mapping_ctd.keys() if '_qc' not in name]
+            included_param_ctd = name_mapping_ctd.values()
 
-    return included_param_goship_names, included_param_goship_btl, included_param_goship_ctd
+    return included_param_names, included_param_btl, included_param_ctd
 
 
-def find_param_excluded(profile_dict, included_param_goship_btl, included_param_goship_ctd, included_param_goship_names):
+def find_param_excluded(profile_dict, included_param_btl, included_param_ctd, included_param_names):
 
-    excluded_goship_param_names_btl = []
-    excluded_goship_param_names_ctd = []
-    excluded_goship_param_names = []
+    # Case for argovis names
 
-    goship_param_names, goship_param_names_btl, goship_param_names_ctd = get_goship_param_names(
+    excluded_param_names_btl = []
+    excluded_param_names_ctd = []
+    excluded_param_names = []
+
+    # param_names, param_names_btl, param_names_ctd = get_goship_param_names(
+    #     profile_dict)
+    param_names, param_names_btl, param_names_ctd = get_argovis_param_names(
         profile_dict)
 
     # For param names
-    if included_param_goship_btl and goship_param_names_btl:
-        included_goship_param_names_set = set(included_param_goship_btl)
-        goship_param_names_set = set(goship_param_names_btl)
-        excluded_goship_param_names_btl = goship_param_names_set.difference(
-            included_goship_param_names_set)
+    if included_param_btl and param_names_btl:
+        included_param_names_set = set(included_param_btl)
+        param_names_set = set(param_names_btl)
+        excluded_param_names_btl = param_names_set.difference(
+            included_param_names_set)
 
-    if included_param_goship_ctd and goship_param_names_ctd:
-        included_goship_param_names_set = set(included_param_goship_ctd)
-        goship_param_names_set = set(goship_param_names_ctd)
-        excluded_goship_param_names_ctd = goship_param_names_set.difference(
-            included_goship_param_names_set)
+    if included_param_ctd and param_names_ctd:
+        included_param_names_set = set(included_param_ctd)
+        param_names_set = set(param_names_ctd)
+        excluded_param_names_ctd = param_names_set.difference(
+            included_param_names_set)
 
-    if included_param_goship_names and goship_param_names:
-        included_goship_param_names_set = set(included_param_goship_names)
-        goship_param_names_set = set(goship_param_names)
-        excluded_goship_param_names = goship_param_names_set.difference(
-            included_goship_param_names_set)
+    if included_param_names and param_names:
+        included_param_names_set = set(included_param_names)
+        param_names_set = set(param_names)
+        excluded_param_names = param_names_set.difference(
+            included_param_names_set)
 
-    return excluded_goship_param_names_btl, excluded_goship_param_names_ctd, excluded_goship_param_names
+    return excluded_param_names_btl, excluded_param_names_ctd, excluded_param_names
 
 
-def add_vars_one_profile(profile_dict):
+def add_goship_vars_one_profile(profile_dict):
 
     # Don't save qc or meta vars
 
@@ -247,6 +295,74 @@ def add_vars_one_profile(profile_dict):
     return included, excluded, included_param_goship_names, excluded_goship_param_names
 
 
+def add_argovis_vars_one_profile(profile_dict):
+
+    # Don't save qc or meta vars
+
+    profile_id = profile_dict['meta']['id']
+
+    # argovis_meta_keys = profile_dict['meta'].keys()
+
+    # # Map back to goship names
+    # goship_meta_keys = rn.convert_argovis_meta_to_goship_names(
+    #     argovis_meta_keys)
+
+    included = []
+    excluded = []
+
+    # Include qc columns
+
+    # Get Included Goship Meta and Param names after filtering empty cols
+    # because did mapping after empty columns excluded
+    name_mapping = profile_dict['goshipArgovisMetaMapping']
+    included_meta_argovis = name_mapping.values()
+
+    name_mapping = profile_dict['goshipArgovisParamMapping']
+    included_param_argovis_names = name_mapping.values()
+
+    # Get Goship Meta and Param names before filtering out empty cols
+    # These are the names in original goship file which includes
+    # empty columns due to starting netcdf file containing all
+    # variable names for all the profiles
+    argovis_meta_names = profile_dict['argovisMetaNames']
+
+    argovis_param_names = profile_dict['argovisParamNames']
+
+    # Get Excluded Goship Meta  and Param names
+
+    # TODO
+    # would this be necessary? Doesn't seem like there would be duplicates
+    included_argovis_meta_names_set = set(included_meta_argovis)
+    argovis_meta_names_set = set(argovis_meta_names)
+    excluded_argovis_meta_names = argovis_meta_names_set.difference(
+        included_argovis_meta_names_set)
+
+    included_argovis_param_names_set = set(included_param_argovis_names)
+    argovis_param_names_set = set(argovis_param_names)
+
+    excluded_argovis_param_names = argovis_param_names_set.difference(
+        included_argovis_param_names_set)
+
+    # *******************************
+    # Save included and excluded vars
+    # *******************************
+
+    # **********************************
+    # for included and excluded argovis names
+    # Add tuple (argovis_name, profile_id, data_type)
+    # ***********************************
+
+    data_type = profile_dict['data_type']
+
+    for name in included_param_argovis_names:
+        included.append((name, profile_id, data_type))
+
+    for name in excluded_argovis_param_names:
+        excluded.append((name, profile_id, data_type))
+
+    return included, excluded, included_param_argovis_names, excluded_argovis_param_names
+
+
 def add_vars_one_cruise(data_type_profiles_objs):
 
     vars_included = []
@@ -268,14 +384,19 @@ def add_vars_one_cruise(data_type_profiles_objs):
 
             # included_param_goship_names and excluded_goship_param_names
             # are the names for one profile
-            included, excluded, included_param_goship_names, excluded_goship_param_names = add_vars_one_profile(
+            # included, excluded, included_param_goship_names, excluded_goship_param_names = add_goship_vars_one_profile(
+            #     profile_dict)
+
+            included, excluded, included_param_argovis_names, excluded_argovis_param_names = add_argovis_vars_one_profile(
                 profile_dict)
 
             vars_included.extend(included)
             vars_excluded.extend(excluded)
 
-            included_names.extend(included_param_goship_names)
-            excluded_names.extend(excluded_goship_param_names)
+            # included_names.extend(included_param_goship_names)
+            # excluded_names.extend(excluded_goship_param_names)
+            included_names.extend(included_param_argovis_names)
+            excluded_names.extend(excluded_argovis_param_names)
 
     unique_included_names = list(set(included_names))
     unique_excluded_names = list(set(excluded_names))

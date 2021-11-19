@@ -30,6 +30,8 @@ def process_batch_of_cruises(cruise_objs):
     logging.info("Create profiles for cruises")
     logging.info('-------------------------------')
 
+    # TODO
+    # rename this function since not using previous method
     cruises_profiles_objs = process_cruise_objs_by_type_series(cruise_objs)
 
     # ***********************************

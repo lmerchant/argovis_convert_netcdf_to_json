@@ -294,6 +294,7 @@ def process_all_cruises(cruises_json, files_info, time_range):
             file['id'] = file_id
             file['json'] = file_json
 
+            # Include file hash information in final json
             file_hash = file_id_hash_mapping[file_id]
 
             file_obj = create_file_obj(
