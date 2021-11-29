@@ -42,21 +42,21 @@ def filter_argovis_mapping(nc_mappings, all_name_mapping):
     return all_filtered_mappings
 
 
-def get_goship_core_meas_var_names():
+def get_cchdo_core_meas_var_names():
     return ['pressure', 'ctd_salinity', 'ctd_salinity_qc', 'bottle_salinity', 'bottle_salinity_qc', 'ctd_temperature', 'ctd_temperature_qc', 'ctd_temperature_68', 'ctd_temperature_68_qc']
 
     # return ['pressure', 'ctd_salinity', 'ctd_salinity_qc', 'bottle_salinity', 'bottle_salinity_qc', 'ctd_temperature', 'ctd_temperature_qc', 'ctd_temperature_68', 'ctd_temperature_68_qc', 'ctd_oxygen', 'ctd_oxygen_qc', 'ctd_oxygen_ml_l', 'ctd_oxygen_ml_l_qc']
 
 
-def get_goship_core_meas_salinity_names():
+def get_cchdo_core_meas_salinity_names():
     return ['ctd_salinity', 'ctd_salinity_qc', 'bottle_salinity', 'bottle_salinity_qc']
 
 
-def get_goship_core_meas_temperature_names():
+def get_cchdo_core_meas_temperature_names():
     return ['ctd_temperature', 'ctd_temperature_qc', 'ctd_temperature_68', 'ctd_temperature_68_qc']
 
 
-def get_goship_core_meas_oxygen_names():
+def get_cchdo_core_meas_oxygen_names():
     return ['ctd_oxygen', 'ctd_oxygen_qc', 'ctd_oxygen_ml_l', 'ctd_oxygen_ml_l_qc']
 
 
@@ -117,14 +117,14 @@ def get_argovis_core_meas_values_per_type(data_type):
     # measurements to check if have ctd_salinity, and
     # if now, use bottle_salinity
 
-    # Since didn't rename to argovis yet, use goship names
+    # Since didn't rename to argovis yet, use cchdo names
     # which means multiple temperature and oxygen names for ctd vars
     # standing for different ref scales
 
     return ['pres', f"temp_{data_type}", f"temp_{data_type}_qc", f"psal_{data_type}",  f"psal_{data_type}_qc", 'salinity_btl', 'salinity_btl_qc']
 
 
-def get_goship_argovis_name_mapping_per_type(data_type):
+def get_cchdo_argovis_name_mapping_per_type(data_type):
 
     return {
         'pressure': 'pres',
@@ -146,7 +146,7 @@ def get_goship_argovis_name_mapping_per_type(data_type):
     }
 
 
-def create_goship_argovis_mappings(
+def create_cchdo_argovis_mappings(
         nc_mappings, all_argovis_param_mapping_list, data_type):
 
     # nc_mappings gives properties of the xarray object of
@@ -155,8 +155,8 @@ def create_goship_argovis_mappings(
     # all_argovis_param_mapping_list gives the properties
     # of each profile
 
-    goship_meta_mapping = nc_mappings['goship_meta']
-    goship_param_mapping = nc_mappings['goship_param']
+    cchdo_meta_mapping = nc_mappings['cchdo_meta']
+    cchdo_param_mapping = nc_mappings['cchdo_param']
 
     argovis_meta_mapping = nc_mappings['argovis_meta']
 
@@ -177,14 +177,14 @@ def create_goship_argovis_mappings(
 
         new_mapping['station_cast'] = argovis_param_mapping['station_cast']
 
-        all_goship_meta_names = goship_meta_mapping['names']
-        all_goship_param_names = goship_param_mapping['names']
+        all_cchdo_meta_names = cchdo_meta_mapping['names']
+        all_cchdo_param_names = cchdo_param_mapping['names']
 
         all_argovis_meta_names = argovis_meta_mapping['names']
         all_argovis_param_names = argovis_param_mapping['names']
 
-        new_mapping['goshipMetaNames'] = all_goship_meta_names
-        new_mapping['goshipParamNames'] = all_goship_param_names
+        new_mapping['cchdoMetaNames'] = all_cchdo_meta_names
+        new_mapping['cchdoParamNames'] = all_cchdo_param_names
         new_mapping['argovisMetaNames'] = all_argovis_meta_names
         new_mapping['argovisParamNames'] = all_argovis_param_names
 
@@ -193,16 +193,16 @@ def create_goship_argovis_mappings(
         # new_mapping['bgcMeasKeys'] = [
         #     name for name in all_argovis_param_names if '_qc' not in name]
 
-        core_goship_argovis_name_mapping = get_goship_argovis_name_mapping_per_type(
+        core_cchdo_argovis_name_mapping = get_cchdo_argovis_name_mapping_per_type(
             data_type)
 
         name_mapping = {}
-        all_goship_names = [*all_goship_meta_names, *all_goship_param_names]
+        all_cchdo_names = [*all_cchdo_meta_names, *all_cchdo_param_names]
         all_argovis_names = [*all_argovis_meta_names, *all_argovis_param_names]
 
-        for var in all_goship_names:
+        for var in all_cchdo_names:
             try:
-                argovis_name = core_goship_argovis_name_mapping[var]
+                argovis_name = core_cchdo_argovis_name_mapping[var]
                 if argovis_name in all_argovis_names:
                     name_mapping[var] = argovis_name
                     continue
@@ -219,22 +219,22 @@ def create_goship_argovis_mappings(
                     name_mapping[var] = argovis_name
 
         meta_name_mapping = {key: val for key,
-                             val in name_mapping.items() if key in all_goship_meta_names}
+                             val in name_mapping.items() if key in all_cchdo_meta_names}
 
         param_name_mapping = {key: val for key,
-                              val in name_mapping.items() if key in all_goship_param_names}
+                              val in name_mapping.items() if key in all_cchdo_param_names}
 
-        new_mapping['goshipArgovisMetaMapping'] = meta_name_mapping
-        new_mapping['goshipArgovisParamMapping'] = param_name_mapping
+        new_mapping['cchdoArgovisMetaMapping'] = meta_name_mapping
+        new_mapping['cchdoArgovisParamMapping'] = param_name_mapping
 
-        new_mapping['goshipReferenceScale'] = {
-            **goship_meta_mapping['ref_scale'], **goship_param_mapping['ref_scale']}
+        new_mapping['cchdoReferenceScale'] = {
+            **cchdo_meta_mapping['ref_scale'], **cchdo_param_mapping['ref_scale']}
 
         new_mapping['argovisReferenceScale'] = {
             **argovis_meta_mapping['ref_scale'], **argovis_param_mapping['ref_scale']}
 
-        new_mapping['goshipUnits'] = {
-            **goship_meta_mapping['units'], **goship_param_mapping['units']}
+        new_mapping['cchdoUnits'] = {
+            **cchdo_meta_mapping['units'], **cchdo_param_mapping['units']}
 
         new_mapping['argovisUnits'] = {
             **argovis_meta_mapping['units'], **argovis_param_mapping['units']}
@@ -244,7 +244,7 @@ def create_goship_argovis_mappings(
     return all_mapping_profiles
 
 
-def create_goship_mappings(nc_mappings, all_name_mapping):
+def create_cchdo_mappings(nc_mappings, all_name_mapping):
 
     # nc_mappings gives properties of the xarray object of
     # all profiles at once
@@ -252,14 +252,14 @@ def create_goship_mappings(nc_mappings, all_name_mapping):
     # all_argovis_param_mapping_list gives the properties
     # of each profile
 
-    goship_meta_mapping = nc_mappings['goship_meta']
-    goship_param_mapping = nc_mappings['goship_param']
+    cchdo_meta_mapping = nc_mappings['cchdo_meta']
+    cchdo_param_mapping = nc_mappings['cchdo_param']
 
-    all_goship_meta_names = goship_meta_mapping['names']
-    all_goship_param_names = goship_param_mapping['names']
+    all_cchdo_meta_names = cchdo_meta_mapping['names']
+    all_cchdo_param_names = cchdo_param_mapping['names']
 
-    params_units_changed = nc_mappings['goship_units_changed']
-    params_ref_scale_changed = nc_mappings['goship_ref_scale_changed']
+    params_units_changed = nc_mappings['cchdo_units_changed']
+    params_ref_scale_changed = nc_mappings['cchdo_ref_scale_changed']
 
     all_mapping_profiles = []
 
@@ -272,36 +272,36 @@ def create_goship_mappings(nc_mappings, all_name_mapping):
 
         non_empty_cols = name_mapping['non_empty_cols']
 
-        # So filter each goship mapping and keep only those in non_empty_cols
+        # So filter each cchdo mapping and keep only those in non_empty_cols
         # meta names don't change
-        new_mapping['goshipMetaNames'] = all_goship_meta_names
-        new_mapping['goshipParamNames'] = [
-            col for col in all_goship_param_names if col in non_empty_cols]
+        new_mapping['cchdoMetaNames'] = all_cchdo_meta_names
+        new_mapping['cchdoParamNames'] = [
+            col for col in all_cchdo_param_names if col in non_empty_cols]
 
-        cur_param_ref_scale_mapping = goship_param_mapping['ref_scale']
+        cur_param_ref_scale_mapping = cchdo_param_mapping['ref_scale']
         new_param_ref_scale_mapping = {
             key: val for key, val in cur_param_ref_scale_mapping.items() if key in non_empty_cols}
 
-        new_mapping['goshipReferenceScale'] = {
-            **goship_meta_mapping['ref_scale'], **new_param_ref_scale_mapping}
+        new_mapping['cchdoReferenceScale'] = {
+            **cchdo_meta_mapping['ref_scale'], **new_param_ref_scale_mapping}
 
-        cur_param_units_mapping = goship_param_mapping['units']
+        cur_param_units_mapping = cchdo_param_mapping['units']
         new_param_units_mapping = {
             key: val for key, val in cur_param_units_mapping.items() if key in non_empty_cols}
 
-        new_mapping['goshipUnits'] = {
-            **goship_meta_mapping['units'], **new_param_units_mapping}
+        new_mapping['cchdoUnits'] = {
+            **cchdo_meta_mapping['units'], **new_param_units_mapping}
 
         new_param_ref_scale_mapping = {
             key: val for key, val in params_ref_scale_changed.items() if key in non_empty_cols}
 
-        new_mapping['goshipConvertedReferenceScale'] = {
+        new_mapping['cchdoConvertedReferenceScale'] = {
             **params_ref_scale_changed, **new_param_ref_scale_mapping}
 
         new_param_units_mapping = {
             key: val for key, val in params_units_changed.items() if key in non_empty_cols}
 
-        new_mapping['goshipConvertedUnits'] = {
+        new_mapping['cchdoConvertedUnits'] = {
             **params_units_changed, **new_param_units_mapping}
 
         all_mapping_profiles.append(new_mapping)

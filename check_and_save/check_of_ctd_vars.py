@@ -192,10 +192,10 @@ def check_ctd_vars_one_profile(profile):
             has_pres = False
 
     # try:
-    #     goship_argovis_name_mapping_btl = profile_dict['goshipArgovisNameMappingBtl']
-    #     goship_argovis_name_mapping_ctd = profile_dict['goshipArgovisNameMappingCtd']
+    #     cchdo_argovis_name_mapping_btl = profile_dict['cchdoArgovisNameMappingBtl']
+    #     cchdo_argovis_name_mapping_ctd = profile_dict['cchdoArgovisNameMappingCtd']
     # except:
-    #     goship_argovis_name_mapping = profile_dict['goshipArgovisNameMapping']
+    #     cchdo_argovis_name_mapping = profile_dict['cchdoArgovisNameMapping']
 
     # Look for ctd_temperature
     try:

@@ -668,39 +668,39 @@ def find_btl_ctd_combinations(hierarchy_btl, hierarchy_ctd):
     # combination 9
     # *************
 
-    # # btl temp bad
-    # # ctd temp bad
-    # # then use empty objs
+    # btl temp bad
+    # ctd temp bad
+    # then use empty objs
 
-    # btl_condition = not hierarchy_btl['good_temp']
+    btl_condition = not hierarchy_btl['good_temp']
 
-    # ctd_condition = not hierarchy_ctd['good_temp']
+    ctd_condition = not hierarchy_ctd['good_temp']
 
-    # if btl_condition and ctd_condition:
-    #     hierarchy_meas_cols = {
-    #         'btl': [],
-    #         'ctd': []
-    #     }
+    if btl_condition and ctd_condition:
+        hierarchy_meas_cols = {
+            'btl': [],
+            'ctd': []
+        }
 
-    #     source_flag = 'None'
+        source_flag = 'None'
 
-    #     meas_sources = {
-    #         'pres_btl': False,
-    #         'temp_btl': False,
-    #         'pres_ctd': False,
-    #         'temp_ctd': False
-    #     }
+        meas_sources = {
+            'pres_btl': False,
+            'temp_btl': False,
+            'pres_ctd': False,
+            'temp_ctd': False
+        }
 
-    #     if has_psal_btl:
-    #         meas_sources['psal_btl'] = False
+        if has_psal_btl:
+            meas_sources['psal_btl'] = False
 
-    #     if has_salinity:
-    #         meas_sources['salinity_btl'] = False
+        if has_salinity:
+            meas_sources['salinity_btl'] = False
 
-    #     if has_psal_ctd:
-    #         meas_sources['psal_ctd'] = False
+        if has_psal_ctd:
+            meas_sources['psal_ctd'] = False
 
-    #     return hierarchy_meas_cols, source_flag, meas_sources
+        return hierarchy_meas_cols, source_flag, meas_sources
 
     # -----------------
 

@@ -581,8 +581,8 @@ def combine_btl_ctd_per_profile(btl_profile, ctd_profile):
     # btl_meas = []
     # ctd_meas = []
 
-    btl_bgc_meas = []
-    ctd_bgc_meas = []
+    btl_data = []
+    ctd_data = []
 
     # btl_qc = {}
     # ctd_qc = {}
@@ -596,7 +596,7 @@ def combine_btl_ctd_per_profile(btl_profile, ctd_profile):
     if btl_dict:
         data_type = 'btl'
         btl_meta = btl_dict['meta']
-        btl_bgc_meas = btl_dict['bgcMeas']
+        btl_data = btl_dict['data']
         #btl_meas = btl_dict['measurements']
         # btl_qc = btl_dict['measurementsSourceQC']
         # btl_qc_val = btl_qc['qc']
@@ -604,7 +604,7 @@ def combine_btl_ctd_per_profile(btl_profile, ctd_profile):
     if ctd_dict:
         data_type = 'ctd'
         ctd_meta = ctd_dict['meta']
-        ctd_bgc_meas = ctd_dict['bgcMeas']
+        ctd_data = ctd_dict['data']
         #ctd_meas = ctd_dict['measurements']
         # ctd_qc = ctd_dict['measurementsSourceQC']
         # ctd_qc_val = ctd_qc['qc']
@@ -677,7 +677,7 @@ def combine_btl_ctd_per_profile(btl_profile, ctd_profile):
         btl_meta = rename_btl_by_key_meta(btl_meta)
 
     meta = {**ctd_meta, **btl_meta}
-    bgc_meas = [*ctd_bgc_meas, *btl_bgc_meas]
+    data = [*ctd_data, *btl_data]
 
     # TODO
     # modify criteria
@@ -694,7 +694,7 @@ def combine_btl_ctd_per_profile(btl_profile, ctd_profile):
     #     meas_sources = ctd_qc
 
     combined_btl_ctd_dict['meta'] = meta
-    combined_btl_ctd_dict['bgcMeas'] = bgc_meas
+    combined_btl_ctd_dict['data'] = data
 
     # combined_btl_ctd_dict['bgcMeasKeys'] = [
     #     *btl_dict['bgcMeasKeys'], *ctd_dict['bgcMeasKeys']]

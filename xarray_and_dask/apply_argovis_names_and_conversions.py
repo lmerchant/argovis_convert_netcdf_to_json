@@ -39,8 +39,8 @@ def apply_argovis_names_and_conversions(cruises_profiles_objs):
     # Don't need nc.load if xarray file not Dask format
 
     # nc probably will be profile object which contains
-    # the datatype and goship mappings goship_meta_mapping
-    # and goship_param_mapping
+    # the datatype and cchdo mappings cchdo_meta_mapping
+    # and cchdo_param_mapping
 
     # Ask if this is OK
     # Donata wants to add pres_qc = 1
@@ -81,18 +81,18 @@ def apply_argovis_names_and_conversions(cruises_profiles_objs):
     nc = nc.chunk({'N_PROF': chunk_size})
 
     nc = mod_xr_meta.apply_c_format_meta(
-        nc, goship_meta_mapping)
+        nc, cchdo_meta_mapping)
 
     nc = mod_xr_param.apply_c_format_param(
-        nc, goship_param_mapping)
+        nc, cchdo_param_mapping)
 
     # **********************************
     # Change unit names (no conversions)
     # **********************************
 
     # Do this last
-    nc = mod_xr_meta.change_units_to_argovis(nc, goship_meta_mapping)
-    nc = mod_xr_param.change_units_to_argovis(nc, goship_param_mapping)
+    nc = mod_xr_meta.change_units_to_argovis(nc, cchdo_meta_mapping)
+    nc = mod_xr_param.change_units_to_argovis(nc, cchdo_param_mapping)
 
     # **************************
     # Rename varables to ArgoVis
@@ -106,7 +106,7 @@ def apply_argovis_names_and_conversions(cruises_profiles_objs):
     # **********************
 
     # TODO
-    # take into account goship col temp_qc did not exist if no
+    # take into account cchdo col temp_qc did not exist if no
     # qc existed for ctd temp. But still need to map it
 
     # Create meta and param objs that reference coords or vars
@@ -114,7 +114,7 @@ def apply_argovis_names_and_conversions(cruises_profiles_objs):
     # Getting mapping after added extra meta data to nc
     meta_mapping, param_mapping = get_meta_param_mapping(nc)
 
-    # Create mapping object of goship names to nc attributes
+    # Create mapping object of cchdo names to nc attributes
     # Before add or drop coords
     # mapping obj: names (list), units (obj), ref_scale (obj)
     # c_format (obj), and dtype (obj)
@@ -143,7 +143,7 @@ def apply_argovis_names_and_conversions(cruises_profiles_objs):
         all_argovis_param_mapping_list = filter_argovis_mapping(
             nc_mappings, all_name_mapping)
 
-        goship_argovis_mapping_profiles = create_goship_argovis_mappings(
+        cchdo_argovis_mapping_profiles = create_cchdo_argovis_mappings(
             nc_mappings, all_argovis_param_mapping_list, data_type)
 
     return cruises_profiles_objs

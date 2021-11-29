@@ -1,5 +1,5 @@
 from variable_mapping.meta_param_mapping import get_meta_param_mapping_keys
-from variable_mapping.meta_param_mapping import get_goship_var_attributes_keys
+from variable_mapping.meta_param_mapping import get_cchdo_var_attributes_keys
 from variable_mapping.meta_param_mapping import get_argovis_var_attributes_keys
 
 
@@ -16,32 +16,32 @@ def get_combined_variable_mapping(btl_dict, ctd_dict):
         ctd_key_name = f"{key}Ctd"
         mapping[ctd_key_name] = ctd_dict[key]
 
-    # # mapping['goshipMetaNamesBtl'] = btl_dict['goshipMetaNames']
-    # # mapping['goshipMetaNamesCtd'] = ctd_dict['goshipMetaNames']
+    # # mapping['cchdoMetaNamesBtl'] = btl_dict['cchdoMetaNames']
+    # # mapping['cchdoMetaNamesCtd'] = ctd_dict['cchdoMetaNames']
 
-    # mapping['goshipParamNamesBtl'] = btl_dict['goshipParamNames']
-    # mapping['goshipParamNamesCtd'] = ctd_dict['goshipParamNames']
+    # mapping['cchdoParamNamesBtl'] = btl_dict['cchdoParamNames']
+    # mapping['cchdoParamNamesCtd'] = ctd_dict['cchdoParamNames']
 
-    # # mapping['goshipArgovisMetaMappingBtl'] = goship_argovis_meta_mapping_btl
-    # # mapping['goshipArgovisMetaMappingCtd'] = ctd_dict['goshipArgovisMetaMapping']
+    # # mapping['cchdoArgovisMetaMappingBtl'] = cchdo_argovis_meta_mapping_btl
+    # # mapping['cchdoArgovisMetaMappingCtd'] = ctd_dict['cchdoArgovisMetaMapping']
 
-    # mapping['goshipArgovisParamMappingBtl'] = btl_dict['goshipArgovisParamMapping']
-    # mapping['goshipArgovisParamMappingCtd'] = ctd_dict['goshipArgovisParamMapping']
+    # mapping['cchdoArgovisParamMappingBtl'] = btl_dict['cchdoArgovisParamMapping']
+    # mapping['cchdoArgovisParamMappingCtd'] = ctd_dict['cchdoArgovisParamMapping']
 
-    goship_var_attributes_mapping_keys = get_goship_var_attributes_keys()
+    cchdo_var_attributes_mapping_keys = get_cchdo_var_attributes_keys()
 
-    for key in goship_var_attributes_mapping_keys:
+    for key in cchdo_var_attributes_mapping_keys:
         btl_key_name = f"{key}Btl"
         mapping[btl_key_name] = btl_dict[key]
 
         ctd_key_name = f"{key}Ctd"
         mapping[ctd_key_name] = ctd_dict[key]
 
-    # mapping['goshipReferenceScaleBtl'] = btl_dict['goshipReferenceScale']
-    # mapping['goshipReferenceScaleCtd'] = ctd_dict['goshipReferenceScale']
+    # mapping['cchdoReferenceScaleBtl'] = btl_dict['cchdoReferenceScale']
+    # mapping['cchdoReferenceScaleCtd'] = ctd_dict['cchdoReferenceScale']
 
-    # mapping['goshipUnitsBtl'] = btl_dict['goshipUnits']
-    # mapping['goshipUnitsCtd'] = ctd_dict['goshipUnits']
+    # mapping['cchdoUnitsBtl'] = btl_dict['cchdoUnits']
+    # mapping['cchdoUnitsCtd'] = ctd_dict['cchdoUnits']
 
     # For Argovis meta names, didn't add suffix to them
     # But now that are combining, put suffix on the
@@ -85,13 +85,13 @@ def get_data_type_mapping(data_dict):
     mapping = {}
 
     meta_param_mapping_keys = get_meta_param_mapping_keys()
-    goship_var_attributes_mapping_keys = get_goship_var_attributes_keys()
+    cchdo_var_attributes_mapping_keys = get_cchdo_var_attributes_keys()
     argovis_var_attributes_keys = get_argovis_var_attributes_keys()
 
     for key in meta_param_mapping_keys:
         mapping[key] = data_dict[key]
 
-    for key in goship_var_attributes_mapping_keys:
+    for key in cchdo_var_attributes_mapping_keys:
         mapping[key] = data_dict[key]
 
     for key in argovis_var_attributes_keys:
@@ -126,12 +126,12 @@ def get_all_variable_mappings(source_independent_meta_names, btl_dict, ctd_dict)
         # btl_mapping['argovisReferenceScale'] = btl_dict['argovisReferenceScale']
         # btl_mapping['argovisUnits'] = btl_dict['argovisUnits']
 
-        # #btl_mapping['goshipMetaNames'] = btl_dict['goshipMetaNames']
-        # btl_mapping['goshipParamNames'] = btl_dict['goshipParamNames']
-        # # btl_mapping['goshipArgovisMetaMapping'] = btl_dict['goshipArgovisMetaMapping']
-        # btl_mapping['goshipArgovisParamMapping'] = btl_dict['goshipArgovisParamMapping']
-        # btl_mapping['goshipReferenceScale'] = btl_dict['goshipReferenceScale']
-        # btl_mapping['goshipUnits'] = btl_dict['goshipUnits']
+        # #btl_mapping['cchdoMetaNames'] = btl_dict['cchdoMetaNames']
+        # btl_mapping['cchdoParamNames'] = btl_dict['cchdoParamNames']
+        # # btl_mapping['cchdoArgovisMetaMapping'] = btl_dict['cchdoArgovisMetaMapping']
+        # btl_mapping['cchdoArgovisParamMapping'] = btl_dict['cchdoArgovisParamMapping']
+        # btl_mapping['cchdoReferenceScale'] = btl_dict['cchdoReferenceScale']
+        # btl_mapping['cchdoUnits'] = btl_dict['cchdoUnits']
         # btl_mapping['bgcMeasKeys'] = btl_dict['bgcMeasKeys']
 
         btl_mapping = get_data_type_mapping(btl_dict)
@@ -142,12 +142,12 @@ def get_all_variable_mappings(source_independent_meta_names, btl_dict, ctd_dict)
         # ctd_mapping['argovisReferenceScale'] = ctd_dict['argovisReferenceScale']
         # ctd_mapping['argovisUnits'] = ctd_dict['argovisUnits']
 
-        # #ctd_mapping['goshipMetaNames'] = ctd_dict['goshipMetaNames']
-        # ctd_mapping['goshipParamNames'] = ctd_dict['goshipParamNames']
-        # # ctd_mapping['goshipArgovisMetaMapping'] = ctd_dict['goshipArgovisMetaMapping']
-        # ctd_mapping['goshipArgovisParamMapping'] = ctd_dict['goshipArgovisParamMapping']
-        # ctd_mapping['goshipReferenceScale'] = ctd_dict['goshipReferenceScale']
-        # ctd_mapping['goshipUnits'] = ctd_dict['goshipUnits']
+        # #ctd_mapping['cchdoMetaNames'] = ctd_dict['cchdoMetaNames']
+        # ctd_mapping['cchdoParamNames'] = ctd_dict['cchdoParamNames']
+        # # ctd_mapping['cchdoArgovisMetaMapping'] = ctd_dict['cchdoArgovisMetaMapping']
+        # ctd_mapping['cchdoArgovisParamMapping'] = ctd_dict['cchdoArgovisParamMapping']
+        # ctd_mapping['cchdoReferenceScale'] = ctd_dict['cchdoReferenceScale']
+        # ctd_mapping['cchdoUnits'] = ctd_dict['cchdoUnits']
         # ctd_mapping['bgcMeasKeys'] = ctd_dict['bgcMeasKeys']
         ctd_mapping = get_data_type_mapping(ctd_dict)
 
@@ -163,27 +163,27 @@ def get_all_variable_mappings(source_independent_meta_names, btl_dict, ctd_dict)
 
         # Put suffix of '_btl' in  bottle meta except
         # for unique meta names iin btl_exclude list
-        # goship_argovis_meta_mapping_btl = btl_dict['goshipArgovisMetaMapping']
-        # goship_argovis_meta_mapping_btl = {
-        #     f"{key}_btl": val for key, val in goship_argovis_meta_mapping_btl.items() if val in argovis_meta_names_btl_subset}
+        # cchdo_argovis_meta_mapping_btl = btl_dict['cchdoArgovisMetaMapping']
+        # cchdo_argovis_meta_mapping_btl = {
+        #     f"{key}_btl": val for key, val in cchdo_argovis_meta_mapping_btl.items() if val in argovis_meta_names_btl_subset}
 
-        # # combined_btl_ctd_dict['goshipMetaNamesBtl'] = btl_dict['goshipMetaNames']
-        # # combined_btl_ctd_dict['goshipMetaNamesCtd'] = ctd_dict['goshipMetaNames']
+        # # combined_btl_ctd_dict['cchdoMetaNamesBtl'] = btl_dict['cchdoMetaNames']
+        # # combined_btl_ctd_dict['cchdoMetaNamesCtd'] = ctd_dict['cchdoMetaNames']
 
-        # combined_btl_ctd_dict['goshipParamNamesBtl'] = btl_dict['goshipParamNames']
-        # combined_btl_ctd_dict['goshipParamNamesCtd'] = ctd_dict['goshipParamNames']
+        # combined_btl_ctd_dict['cchdoParamNamesBtl'] = btl_dict['cchdoParamNames']
+        # combined_btl_ctd_dict['cchdoParamNamesCtd'] = ctd_dict['cchdoParamNames']
 
-        # # combined_btl_ctd_dict['goshipArgovisMetaMappingBtl'] = goship_argovis_meta_mapping_btl
-        # # combined_btl_ctd_dict['goshipArgovisMetaMappingCtd'] = ctd_dict['goshipArgovisMetaMapping']
+        # # combined_btl_ctd_dict['cchdoArgovisMetaMappingBtl'] = cchdo_argovis_meta_mapping_btl
+        # # combined_btl_ctd_dict['cchdoArgovisMetaMappingCtd'] = ctd_dict['cchdoArgovisMetaMapping']
 
-        # combined_btl_ctd_dict['goshipArgovisParamMappingBtl'] = btl_dict['goshipArgovisParamMapping']
-        # combined_btl_ctd_dict['goshipArgovisParamMappingCtd'] = ctd_dict['goshipArgovisParamMapping']
+        # combined_btl_ctd_dict['cchdoArgovisParamMappingBtl'] = btl_dict['cchdoArgovisParamMapping']
+        # combined_btl_ctd_dict['cchdoArgovisParamMappingCtd'] = ctd_dict['cchdoArgovisParamMapping']
 
-        # combined_btl_ctd_dict['goshipReferenceScaleBtl'] = btl_dict['goshipReferenceScale']
-        # combined_btl_ctd_dict['goshipReferenceScaleCtd'] = ctd_dict['goshipReferenceScale']
+        # combined_btl_ctd_dict['cchdoReferenceScaleBtl'] = btl_dict['cchdoReferenceScale']
+        # combined_btl_ctd_dict['cchdoReferenceScaleCtd'] = ctd_dict['cchdoReferenceScale']
 
-        # combined_btl_ctd_dict['goshipUnitsBtl'] = btl_dict['goshipUnits']
-        # combined_btl_ctd_dict['goshipUnitsCtd'] = ctd_dict['goshipUnits']
+        # combined_btl_ctd_dict['cchdoUnitsBtl'] = btl_dict['cchdoUnits']
+        # combined_btl_ctd_dict['cchdoUnitsCtd'] = ctd_dict['cchdoUnits']
 
         # # For Argovis meta names, didn't add suffix to them
         # # But now that are combining, put suffix on the

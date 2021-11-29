@@ -41,7 +41,7 @@ def delete_logs(append_logs):
     if not append_logs:
         remove_file(GlobalVars.OUTPUT_LOG, logging_dir)
         remove_file('file_read_errors.txt', logging_dir)
-        remove_file('found_goship_units.txt', logging_dir)
+        remove_file('found_cchdo_units.txt', logging_dir)
         remove_file('cruises_no_core_ctd_vars.txt', logging_dir)
         remove_file('cruises_w_ctd_temp_no_qc.txt', logging_dir)
         remove_file('cruises_w_ctd_temp_no_ref_scale.txt', logging_dir)

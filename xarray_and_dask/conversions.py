@@ -582,31 +582,31 @@ def convert_oxygen_to_new_units(nc, var):
     return nc
 
 
-def convert_goship_to_argovis_units(nc):
+def convert_cchdo_to_argovis_units(nc):
 
     params = nc.keys()
 
-    # If goship units aren't the same as argovis units, convert
+    # If cchdo units aren't the same as argovis units, convert
     # So far, just converting oxygen
 
     for var in params:
 
         try:
-            var_goship_units = nc[var].attrs['units']
+            var_cchdo_units = nc[var].attrs['units']
         except:
             continue
 
-        if 'oxygen' in var and var_goship_units == 'ml/l':
+        if 'oxygen' in var and var_cchdo_units == 'ml/l':
             nc = convert_oxygen_to_new_units(nc, var)
 
     return nc
 
 
-def convert_sea_water_temp(nc, var, var_goship_ref_scale, argovis_ref_scale):
+def convert_sea_water_temp(nc, var, var_cchdo_ref_scale, argovis_ref_scale):
 
-    # Check sea_water_temperature to have goship_reference_scale be ITS-90
+    # Check sea_water_temperature to have cchdo_reference_scale be ITS-90
 
-    if var_goship_ref_scale == 'IPTS-68' and argovis_ref_scale == 'ITS-90':
+    if var_cchdo_ref_scale == 'IPTS-68' and argovis_ref_scale == 'ITS-90':
 
         logging.info("*** Converting sea water temperature ref scale")
 
@@ -623,11 +623,11 @@ def convert_sea_water_temp(nc, var, var_goship_ref_scale, argovis_ref_scale):
     return nc
 
 
-def convert_goship_to_argovis_ref_scale(nc):
+def convert_cchdo_to_argovis_ref_scale(nc):
 
     params = nc.keys()
 
-    # If argo ref scale not equal to goship ref scale, convert
+    # If argo ref scale not equal to cchdo ref scale, convert
 
     # So far, it's only the case for temperature
 
@@ -640,15 +640,15 @@ def convert_goship_to_argovis_ref_scale(nc):
         if 'temperature' in var:
 
             try:
-                # Get goship reference scale of var
-                var_goship_ref_scale = nc[var].attrs['reference_scale']
+                # Get cchdo reference scale of var
+                var_cchdo_ref_scale = nc[var].attrs['reference_scale']
 
                 argovis_ref_scale = argovis_ref_scale_per_type['temperature']
-                is_same_scale = var_goship_ref_scale == argovis_ref_scale
+                is_same_scale = var_cchdo_ref_scale == argovis_ref_scale
 
                 if not is_same_scale:
                     nc = convert_sea_water_temp(
-                        nc, var, var_goship_ref_scale, argovis_ref_scale)
+                        nc, var, var_cchdo_ref_scale, argovis_ref_scale)
             except:
                 pass
 
@@ -666,9 +666,9 @@ def apply_conversions(nc):
     # since Sarah wanted them anyway
 
     # Converting to argovis ref scale if needed
-    nc = convert_goship_to_argovis_ref_scale(nc)
+    nc = convert_cchdo_to_argovis_ref_scale(nc)
 
     # Apply equations to convert units
-    nc = convert_goship_to_argovis_units(nc)
+    nc = convert_cchdo_to_argovis_units(nc)
 
     return nc

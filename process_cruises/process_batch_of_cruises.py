@@ -10,7 +10,7 @@ from check_and_save.save_output import save_data_type_profiles
 # from xarray_and_dask.apply_argovis_names_and_conversions import apply_argovis_names_and_conversions
 
 from check_and_save.add_vars_to_logged_collections import gather_included_excluded_vars
-from check_and_save.save_output import save_included_excluded_goship_vars
+from check_and_save.save_output import save_included_excluded_cchdo_vars
 #from check_and_save.remove_non_ctd_profiles import remove_non_ctd_profiles
 
 
@@ -49,7 +49,7 @@ def process_batch_of_cruises(cruise_objs):
     # Make sure the precision didn't change
     # from the c_format
 
-    # Don't rename measurements vars from goship names
+    # Don't rename measurements vars from cchdo names
     # becase want to use it to determine hierarchy when combining
     cruise_objs_by_type = post_process_cruise_objs_by_type(
         cruise_objs_by_type)
@@ -66,7 +66,7 @@ def process_batch_of_cruises(cruise_objs):
     # print(one_profile)
 
     # ***********************************
-    # Write included/excluded goship vars
+    # Write included/excluded cchdo vars
     # ***********************************
 
     # If profile not included, I guess that means it
@@ -80,7 +80,7 @@ def process_batch_of_cruises(cruise_objs):
         cruise_objs_by_type)
 
     # Rename included and excluded vars and save
-    save_included_excluded_goship_vars(
+    save_included_excluded_cchdo_vars(
         cruises_all_included, cruises_all_excluded)
 
     # ***********************************************

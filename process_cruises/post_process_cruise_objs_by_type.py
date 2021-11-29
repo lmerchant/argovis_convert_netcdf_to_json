@@ -121,13 +121,13 @@ def create_mappings(profile_dict, data_type, meta, argovis_col_names_mapping):
 
     # Want before and after conversions
     # before
-    goship_meta_names = profile_dict['goshipMetaNames']
-    goship_units = profile_dict['goshipUnits']
-    goship_ref_scale = profile_dict['goshipReferenceScale']
+    cchdo_meta_names = profile_dict['cchdoMetaNames']
+    cchdo_units = profile_dict['cchdoUnits']
+    cchdo_ref_scale = profile_dict['cchdoReferenceScale']
 
     # vars changed
-    goship_converted_units = profile_dict['goshipConvertedUnits']
-    goship_converted_ref_scale = profile_dict['goshipConvertedReferenceScale']
+    cchdo_converted_units = profile_dict['cchdoConvertedUnits']
+    cchdo_converted_ref_scale = profile_dict['cchdoConvertedReferenceScale']
 
     mappings = {}
 
@@ -140,31 +140,31 @@ def create_mappings(profile_dict, data_type, meta, argovis_col_names_mapping):
     mappings['argovisMetaNames'] = meta.keys()
 
     # key argovisParamNames
-    # (listing of all the var names in bgc_meas)
+    # (listing of all the var names in data)
     mappings['argovisParamNames'] = argovis_col_names_mapping.values()
 
-    # key goshipArgovisMetaMapping
+    # key cchdoArgovisMetaMapping
     # (unchanging dictionary created by hand)
     # Not really needed. Only was there because argovis
     # changed name of latitude to lat
 
-    # key goshipArgovisParamMapping
+    # key cchdoArgovisParamMapping
     # from above, this is argovis_col_names_mapping
-    mappings['goshipArgovisParamMapping'] = argovis_col_names_mapping
+    mappings['cchdoArgovisParamMapping'] = argovis_col_names_mapping
 
-    # key goshipReferenceScale
+    # key cchdoReferenceScale
     # starting reference scales before any conversions
-    mappings['goshipReferenceScale'] = goship_ref_scale
+    mappings['cchdoReferenceScale'] = cchdo_ref_scale
 
-    # key goshipUnits
+    # key cchdoUnits
     # starting units before any conversions
-    mappings['goshipUnits'] = goship_units
+    mappings['cchdoUnits'] = cchdo_units
 
     # key argovisReferenceScale
-    # Values are the same as goship except those converted
+    # Values are the same as cchdo except those converted
     # And rename
     argovis_ref_scale_mapping = {
-        **goship_ref_scale, **goship_converted_ref_scale}
+        **cchdo_ref_scale, **cchdo_converted_ref_scale}
 
     # Get mapping and then swap out keys with argovis names
     argovis_name_mapping = rename_to_argovis(
@@ -174,10 +174,10 @@ def create_mappings(profile_dict, data_type, meta, argovis_col_names_mapping):
                                          value in argovis_ref_scale_mapping.items()}
 
     # key argovisUnits
-    # Values are the same as goship except those converted
+    # Values are the same as cchdo except those converted
     # And rename
     argovis_units_mapping = {
-        **goship_units, **goship_converted_units}
+        **cchdo_units, **cchdo_converted_units}
 
     # Get mapping and then swap out keys with argovis names
     argovis_name_mapping = rename_to_argovis(
@@ -186,34 +186,34 @@ def create_mappings(profile_dict, data_type, meta, argovis_col_names_mapping):
     mappings['argovisUnits'] = {argovis_name_mapping[key]: value for key,
                                 value in argovis_units_mapping.items()}
 
-    # bgc_meas_keys = profile_dict['bgcMeasKeys']
+    # data_keys = profile_dict['bgcMeasKeys']
 
-    # argovis_name_mapping = rename_to_argovis(bgc_meas_keys.keys(), data_type)
+    # argovis_name_mapping = rename_to_argovis(data_keys.keys(), data_type)
 
     # mappings['bgcMeasKeys'] = {argovis_name_mapping[key]: value for key,
-    #                            value in bgc_meas_keys.items()}
+    #                            value in data_keys.items()}
 
     return mappings
 
 
-def rename_bgc_meas(bgc_meas, data_type):
+def rename_data(data, data_type):
     # For bgcMeas, rename by loading dict into pandas dataframe,
     # rename cols then output back to dict
-    df_bgc_meas = pd.DataFrame.from_dict(bgc_meas)
+    df_data = pd.DataFrame.from_dict(data)
 
     argovis_col_names_mapping = rename_to_argovis(
-        df_bgc_meas.columns, data_type)
+        df_data.columns, data_type)
 
     argovis_col_names = argovis_col_names_mapping.values()
 
-    df_bgc_meas = df_bgc_meas.set_axis(
+    df_data = df_data.set_axis(
         argovis_col_names, axis='columns', inplace=False)
 
-    # df_bgc_meas.columns = argovis_col_names_mapping.values()
+    # df_data.columns = argovis_col_names_mapping.values()
 
-    bgc_meas = df_bgc_meas.to_dict('records')
+    data = df_data.to_dict('records')
 
-    return bgc_meas, argovis_col_names_mapping
+    return data, argovis_col_names_mapping
 
 
 def get_subset_meta(meta):
@@ -223,7 +223,6 @@ def get_subset_meta(meta):
     # keys are argovis names
     # values are meta names
     rename_mapping = {
-        'section_id': 'woce_lines',
         'btm_depth': 'btm_depth',
         'latitude': 'latitude',
         'longitude': 'longitude',
@@ -240,7 +239,7 @@ def get_subset_meta(meta):
         'positioning_system': 'positioning_system',
         'data_center': 'data_center',
         'cruise_url': 'cruise_url',
-        'file_url': 'source_url',
+        'file_path': 'source_url',
         'file_name': 'file_name',
         '_id': '_id',
         'date_formatted': 'date_formatted',
@@ -252,8 +251,15 @@ def get_subset_meta(meta):
         'geoLocation': 'geoLocation'
     }
 
+    print('inside get_subset_meta')
+    print('meta')
+    print(meta)
+
     for key, value in rename_mapping.items():
-        meta_subset[key] = meta[value]
+        print(f"key {key}")
+        print(f"value {value}")
+        #meta_subset[key] = meta[value]
+        meta_subset[key] = meta[key]
 
     return meta_subset
 
@@ -299,8 +305,8 @@ def add_argovis_meta(meta):
 
     meta['_id'] = create_id(station, cast)
 
-    meta['POSITIONING_SYSTEM'] = 'GPS'
-    meta['DATA_CENTRE'] = 'CCHDO'
+    meta['positioning_system'] = 'GPS'
+    meta['data_center'] = 'CCHDO'
 
     # **********************************
     # Use dates instead of time variable
@@ -357,8 +363,8 @@ def process_data_profiles(profiles_obj):
     # rename bgcMeas to all_cchdo_variables earlier and only
     # here save it as key called bgcMeas
 
-    # rename everything saying goship to cchdo since
-    # files include more than goship
+    # rename everything saying cchdo to cchdo since
+    # files include more than cchdo
 
     # turn data_profiles into xarray  object
 
@@ -380,7 +386,7 @@ def process_data_profiles(profiles_obj):
         # probably remove var stationCast
 
         meta = profile_dict['meta']
-        bgc_meas = profile_dict['bgcMeas']
+        data = profile_dict['data']
         measurements = profile_dict['measurements']
 
         # ******************************
@@ -389,6 +395,9 @@ def process_data_profiles(profiles_obj):
 
         meta = add_cchdo_meta(meta, cchdo_file_meta, cchdo_cruise_meta)
         meta = add_argovis_meta(meta)
+
+        print('all meta')
+        print(meta)
 
         # Rename meta for argovis json format and get subset
         meta = get_subset_meta(meta)
@@ -406,10 +415,10 @@ def process_data_profiles(profiles_obj):
         # TODO
         # When rename bgc, ctd_salinity becomes psal unless there is none,
         # then bottle_salinity is psal. then need to update
-        # goship argovis mapping
+        # cchdo argovis mapping
 
-        bgc_meas, argovis_col_names_mapping = rename_bgc_meas(
-            bgc_meas, data_type)
+        data, argovis_col_names_mapping = rename_data(
+            data, data_type)
 
         # ***************
         # Create Mappings
@@ -454,7 +463,7 @@ def process_data_profiles(profiles_obj):
         # *********************
 
         profile_dict['meta'] = meta
-        profile_dict['bgcMeas'] = bgc_meas
+        profile_dict['data'] = data
         profile_dict['measurements'] = measurements
 
         profile_dict['measurementsSource'] = measurements_source

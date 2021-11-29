@@ -6,7 +6,7 @@ import logging
 from global_vars import GlobalVars
 
 
-def get_goship_argovis_unit_name_mapping():
+def get_cchdo_argovis_unit_name_mapping():
 
     return {
         'dbar': 'decibar',
@@ -15,16 +15,16 @@ def get_goship_argovis_unit_name_mapping():
     }
 
 
-def change_units_to_argovis(nc, goship_param_mapping):
+def change_units_to_argovis(nc, cchdo_param_mapping):
 
     # Rename units (no conversion)
 
-    param_names = goship_param_mapping['names']
-    unit_name_mapping = get_goship_argovis_unit_name_mapping()
-    goship_unit_names = unit_name_mapping.keys()
+    param_names = cchdo_param_mapping['names']
+    unit_name_mapping = get_cchdo_argovis_unit_name_mapping()
+    cchdo_unit_names = unit_name_mapping.keys()
 
     # Get reference scale to determine if salinity because there
-    # can be a goship unit of '1' that is not salinity
+    # can be a cchdo unit of '1' that is not salinity
     salinity_ref_scale = 'PSS-78'
 
     for var in param_names:
@@ -42,7 +42,7 @@ def change_units_to_argovis(nc, goship_param_mapping):
         # Change other units
         try:
             var_units = nc[var].attrs['units']
-            if var_units in goship_unit_names and var_units != 1:
+            if var_units in cchdo_unit_names and var_units != 1:
                 nc[var].attrs['units'] = unit_name_mapping[var_units]
         except KeyError:
             pass

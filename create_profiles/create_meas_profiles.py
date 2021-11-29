@@ -9,10 +9,10 @@ import logging
 # https://stackoverflow.com/questions/47776936/why-is-a-computation-much-slower-within-a-dask-distributed-worker
 #pd.options.mode.chained_assignment = None
 
-from create_profiles.create_goship_argovis_mappings import get_argovis_core_meas_values_per_type
-# from create_profiles.create_goship_argovis_mappings import get_goship_core_meas_var_names
+from create_profiles.create_cchdo_argovis_mappings import get_argovis_core_meas_values_per_type
+# from create_profiles.create_cchdo_argovis_mappings import get_cchdo_core_meas_var_names
 
-import create_profiles.create_goship_argovis_mappings as mapping
+import create_profiles.create_cchdo_argovis_mappings as mapping
 
 
 def dtjson(o):
@@ -121,7 +121,7 @@ def convert_boolean(obj):
 #     # measurements to check if have ctd_salinity, and
 #     # if now, use bottle_salinity
 
-#     # Since didn't rename to argovis yet, use goship names
+#     # Since didn't rename to argovis yet, use cchdo names
 #     # which means multiple temperature and oxygen names for ctd vars
 #     # standing for different ref scales
 
@@ -193,20 +193,20 @@ def get_core_cols_from_hierarchy(df):
 
     # core cols includes '_qc' vars
     #core_values = get_argovis_core_meas_values_per_type(data_type)
-    core_names = mapping.get_goship_core_meas_var_names()
+    core_names = mapping.get_cchdo_core_meas_var_names()
 
-    core_temperature_names = mapping.get_goship_core_meas_temperature_names()
+    core_temperature_names = mapping.get_cchdo_core_meas_temperature_names()
 
     # Salinity names not filtered yet
-    #core_salinity_names = mapping.get_goship_core_meas_salinity_names()
+    #core_salinity_names = mapping.get_cchdo_core_meas_salinity_names()
 
     # oxygen not a core value
-    #core_oxygen_names = mapping.get_goship_core_meas_oxygen_names()
+    #core_oxygen_names = mapping.get_cchdo_core_meas_oxygen_names()
 
     columns = list(df.columns)
     core_cols = [col for col in columns if col in core_names]
 
-    # There is a hierarchy of which variable to use in core goship names
+    # There is a hierarchy of which variable to use in core cchdo names
     # if both ref scale and units variables exist
     temperature_name = mapping.choose_core_temperature_from_hierarchy(
         core_cols)
@@ -538,7 +538,7 @@ def filter_meas_core_cols(df_meas):
 
 def create_measurements_df_all(df):
 
-    # Don't rename to argovis, so use goship names
+    # Don't rename to argovis, so use cchdo names
 
     # For measurements, keep core vars pres, temp, psal, salinity
     # Later when filter measurements, if salinity is used,
@@ -549,7 +549,7 @@ def create_measurements_df_all(df):
     # Keep all core named values and filter more when looking
     # at each profile
 
-    core_names = mapping.get_goship_core_meas_var_names()
+    core_names = mapping.get_cchdo_core_meas_var_names()
 
     core_cols = [col for col in df.columns if col in core_names]
 

@@ -268,7 +268,7 @@ def get_cchdo_cruise_meta(cruise_json):
 
     for index, elem in enumerate(programs_lowercase):
 
-        if elem == 'go-ship' or elem == 'goship':
+        if elem == 'go-ship' or elem == 'cchdo':
             programs.pop(index)
             programs.insert(0, 'GO-SHIP')
             break

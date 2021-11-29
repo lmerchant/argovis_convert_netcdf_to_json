@@ -13,17 +13,17 @@ from xarray_and_dask.modify_dask_obj import modify_meta_dask_obj
 from xarray_and_dask.modify_dask_obj import modify_param_dask_obj
 from create_profiles.create_meas_profiles import create_meas_profiles
 from create_profiles.create_bgc_profiles import create_bgc_profiles
-from create_profiles.create_goship_argovis_mappings import create_goship_argovis_mappings
-from create_profiles.create_goship_argovis_mappings import filter_argovis_mapping
-from create_profiles.create_goship_argovis_mappings import create_goship_mappings
+from create_profiles.create_cchdo_argovis_mappings import create_cchdo_argovis_mappings
+from create_profiles.create_cchdo_argovis_mappings import filter_argovis_mapping
+from create_profiles.create_cchdo_argovis_mappings import create_cchdo_mappings
 
 
-def combine_profiles(meta_profiles, bgc_profiles, all_meas_profiles, meas_source_profiles, meas_names, goship_mapping_profiles, data_type):
+def combine_profiles(meta_profiles, bgc_profiles, all_meas_profiles, meas_source_profiles, meas_names, cchdo_mapping_profiles, data_type):
 
     #  https://stackoverflow.com/questions/5501810/join-two-lists-of-dictionaries-on-a-single-key
 
     profile_dict = defaultdict(dict)
-    for elem in itertools.chain(meta_profiles, bgc_profiles,  all_meas_profiles, meas_names, meas_source_profiles, goship_mapping_profiles):
+    for elem in itertools.chain(meta_profiles, bgc_profiles,  all_meas_profiles, meas_names, meas_source_profiles, cchdo_mapping_profiles):
 
         profile_dict[elem['station_cast']].update(elem)
 
@@ -100,11 +100,11 @@ def create_profiles_objs(cruise_ddf_obj):
             df_param, data_type)
 
         # all_name_mapping is dict with keys: station_cast and non_empty_cols
-        # Want to know non_empty_cols so can keep these goship names
+        # Want to know non_empty_cols so can keep these cchdo names
         # in the mappings and discard vars that have no values
         all_bgc_profiles, all_name_mapping = create_bgc_profiles(df_param)
 
-        goship_mapping_profiles = create_goship_mappings(
+        cchdo_mapping_profiles = create_cchdo_mappings(
             nc_mappings, all_name_mapping)
 
         # # Filter out from var name mappings any that have no values.
@@ -114,7 +114,7 @@ def create_profiles_objs(cruise_ddf_obj):
         # all_argovis_param_mapping_list = filter_argovis_mapping(
         #     nc_mappings, all_name_mapping)
 
-        # goship_argovis_mapping_profiles = create_goship_argovis_mappings(
+        # cchdo_argovis_mapping_profiles = create_cchdo_argovis_mappings(
         #     nc_mappings, all_argovis_param_mapping_list, data_type)
 
         # **************************************************
@@ -124,13 +124,13 @@ def create_profiles_objs(cruise_ddf_obj):
         #  combined_profiles is a list of profile objs with
         # keys 'station_cast' and 'profile_dict'
 
-        # create goship_argovis_mapping_profiles later
+        # create cchdo_argovis_mapping_profiles later
         logging.info('start combining profiles')
         # combined_profiles = combine_profiles(all_meta_profiles, all_bgc_profiles,
-        #                                 all_meas_profiles, all_meas_source_profiles, all_meas_names, goship_argovis_mapping_profiles, data_type)
+        #                                 all_meas_profiles, all_meas_source_profiles, all_meas_names, cchdo_argovis_mapping_profiles, data_type)
 
         combined_profiles = combine_profiles(all_meta_profiles, all_bgc_profiles,
-                                             all_meas_profiles, all_meas_source_profiles, all_meas_names, goship_mapping_profiles, data_type)
+                                             all_meas_profiles, all_meas_source_profiles, all_meas_names, cchdo_mapping_profiles, data_type)
 
         # Create profiles_obj to hold profiles for one data type
         profiles_obj = {}
@@ -276,7 +276,7 @@ def process_cruise_objs_by_type(cruise_objs):
         # *************************************
 
         # Don't rename until end to ArgoVis names
-        # For now, get goship mappings to units, netcdf names, etc.
+        # For now, get cchdo mappings to units, netcdf names, etc.
 
         logging.info('Process all cruise objects in xarray objects')
 

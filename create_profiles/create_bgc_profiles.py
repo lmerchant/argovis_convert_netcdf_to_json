@@ -100,7 +100,7 @@ def create_bgc_profiles(df_param):
 
         bgc_obj = {}
         bgc_obj['station_cast'] = station_cast
-        bgc_obj['bgcMeas'] = to_int_qc(bgc_dict_list)
+        bgc_obj['data'] = to_int_qc(bgc_dict_list)
         all_bgc_profiles.append(bgc_obj)
 
         # Do filtering out empty col names per profile later

@@ -122,21 +122,21 @@ def modify_xarray_obj(file_obj):
     # before any name changes and conversions
     orig_meta_names, orig_param_names = get_meta_param_names(nc)
 
-    # Create mapping object of goship names to nc attributes
+    # Create mapping object of cchdo names to nc attributes
     # Before add or drop coords for key in final json representing
     # what variables were included in the netcdf file
 
     # mapping obj: names (list), units (obj), ref_scale (obj)
     # c_format (obj), and dtype (obj)
-    # goship_meta_mapping = xr_map.get_nc_variable_mappings(nc, meta_mapping)
-    # goship_param_mapping = xr_map.get_nc_variable_mappings(nc, param_mapping)
-    goship_meta_mapping = xr_map.get_nc_variable_mappings(nc, orig_meta_names)
-    goship_param_mapping = xr_map.get_nc_variable_mappings(
+    # cchdo_meta_mapping = xr_map.get_nc_variable_mappings(nc, meta_mapping)
+    # cchdo_param_mapping = xr_map.get_nc_variable_mappings(nc, param_mapping)
+    cchdo_meta_mapping = xr_map.get_nc_variable_mappings(nc, orig_meta_names)
+    cchdo_param_mapping = xr_map.get_nc_variable_mappings(
         nc, orig_param_names)
 
     # Now check so see if there is a 'temp_{data_type}'  column and a corresponding
     # qc col. 'temp_{data_type}_qc'. If not, add a 'temp' qc col. with 0.
-    # Add qc col here so it appears in var mappings of goship to argovis
+    # Add qc col here so it appears in var mappings of cchdo to argovis
 
     # TODO
     # With updated logic looking for nan rows, skipping looking at qc
@@ -195,22 +195,22 @@ def modify_xarray_obj(file_obj):
     nc = xr_conv.apply_conversions(nc)
 
     # Get mapping to keep track of which var units or scale were converted
-    goship_meta_mapping_after = xr_map.get_nc_variable_mappings(nc, meta_names)
-    goship_param_mapping_after = xr_map.get_nc_variable_mappings(
+    cchdo_meta_mapping_after = xr_map.get_nc_variable_mappings(nc, meta_names)
+    cchdo_param_mapping_after = xr_map.get_nc_variable_mappings(
         nc, param_names)
 
     # look at keys units and reference_scale
     # Find which values have changed for var names
     params_units_changed = {}
-    for key, val_before in goship_param_mapping['units'].items():
-        val_after = goship_param_mapping_after['units'][key]
+    for key, val_before in cchdo_param_mapping['units'].items():
+        val_after = cchdo_param_mapping_after['units'][key]
 
         if val_before != val_after:
             params_units_changed[key] = val_after
 
     params_ref_scale_changed = {}
-    for key, val_before in goship_param_mapping['ref_scale'].items():
-        val_after = goship_param_mapping_after['ref_scale'][key]
+    for key, val_before in cchdo_param_mapping['ref_scale'].items():
+        val_after = cchdo_param_mapping_after['ref_scale'][key]
 
         if val_before != val_after:
             params_ref_scale_changed[key] = val_after
@@ -231,18 +231,18 @@ def modify_xarray_obj(file_obj):
     nc = nc.chunk({'N_PROF': chunk_size})
 
     nc = mod_xr_meta.apply_c_format_meta(
-        nc, goship_meta_mapping)
+        nc, cchdo_meta_mapping)
 
     nc = mod_xr_param.apply_c_format_param(
-        nc, goship_param_mapping)
+        nc, cchdo_param_mapping)
 
     # # **********************************
     # # Change unit names (no conversions)
     # # **********************************
 
     # # Do this last
-    # nc = mod_xr_meta.change_units_to_argovis(nc, goship_meta_mapping)
-    # nc = mod_xr_param.change_units_to_argovis(nc, goship_param_mapping)
+    # nc = mod_xr_meta.change_units_to_argovis(nc, cchdo_meta_mapping)
+    # nc = mod_xr_param.change_units_to_argovis(nc, cchdo_param_mapping)
 
     # # **************************
     # # Rename varables to ArgoVis
@@ -259,7 +259,7 @@ def modify_xarray_obj(file_obj):
     # # depending if have both N_PROF and N_LEVELS or not
     # meta_mapping, param_mapping = get_meta_param_mapping(nc)
 
-    # # Create mapping object of goship names to nc attributes
+    # # Create mapping object of cchdo names to nc attributes
     # # Before add or drop coords
     # # mapping obj: names (list), units (obj), ref_scale (obj)
     # # c_format (obj), and dtype (obj)
@@ -275,11 +275,11 @@ def modify_xarray_obj(file_obj):
 
     nc_mappings = {}
 
-    nc_mappings['goship_meta'] = goship_meta_mapping
-    nc_mappings['goship_param'] = goship_param_mapping
+    nc_mappings['cchdo_meta'] = cchdo_meta_mapping
+    nc_mappings['cchdo_param'] = cchdo_param_mapping
 
-    nc_mappings['goship_units_changed'] = params_units_changed
-    nc_mappings['goship_ref_scale_changed'] = params_ref_scale_changed
+    nc_mappings['cchdo_units_changed'] = params_units_changed
+    nc_mappings['cchdo_ref_scale_changed'] = params_ref_scale_changed
 
     # Save current meta and param names
     meta_param_names = {}
@@ -329,12 +329,12 @@ def modify_xarray_obj(file_obj):
 #     # and then in  modify_dask_obj, set it to 1
 #     nc = mod_xr_param.add_pres_qc(nc)
 
-#     # Create mapping object of goship names to nc attributes
+#     # Create mapping object of cchdo names to nc attributes
 #     # Before add or drop coords
 #     # mapping obj: names (list), units (obj), ref_scale (obj)
 #     # c_format (obj), and dtype (obj)
-#     goship_meta_mapping = xr_map.get_nc_variable_mappings_meta(nc)
-#     goship_param_mapping = xr_map.get_nc_variable_mappings_param(nc)
+#     cchdo_meta_mapping = xr_map.get_nc_variable_mappings_meta(nc)
+#     cchdo_param_mapping = xr_map.get_nc_variable_mappings_param(nc)
 
 #     # Add extra coordinates for ArgoVis metadata
 #     nc = mod_xr_meta.add_extra_coords(nc, file_obj)
@@ -370,10 +370,10 @@ def modify_xarray_obj(file_obj):
 #     nc = nc.chunk({'N_PROF': chunk_size})
 
 #     nc = mod_xr_meta.apply_c_format_meta(
-#         nc, goship_meta_mapping)
+#         nc, cchdo_meta_mapping)
 
 #     nc = mod_xr_param.apply_c_format_param(
-#         nc, goship_param_mapping)
+#         nc, cchdo_param_mapping)
 
 #     # **********************************
 #     # Change unit names (no conversions)
@@ -399,8 +399,8 @@ def modify_xarray_obj(file_obj):
 
 #     nc_mappings = {}
 
-#     nc_mappings['goship_meta'] = goship_meta_mapping
-#     nc_mappings['goship_param'] = goship_param_mapping
+#     nc_mappings['cchdo_meta'] = cchdo_meta_mapping
+#     nc_mappings['cchdo_param'] = cchdo_param_mapping
 
 #     nc_mappings['argovis_meta'] = argovis_meta_mapping
 #     nc_mappings['argovis_param'] = argovis_param_mapping

@@ -9,7 +9,7 @@ import logging
 from global_vars import GlobalVars
 
 
-def get_goship_argovis_unit_name_mapping():
+def get_cchdo_argovis_unit_name_mapping():
 
     return {
         'dbar': 'decibar',
@@ -18,13 +18,13 @@ def get_goship_argovis_unit_name_mapping():
     }
 
 
-def change_units_to_argovis(nc, goship_meta_mapping):
+def change_units_to_argovis(nc, cchdo_meta_mapping):
 
     # Rename units (no conversion)
 
-    names = goship_meta_mapping['names']
-    unit_name_mapping = get_goship_argovis_unit_name_mapping()
-    goship_unit_names = unit_name_mapping.keys()
+    names = cchdo_meta_mapping['names']
+    unit_name_mapping = get_cchdo_argovis_unit_name_mapping()
+    cchdo_unit_names = unit_name_mapping.keys()
 
     # No saliniity in coordinates so don't have to
     # worry about units = 1 being salinity
@@ -34,7 +34,7 @@ def change_units_to_argovis(nc, goship_meta_mapping):
         # Change units if needed
         try:
             var_units = nc[var].attrs['units']
-            if var_units in goship_unit_names and var_units != 1:
+            if var_units in cchdo_unit_names and var_units != 1:
                 nc[var].attrs['units'] = unit_name_mapping[var_units]
         except KeyError:
             pass
