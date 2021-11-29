@@ -74,8 +74,8 @@ def get_combined_variable_mapping(btl_dict, ctd_dict):
     for key in argovis_var_attributes_keys:
         mapping[key] = {**ctd_dict[key], **btl_dict[key]}
 
-    # mapping['bgcMeasKeys'] = [
-    #     *btl_dict['bgcMeasKeys'], *ctd_dict['bgcMeasKeys']]
+    # mapping['all_dataMeasKeys'] = [
+    #     *btl_dict['all_dataMeasKeys'], *ctd_dict['all_dataMeasKeys']]
 
     return mapping
 
@@ -132,7 +132,7 @@ def get_all_variable_mappings(source_independent_meta_names, btl_dict, ctd_dict)
         # btl_mapping['cchdoArgovisParamMapping'] = btl_dict['cchdoArgovisParamMapping']
         # btl_mapping['cchdoReferenceScale'] = btl_dict['cchdoReferenceScale']
         # btl_mapping['cchdoUnits'] = btl_dict['cchdoUnits']
-        # btl_mapping['bgcMeasKeys'] = btl_dict['bgcMeasKeys']
+        # btl_mapping['all_dataMeasKeys'] = btl_dict['all_dataMeasKeys']
 
         btl_mapping = get_data_type_mapping(btl_dict)
 
@@ -148,7 +148,7 @@ def get_all_variable_mappings(source_independent_meta_names, btl_dict, ctd_dict)
         # ctd_mapping['cchdoArgovisParamMapping'] = ctd_dict['cchdoArgovisParamMapping']
         # ctd_mapping['cchdoReferenceScale'] = ctd_dict['cchdoReferenceScale']
         # ctd_mapping['cchdoUnits'] = ctd_dict['cchdoUnits']
-        # ctd_mapping['bgcMeasKeys'] = ctd_dict['bgcMeasKeys']
+        # ctd_mapping['all_dataMeasKeys'] = ctd_dict['all_dataMeasKeys']
         ctd_mapping = get_data_type_mapping(ctd_dict)
 
     if btl_dict and ctd_dict:
@@ -211,8 +211,8 @@ def get_all_variable_mappings(source_independent_meta_names, btl_dict, ctd_dict)
         # combined_btl_ctd_dict['argovisReferenceScale'] = argovis_ref_scale_mapping
         # combined_btl_ctd_dict['argovisUnits'] = argovis_units_mapping
 
-        # combined_btl_ctd_dict['bgcMeasKeys'] = [
-        #     *btl_dict['bgcMeasKeys'], *ctd_dict['bgcMeasKeys']]
+        # combined_btl_ctd_dict['all_dataMeasKeys'] = [
+        #     *btl_dict['all_dataMeasKeys'], *ctd_dict['all_dataMeasKeys']]
 
     mappings = {**btl_mapping, **ctd_mapping, **combined_mapping}
 

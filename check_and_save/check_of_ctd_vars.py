@@ -183,9 +183,9 @@ def check_ctd_vars_one_profile(profile):
     data_type = profile_dict['data_type']
 
     expocode = profile_dict['meta']['expocode']
-    bgc_meas = profile_dict['bgcMeas']
+    all_data = profile_dict['data']
 
-    for obj in bgc_meas:
+    for obj in all_data:
         if 'pres' in obj.keys():
             has_pres = True
         else:

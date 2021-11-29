@@ -12,18 +12,18 @@ from create_profiles.create_meta_profiles import create_meta_profiles
 from xarray_and_dask.modify_dask_obj import modify_meta_dask_obj
 from xarray_and_dask.modify_dask_obj import modify_param_dask_obj
 from create_profiles.create_meas_profiles import create_meas_profiles
-from create_profiles.create_bgc_profiles import create_bgc_profiles
+from create_profiles.create_data_profiles import create_data_profiles
 from create_profiles.create_cchdo_argovis_mappings import create_cchdo_argovis_mappings
 from create_profiles.create_cchdo_argovis_mappings import filter_argovis_mapping
 from create_profiles.create_cchdo_argovis_mappings import create_cchdo_mappings
 
 
-def combine_profiles(meta_profiles, bgc_profiles, all_meas_profiles, meas_source_profiles, meas_names, cchdo_mapping_profiles, data_type):
+def combine_profiles(meta_profiles, all_data_profiles, all_meas_profiles, meas_source_profiles, meas_names, cchdo_mapping_profiles, data_type):
 
     #  https://stackoverflow.com/questions/5501810/join-two-lists-of-dictionaries-on-a-single-key
 
     profile_dict = defaultdict(dict)
-    for elem in itertools.chain(meta_profiles, bgc_profiles,  all_meas_profiles, meas_names, meas_source_profiles, cchdo_mapping_profiles):
+    for elem in itertools.chain(meta_profiles, all_data_profiles,  all_meas_profiles, meas_names, meas_source_profiles, cchdo_mapping_profiles):
 
         profile_dict[elem['station_cast']].update(elem)
 
@@ -41,13 +41,13 @@ def combine_profiles(meta_profiles, bgc_profiles, all_meas_profiles, meas_source
     return combined_profiles
 
 
-# def combine_profiles_orig(meta_profiles, bgc_profiles, all_meas_profiles, meas_source_profiles, meas_names, mapping_profiles, data_type):
+# def combine_profiles_orig(meta_profiles, all_data_profiles, all_meas_profiles, meas_source_profiles, meas_names, mapping_profiles, data_type):
 
 
 #     #  https://stackoverflow.com/questions/5501810/join-two-lists-of-dictionaries-on-a-single-key
 
 #     profile_dict = defaultdict(dict)
-#     for elem in itertools.chain(meta_profiles, bgc_profiles,  all_meas_profiles, meas_names, meas_source_profiles, mapping_profiles):
+#     for elem in itertools.chain(meta_profiles, all_data_profiles,  all_meas_profiles, meas_names, meas_source_profiles, mapping_profiles):
 #         profile_dict[elem['station_cast']].update(elem)
 
 #     combined_profiles = []
@@ -94,7 +94,7 @@ def create_profiles_objs(cruise_ddf_obj):
 
         # TODO
         # If remove meas in future, move this code to end of program
-        # since it's mainly  getting subset  of bgcMeas
+        # since it's mainly  getting subset  of all_dataMeas
 
         all_meas_profiles, all_meas_source_profiles, all_meas_names = create_meas_profiles(
             df_param, data_type)
@@ -102,7 +102,8 @@ def create_profiles_objs(cruise_ddf_obj):
         # all_name_mapping is dict with keys: station_cast and non_empty_cols
         # Want to know non_empty_cols so can keep these cchdo names
         # in the mappings and discard vars that have no values
-        all_bgc_profiles, all_name_mapping = create_bgc_profiles(df_param)
+        all_data_profiles, all_name_mapping = create_data_profiles(
+            df_param)
 
         cchdo_mapping_profiles = create_cchdo_mappings(
             nc_mappings, all_name_mapping)
@@ -126,10 +127,10 @@ def create_profiles_objs(cruise_ddf_obj):
 
         # create cchdo_argovis_mapping_profiles later
         logging.info('start combining profiles')
-        # combined_profiles = combine_profiles(all_meta_profiles, all_bgc_profiles,
+        # combined_profiles = combine_profiles(all_meta_profiles, all_data_profiles,
         #                                 all_meas_profiles, all_meas_source_profiles, all_meas_names, cchdo_argovis_mapping_profiles, data_type)
 
-        combined_profiles = combine_profiles(all_meta_profiles, all_bgc_profiles,
+        combined_profiles = combine_profiles(all_meta_profiles, all_data_profiles,
                                              all_meas_profiles, all_meas_source_profiles, all_meas_names, cchdo_mapping_profiles, data_type)
 
         # Create profiles_obj to hold profiles for one data type

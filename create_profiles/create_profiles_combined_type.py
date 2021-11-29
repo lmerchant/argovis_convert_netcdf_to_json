@@ -696,8 +696,8 @@ def combine_btl_ctd_per_profile(btl_profile, ctd_profile):
     combined_btl_ctd_dict['meta'] = meta
     combined_btl_ctd_dict['data'] = data
 
-    # combined_btl_ctd_dict['bgcMeasKeys'] = [
-    #     *btl_dict['bgcMeasKeys'], *ctd_dict['bgcMeasKeys']]
+    # combined_btl_ctd_dict['all_dataMeasKeys'] = [
+    #     *btl_dict['all_dataMeasKeys'], *ctd_dict['all_dataMeasKeys']]
 
     combined_btl_ctd_dict = {
         **combined_btl_ctd_dict, **combined_measurement_mappings}

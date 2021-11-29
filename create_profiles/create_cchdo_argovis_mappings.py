@@ -190,7 +190,7 @@ def create_cchdo_argovis_mappings(
 
         # TODO
         # List of non qc parameter names (or all keys?)
-        # new_mapping['bgcMeasKeys'] = [
+        # new_mapping['all_dataMeasKeys'] = [
         #     name for name in all_argovis_param_names if '_qc' not in name]
 
         core_cchdo_argovis_name_mapping = get_cchdo_argovis_name_mapping_per_type(

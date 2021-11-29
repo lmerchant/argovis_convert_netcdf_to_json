@@ -186,18 +186,18 @@ def create_mappings(profile_dict, data_type, meta, argovis_col_names_mapping):
     mappings['argovisUnits'] = {argovis_name_mapping[key]: value for key,
                                 value in argovis_units_mapping.items()}
 
-    # data_keys = profile_dict['bgcMeasKeys']
+    # data_keys = profile_dict['all_dataMeasKeys']
 
     # argovis_name_mapping = rename_to_argovis(data_keys.keys(), data_type)
 
-    # mappings['bgcMeasKeys'] = {argovis_name_mapping[key]: value for key,
+    # mappings['all_dataMeasKeys'] = {argovis_name_mapping[key]: value for key,
     #                            value in data_keys.items()}
 
     return mappings
 
 
 def rename_data(data, data_type):
-    # For bgcMeas, rename by loading dict into pandas dataframe,
+    # For all_dataMeas, rename by loading dict into pandas dataframe,
     # rename cols then output back to dict
     df_data = pd.DataFrame.from_dict(data)
 
@@ -360,8 +360,8 @@ def add_cchdo_meta(meta, cchdo_file_meta, cchdo_cruise_meta):
 def process_data_profiles(profiles_obj):
 
     # TODO
-    # rename bgcMeas to all_cchdo_variables earlier and only
-    # here save it as key called bgcMeas
+    # rename all_dataMeas to all_cchdo_variables earlier and only
+    # here save it as key called all_dataMeas
 
     # rename everything saying cchdo to cchdo since
     # files include more than cchdo
@@ -406,14 +406,14 @@ def process_data_profiles(profiles_obj):
         print(meta)
 
         # **************
-        # Rename bgcMeas
+        # Rename all_dataMeas
         # **************
 
         # TODO
         # Why have bottle_number_qc?
 
         # TODO
-        # When rename bgc, ctd_salinity becomes psal unless there is none,
+        # When rename all_data, ctd_salinity becomes psal unless there is none,
         # then bottle_salinity is psal. then need to update
         # cchdo argovis mapping
 
