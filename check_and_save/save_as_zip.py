@@ -78,7 +78,7 @@ def get_filename(profile_dict):
     # ask
     # probably use cruise expocode instead of that in file
 
-    id = profile_dict['id']
+    id = profile_dict['_id']
 
     # TODO
     # When create file id, ask if use cruise expocode instead

@@ -156,14 +156,10 @@ def add_pres_qc(nc):
 def add_qc_if_no_temp_qc(nc):
 
     # Now check so see if there is a ctd temperature  column and a corresponding
-    # qc column. If not, add a ctd temperature qc column with values np.nan first
-    # and later set = 0. Do np.nan first to make it easier to remove rows
-    # with all nan values including np.nan
-    is_ctd_temperature = any(
-        [True if key == 'ctd_temperature' else False for key in nc.keys()])
+    # qc column. If not, add a ctd temperature qc column with values of 0
+    is_ctd_temperature = 'ctd_temperature' in list(nc.keys())
 
-    is_ctd_temperature_68 = any(
-        [True if key == 'ctd_temperature_68' else False for key in nc.keys()])
+    is_ctd_temperature_68 = 'ctd_temperature_68' in list(nc.keys())
 
     if is_ctd_temperature and is_ctd_temperature_68:
         temperature_var = 'ctd_temperature'
@@ -176,7 +172,7 @@ def add_qc_if_no_temp_qc(nc):
 
     qc_name = f"{temperature_var}_qc"
 
-    has_ctd_temp_qc = qc_name in nc.keys()
+    has_ctd_temp_qc = qc_name in list(nc.keys())
 
     if temperature_var and not has_ctd_temp_qc and qc_name != '_qc':
         temp_shape = np.shape(nc[temperature_var])

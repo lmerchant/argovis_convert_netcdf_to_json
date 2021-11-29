@@ -12,7 +12,7 @@ def log_ctd_var_status(file_obj, has_pres,
 
     logging_dir = GlobalVars.LOGGING_DIR
 
-    expocode = file_obj['cruise_expocode']
+    expocode = file_obj['cchdo_cruise_meta']['expocode']
     data_type = file_obj['data_type']
 
     # No pressure

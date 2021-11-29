@@ -25,10 +25,56 @@ def convert(o):
         return int(o)
 
 
-def write_profile_goship_units_one_profile(profile):
+# here
+def get_unique_goship_units(data_type_profiles):
+
+    all_goship_units_mapping = {}
+
+    for profile in data_type_profiles:
+        data_type = profile['data_type']
+        profile_dict = profile['profile_dict']
+
+        if data_type == 'btl' or data_type == 'ctd':
+            goship_units_mapping = profile_dict['goshipUnits']
+
+        if data_type == 'btl_ctd':
+            try:
+                goship_units_btl = profile_dict['goshipUnitsBtl']
+                goship_units_ctd = profile_dict['goshipUnitsCtd']
+                goship_units_mapping = {**goship_units_btl, **goship_units_ctd}
+            except:
+                goship_units_mapping = profile_dict['goshipUnits']
+
+        # TODO
+        # overwrite key if it already exists
+        # each variable has same units. Is this true
+        # if it comes from either btl or ctd?
+        # If same key but different units, add suffix to key
+        # of profile_dict['meta']['expocode']
+        expocode = profile_dict['meta']['expocode']
+        for key, val in goship_units_mapping.items():
+            if key in all_goship_units_mapping and val != all_goship_units_mapping[key]:
+                new_key = f"{key}_{expocode}"
+                all_goship_units_mapping[new_key] = val
+            else:
+                all_goship_units_mapping[key] = val
+
+        return all_goship_units_mapping
+
+
+def write_all_goship_units(all_goship_units_mapping):
+
+    filename = 'found_goship_units.txt'
+    filepath = os.path.join(GlobalVars.LOGGING_DIR, filename)
+
+    with open(filepath, 'a') as f:
+        json.dump(all_goship_units_mapping, f, indent=4,
+                  sort_keys=True, default=convert)
+
+
+def write_profile_goship_units_one_profile(data_type, profile):
 
     profile_dict = profile['profile_dict']
-    data_type = profile_dict['data_type']
 
     filename = 'found_goship_units.txt'
     filepath = os.path.join(GlobalVars.LOGGING_DIR, filename)
@@ -37,21 +83,21 @@ def write_profile_goship_units_one_profile(profile):
     # keep a record of what units need to be converted
 
     if data_type == 'btl':
-        goship_units_profile = profile_dict['goshipUnits']
+        goship_units_mapping = profile_dict['goshipUnits']
 
     if data_type == 'ctd':
-        goship_units_profile = profile_dict['goshipUnits']
+        goship_units_mapping = profile_dict['goshipUnits']
 
     if data_type == 'btl_ctd':
         try:
             goship_units_btl = profile_dict['goshipUnitsBtl']
             goship_units_ctd = profile_dict['goshipUnitsCtd']
-            goship_units_profile = {**goship_units_btl, **goship_units_ctd}
+            goship_units_mapping = {**goship_units_btl, **goship_units_ctd}
         except:
-            goship_units_profile = profile_dict['goshipUnits']
+            goship_units_mapping = profile_dict['goshipUnits']
 
     with open(filepath, 'a') as f:
-        json.dump(goship_units_profile, f, indent=4,
+        json.dump(goship_units_mapping, f, indent=4,
                   sort_keys=True, default=convert)
 
 
@@ -126,7 +172,7 @@ def write_profile_json(profile_dict):
     # ask
     # probably use cruise expocode instead of that in file
 
-    id = data_dict['id']
+    id = data_dict['_id']
 
     # TODO
     # When create file id, ask if use cruise expocode instead
@@ -369,23 +415,33 @@ def save_data_type_profiles(data_type_obj_profiles):
 
     logging.info('Saving files single type')
 
+    data_type = data_type_obj_profiles['data_type']
+
     data_type_profiles = data_type_obj_profiles['data_type_profiles_list']
 
     # Set measurements = [] if all vals null besides pres
     data_type_profiles = filter_measurements(data_type_profiles)
 
-    profile = data_type_profiles[0]
+    # TODO
+    # Look at one profile to get the goship units
+    # assuming same for all profiles. Is this true?
+    all_goship_units_mapping = get_unique_goship_units(data_type_obj_profiles)
 
-    write_profile_goship_units_one_profile(profile)
+    write_all_goship_units(all_goship_units_mapping)
 
     save_as_zip_data_type_profiles(data_type_profiles)
 
 
-def save_data_type_profiles_combined(data_type_profiles):
+def save_data_type_profiles_combined(combined_obj_profiles):
 
     logging.info('Saving files combined type')
 
-    profile = data_type_profiles[0]
-    write_profile_goship_units_one_profile(profile)
+    # don't know data type of profile, so this logic doesn't work
+    # of just picking first profile.
 
-    save_as_zip_data_type_profiles(data_type_profiles)
+    # Loop through all profiles, get all units and get unique
+    all_goship_units_mapping = get_unique_goship_units(combined_obj_profiles)
+
+    write_all_goship_units(all_goship_units_mapping)
+
+    save_as_zip_data_type_profiles(combined_obj_profiles)

@@ -96,67 +96,67 @@ def get_argovis_param_names(profile_dict):
     return argovis_param_names, argovis_param_names_btl, argovis_param_names_ctd
 
 
-def find_meta_included(profile_dict):
+# def find_meta_included(profile_dict):
 
-    # Case for argovis names
+#     # Case for argovis names
 
-    included_meta_btl = []
-    included_meta_ctd = []
-    included_meta = []
+#     included_meta_btl = []
+#     included_meta_ctd = []
+#     included_meta = []
 
-    profile_keys = profile_dict.keys()
+#     profile_keys = profile_dict.keys()
 
-    # For meta data
-    try:
-        name_mapping = profile_dict['goshipArgovisMetaMapping']
-        included_meta = name_mapping.values()
+#     # For meta data
+#     try:
+#         name_mapping = profile_dict['goshipArgovisMetaMapping']
+#         included_meta = name_mapping.values()
 
-    except KeyError:
-        if 'goshipArgovisMetaMappingBtl' in profile_keys:
-            name_mapping_btl = profile_dict['goshipArgovisMetaMappingBtl']
-            included_meta_btl = name_mapping_btl.values()
+#     except KeyError:
+#         if 'goshipArgovisMetaMappingBtl' in profile_keys:
+#             name_mapping_btl = profile_dict['goshipArgovisMetaMappingBtl']
+#             included_meta_btl = name_mapping_btl.values()
 
-        if 'goshipArgovisMetaMappingCtd' in profile_keys:
-            name_mapping_ctd = profile_dict['goshipArgovisMetaMappingCtd']
-            included_meta_ctd = name_mapping_ctd.values()
+#         if 'goshipArgovisMetaMappingCtd' in profile_keys:
+#             name_mapping_ctd = profile_dict['goshipArgovisMetaMappingCtd']
+#             included_meta_ctd = name_mapping_ctd.values()
 
-    return included_meta, included_meta_btl, included_meta_ctd
+#     return included_meta, included_meta_btl, included_meta_ctd
 
 
-def find_meta_excluded(profile_dict, included_meta_btl, included_meta_ctd, included_meta):
+# def find_meta_excluded(profile_dict, included_meta_btl, included_meta_ctd, included_meta):
 
-    # Case for argovis names
+#     # Case for argovis names
 
-    excluded_meta_names_btl = []
-    excluded_meta_names_ctd = []
-    excluded_meta_names = []
+#     excluded_meta_names_btl = []
+#     excluded_meta_names_ctd = []
+#     excluded_meta_names = []
 
-    # goship_meta_names, goship_meta_names_btl, goship_meta_names_ctd = get_goship_meta_names(
-    #     profile_dict)
+#     # goship_meta_names, goship_meta_names_btl, goship_meta_names_ctd = get_goship_meta_names(
+#     #     profile_dict)
 
-    meta_names, meta_names_btl, meta_names_ctd = get_argovis_meta_names(
-        profile_dict)
+#     meta_names, meta_names_btl, meta_names_ctd = get_argovis_meta_names(
+#         profile_dict)
 
-    # For meta names
-    if included_meta_btl and meta_names_btl:
-        included_meta_names_set = set(included_meta_btl)
-        meta_names_set = set(meta_names_btl)
-        excluded_meta_names_btl = meta_names_set.difference(
-            included_meta_names_set)
+#     # For meta names
+#     if included_meta_btl and meta_names_btl:
+#         included_meta_names_set = set(included_meta_btl)
+#         meta_names_set = set(meta_names_btl)
+#         excluded_meta_names_btl = meta_names_set.difference(
+#             included_meta_names_set)
 
-    if included_meta_ctd and meta_names_ctd:
-        included_meta_names_set = set(included_meta_ctd)
-        meta_names_set = set(meta_names_ctd)
-        excluded_meta_names_ctd = meta_names_set.difference(
-            included_meta_names_set)
+#     if included_meta_ctd and meta_names_ctd:
+#         included_meta_names_set = set(included_meta_ctd)
+#         meta_names_set = set(meta_names_ctd)
+#         excluded_meta_names_ctd = meta_names_set.difference(
+#             included_meta_names_set)
 
-    if included_meta and meta_names:
-        included_meta_names_set = set(included_meta)
-        meta_names_set = set(meta_names)
-        excluded_meta_names = meta_names_set.difference(
-            included_meta_names_set)
+#     if included_meta and meta_names:
+#         included_meta_names_set = set(included_meta)
+#         meta_names_set = set(meta_names)
+#         excluded_meta_names = meta_names_set.difference(
+#             included_meta_names_set)
 
-    return excluded_meta_names_btl, excluded_meta_names_ctd, excluded_meta_names
+#     return excluded_meta_names_btl, excluded_meta_names_ctd, excluded_meta_names
 
 
 def find_param_included(profile_dict):
@@ -242,9 +242,11 @@ def add_goship_vars_one_profile(profile_dict):
 
     # Get Included Goship Meta and Param names after filtering empty cols
 
-    name_mapping = profile_dict['goshipArgovisMetaMapping']
-    included_meta_goship = [
-        name for name in name_mapping.keys() if '_qc' not in name]
+    # TODO
+    # Skipping this since not relevant
+    # name_mapping = profile_dict['goshipArgovisMetaMapping']
+    # included_meta_goship = [
+    #     name for name in name_mapping.keys() if '_qc' not in name]
 
     name_mapping = profile_dict['goshipArgovisParamMapping']
     included_param_goship_names = [
@@ -264,10 +266,10 @@ def add_goship_vars_one_profile(profile_dict):
 
     # TODO
     # would this be necessary? Doesn't seem like there would be duplicates
-    included_goship_meta_names_set = set(included_meta_goship)
-    goship_meta_names_set = set(goship_meta_names)
-    excluded_goship_meta_names = goship_meta_names_set.difference(
-        included_goship_meta_names_set)
+    # included_goship_meta_names_set = set(included_meta_goship)
+    # goship_meta_names_set = set(goship_meta_names)
+    # excluded_goship_meta_names = goship_meta_names_set.difference(
+    #     included_goship_meta_names_set)
 
     included_goship_param_names_set = set(included_param_goship_names)
     goship_param_names_set = set(goship_param_names)
@@ -314,8 +316,8 @@ def add_argovis_vars_one_profile(profile_dict):
 
     # Get Included Goship Meta and Param names after filtering empty cols
     # because did mapping after empty columns excluded
-    name_mapping = profile_dict['goshipArgovisMetaMapping']
-    included_meta_argovis = name_mapping.values()
+    # name_mapping = profile_dict['goshipArgovisMetaMapping']
+    # included_meta_argovis = name_mapping.values()
 
     name_mapping = profile_dict['goshipArgovisParamMapping']
     included_param_argovis_names = name_mapping.values()
@@ -332,10 +334,10 @@ def add_argovis_vars_one_profile(profile_dict):
 
     # TODO
     # would this be necessary? Doesn't seem like there would be duplicates
-    included_argovis_meta_names_set = set(included_meta_argovis)
-    argovis_meta_names_set = set(argovis_meta_names)
-    excluded_argovis_meta_names = argovis_meta_names_set.difference(
-        included_argovis_meta_names_set)
+    # included_argovis_meta_names_set = set(included_meta_argovis)
+    # argovis_meta_names_set = set(argovis_meta_names)
+    # excluded_argovis_meta_names = argovis_meta_names_set.difference(
+    #     included_argovis_meta_names_set)
 
     included_argovis_param_names_set = set(included_param_argovis_names)
     argovis_param_names_set = set(argovis_param_names)

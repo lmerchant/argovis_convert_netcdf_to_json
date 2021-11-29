@@ -67,8 +67,8 @@ def create_bgc_profiles(df_param):
 
     logging.info('create all_bgc profile and get name mapping')
 
-    # Sort columns so qc next to its var
     # TODO
+    # Sort columns so qc next to its var
     # Just for testing preview
     # remove when finished
     df_param = df_param.reindex(sorted(df_param.columns), axis=1)
@@ -92,9 +92,9 @@ def create_bgc_profiles(df_param):
 
         val_df = remove_empty_cols(val_df)
 
-        non_empty_cols = list(val_df.columns)
-
-        val_df = val_df.sort_values(by=['pres'])
+        # TODO
+        # Why do this sort?
+        val_df = val_df.sort_values(by=['pressure'])
 
         bgc_dict_list = val_df.to_dict('records')
 
@@ -103,9 +103,12 @@ def create_bgc_profiles(df_param):
         bgc_obj['bgcMeas'] = to_int_qc(bgc_dict_list)
         all_bgc_profiles.append(bgc_obj)
 
+        # Do filtering out empty col names per profile later
         name_mapping_obj = {}
         name_mapping_obj['station_cast'] = station_cast
+        non_empty_cols = list(val_df.columns)
         name_mapping_obj['non_empty_cols'] = non_empty_cols
+
         all_name_mapping.append(name_mapping_obj)
 
     return all_bgc_profiles, all_name_mapping

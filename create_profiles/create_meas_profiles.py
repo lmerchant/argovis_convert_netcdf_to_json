@@ -9,6 +9,11 @@ import logging
 # https://stackoverflow.com/questions/47776936/why-is-a-computation-much-slower-within-a-dask-distributed-worker
 #pd.options.mode.chained_assignment = None
 
+from create_profiles.create_goship_argovis_mappings import get_argovis_core_meas_values_per_type
+# from create_profiles.create_goship_argovis_mappings import get_goship_core_meas_var_names
+
+import create_profiles.create_goship_argovis_mappings as mapping
+
 
 def dtjson(o):
     if isinstance(o, datetime):
@@ -34,6 +39,210 @@ def convert_boolean(obj):
     return obj
 
 
+# def get_measurements_sources_orig(df_meas, meas_qc, data_type):
+
+#     using_temp = False
+#     using_psal = False
+#     using_salinity = False
+
+#     has_temp_col = 'temp' in df_meas.columns
+#     if has_temp_col:
+#         all_temp_empty = df_meas['temp'].isnull().all()
+#     else:
+#         all_temp_empty = True
+
+#     has_psal_col = 'psal' in df_meas.columns
+#     if has_psal_col:
+#         all_psal_empty = df_meas['psal'].isnull().all()
+#     else:
+#         all_psal_empty = True
+
+#     has_salinity_column = 'salinity' in df_meas.columns
+#     if has_salinity_column:
+#         all_salinity_empty = df_meas['salinity'].isnull().all()
+#     else:
+#         all_salinity_empty = True
+
+#     if has_temp_col and not all_temp_empty:
+#         using_temp = True
+#     elif has_temp_col and all_temp_empty:
+#         using_temp = False
+
+#     if has_psal_col and not all_psal_empty:
+#         using_psal = True
+#     elif has_psal_col and all_psal_empty and has_salinity_column and not all_salinity_empty:
+#         using_salinity = True
+#     elif not has_psal_col and has_salinity_column and not all_salinity_empty:
+#         using_salinity = True
+
+#     logging.info(f"using_temp {using_temp}")
+#     logging.info(f"using psal {using_psal}")
+#     logging.info(f"using_salinity  {using_salinity}")
+
+#     # if not using_temp and not using_psal and not using_salinity:
+#     #     logging.info(
+#     #         "For single data type file, source flag is none because no temp or psal")
+#     #     meas_source_flag = None
+#     # elif not using_temp and using_psal and not using_salinity:
+#     #     meas_source_flag = 'CTD'
+#     # elif not using_temp and not using_psal and using_salinity:
+#     #     meas_source_flag = 'BTL'
+#     # elif using_temp and using_psal and not using_salinity:
+#     #     meas_source_flag = 'CTD'
+#     # elif using_temp and not using_psal and using_salinity:
+#     #     meas_source_flag = 'BTL_CTD'  # Or is it just BTL?
+#     # elif using_temp and not using_psal and not using_salinity:
+#     #     # using temperature so CTD meas_source_flag
+#     #     meas_source_flag = 'CTD'
+
+#     if data_type == 'btl':
+#         meas_source_flag = 'BTL'
+
+#     if data_type == 'ctd':
+#         meas_source_flag = 'CTD'
+
+#     meas_sources = {}
+#     meas_sources['qc'] = meas_qc
+#     meas_sources[f'use_temp_{data_type}'] = using_temp
+#     if has_psal_col:
+#         meas_sources[f'use_psal_{data_type}'] = using_psal
+#     if has_salinity_column:
+#         meas_sources['use_salinity_btl'] = using_salinity
+
+#     # For json_str, convert True, False to 'true','false'
+#     meas_sources = convert_boolean(meas_sources)
+
+#     return meas_source_flag, meas_sources
+
+
+# def get_argovis_core_meas_values_per_type(data_type):
+
+#     # Add in bottle_salinity since will use this in
+#     # measurements to check if have ctd_salinity, and
+#     # if now, use bottle_salinity
+
+#     # Since didn't rename to argovis yet, use goship names
+#     # which means multiple temperature and oxygen names for ctd vars
+#     # standing for different ref scales
+
+#     return ['pres', f"temp_{data_type}", f"temp_{data_type}_qc", f"psal_{data_type}",  f"psal_{data_type}_qc", 'salinity_btl', 'salinity_btl_qc']
+
+# def create_measurements_df_all_orig(df, data_type):
+
+#     # For measurements, keep core vars pres, temp, psal, salinity
+#     # Later when filter measurements, if salinity is used,
+#     # it will be renamed to psal
+
+#     # core values includes '_qc' vars
+#     core_values = get_argovis_core_meas_values_per_type(data_type)
+#     table_columns = list(df.columns)
+#     core_cols = [col for col in table_columns if col in core_values]
+
+#     core_non_qc = [elem for elem in core_cols if '_qc' not in elem]
+
+#     core_non_qc_wo_press = [
+#         elem for elem in core_cols if '_qc' not in elem and elem != 'pres']
+
+#     # Also include N_PROF, N_LEVELS, station_cast for unique identifiers
+#     cols_to_keep = core_cols
+#     identifier_cols = ['N_PROF', 'station_cast']
+#     cols_to_keep.extend(identifier_cols)
+
+#     df_meas = df[cols_to_keep].copy()
+
+#     # If qc != 0 or 2, set corresponding non_qc value to np.nan
+#     for col in core_non_qc:
+
+#         qc_col = f"{col}_qc"
+
+#         try:
+#             df_meas.loc[(df_meas[qc_col] != 0) &
+#                         (df_meas[qc_col] != 2), col] = np.nan
+
+#         except KeyError:
+#             pass
+
+#     # Get temp qc value to be meas source qc (don't know if 0 or 2)
+#     # Could also be a bad qc or none
+#     df_meas['qc_source'] = df_meas[f"temp_{data_type}_qc"]
+
+#     # drop qc columns
+#     for col in df_meas.columns:
+#         if col.endswith('_qc'):
+#             df_meas = df_meas.drop([col], axis=1)
+
+#     df_meas = df_meas.sort_values(by=['pres'])
+
+#     # Remove data_type ('btl', 'ctd') from  variable names
+#     column_mapping = {}
+#     column_mapping[f"psal_{data_type}"] = 'psal'
+#     column_mapping[f"temp_{data_type}"] = 'temp'
+#     column_mapping[f"salinity_btl"] = 'salinity'
+
+#     # Will change name of salinity to psal later when filter it
+
+#     df_meas = df_meas.rename(columns=column_mapping)
+
+#     return df_meas
+
+
+def get_core_cols_from_hierarchy(df):
+
+    # TODO
+    # don't include oxygen values in core cols
+
+    # core cols includes '_qc' vars
+    #core_values = get_argovis_core_meas_values_per_type(data_type)
+    core_names = mapping.get_goship_core_meas_var_names()
+
+    core_temperature_names = mapping.get_goship_core_meas_temperature_names()
+
+    # Salinity names not filtered yet
+    #core_salinity_names = mapping.get_goship_core_meas_salinity_names()
+
+    # oxygen not a core value
+    #core_oxygen_names = mapping.get_goship_core_meas_oxygen_names()
+
+    columns = list(df.columns)
+    core_cols = [col for col in columns if col in core_names]
+
+    # There is a hierarchy of which variable to use in core goship names
+    # if both ref scale and units variables exist
+    temperature_name = mapping.choose_core_temperature_from_hierarchy(
+        core_cols)
+
+    #oxygen_name = mapping.choose_core_oxygen_from_hierarchy(core_cols)
+
+    # hierarchy_temp_oxy_names = [
+    #     temperature_name, temperature_name + '_qc', oxygen_name, oxygen_name + '_qc']
+
+    hierarchy_temperature_names = [temperature_name, temperature_name + '_qc']
+
+    # Use only hierarchy core value
+    # get non temperature and oxygen names and then add back in
+    # temperature and oxygen names from hierarchy
+    # all_temperature_oxygen_names = [
+    #     *core_temperature_names, *core_oxygen_names]
+
+    # non_temperature_oxygen = [
+    #     col for col in core_cols if col not in all_temperature_oxygen_names]
+
+    non_temperature = [
+        col for col in core_cols if col not in hierarchy_temperature_names]
+
+    # core_cols = [*non_temperature_oxygen, *hierarchy_temp_oxy_names]
+
+    core_cols = [*non_temperature, *hierarchy_temperature_names]
+
+    #core_non_qc = [elem for elem in core_cols if '_qc' not in elem]
+
+    # return core_cols, temperature_name, oxygen_name
+
+    core_cols_nonqc = [col for col in core_cols if '_qc' not in col]
+
+    return core_cols_nonqc
+
+
 def filter_measurements(data_type_profiles):
 
     # TODO
@@ -53,6 +262,11 @@ def filter_measurements(data_type_profiles):
         station_cast = profile['station_cast']
 
         measurements = profile_dict['measurements']
+
+        meas_sources = profile_dict['measurementsSources']
+
+        # For json_str need to convert True, False to 'true','false'
+        #meas_sources = convert_boolean(meas_sources)
 
         # Check if all elems null in measurements besides pressure
         all_vals = []
@@ -79,6 +293,7 @@ def filter_measurements(data_type_profiles):
             measurements = []
 
         profile_dict['measurements'] = measurements
+        profile_dict['measurementsSources'] = meas_sources
 
         output_profile = {}
         output_profile['profile_dict'] = profile_dict
@@ -89,195 +304,260 @@ def filter_measurements(data_type_profiles):
     return output_profiles_list
 
 
-def get_measurements_source(df_meas, meas_qc, data_type):
+def get_measurements_sources(df_meas):
 
-    using_temp = False
-    using_psal = False
-    using_salinity = False
+    using_ctd_salinity = False
+    using_btl_salinity = False
+    using_ctd_temperature = False
+    using_ctd_temperature_68 = False
 
-    has_temp_col = 'temp' in df_meas.columns
-    if has_temp_col:
-        all_temp_empty = df_meas['temp'].isnull().all()
+    # Check if using good temperature
+    has_ctd_temperature_col = 'ctd_temperature' in df_meas.columns
+    has_ctd_temperature_68_col = 'ctd_temperature_68' in df_meas.columns
+
+    if has_ctd_temperature_col:
+        all_ctd_temperature_empty = df_meas['ctd_temperature'].isnull().all()
     else:
-        all_temp_empty = True
+        all_ctd_temperature_empty = True
 
-    has_psal_col = 'psal' in df_meas.columns
-    if has_psal_col:
-        all_psal_empty = df_meas['psal'].isnull().all()
+    if has_ctd_temperature_68_col:
+        all_ctd_temperature_68_empty = df_meas['ctd_temperature_68'].isnull(
+        ).all()
     else:
-        all_psal_empty = True
+        all_ctd_temperature_68_empty = True
 
-    has_salinity_column = 'salinity' in df_meas.columns
-    if has_salinity_column:
-        all_salinity_empty = df_meas['salinity'].isnull().all()
+    if has_ctd_temperature_col and not all_ctd_temperature_empty:
+        using_ctd_temperature = True
+
+    if has_ctd_temperature_68_col and not all_ctd_temperature_68_empty:
+        using_ctd_temperature_68 = True
+
+    if using_ctd_temperature and has_ctd_temperature_68_col:
+        using_ctd_temperature_68 = False
+
+    # Check if ctd_salinity exists and if non null values in col
+    has_ctd_salinity_col = 'ctd_salinity' in df_meas.columns
+
+    if has_ctd_salinity_col:
+        all_ctd_salinity_empty = df_meas['ctd_salinity'].isnull().all()
     else:
-        all_salinity_empty = True
+        all_ctd_salinity_empty = True
 
-    if has_temp_col and not all_temp_empty:
-        using_temp = True
-    elif has_temp_col and all_temp_empty:
-        using_temp = False
+    has_btl_salinity_col = 'bottle_salinity' in df_meas.columns
+    if has_btl_salinity_col:
+        all_bottle_salinity_empty = df_meas['bottle_salinity'].isnull().all()
+    else:
+        all_bottle_salinity_empty = True
 
-    if has_psal_col and not all_psal_empty:
-        using_psal = True
-    elif has_psal_col and all_psal_empty and has_salinity_column and not all_salinity_empty:
-        using_salinity = True
-    elif not has_psal_col and has_salinity_column and not all_salinity_empty:
-        using_salinity = True
+    if has_ctd_salinity_col and not all_ctd_salinity_empty:
+        using_ctd_salinity = True
+    elif has_ctd_salinity_col and all_ctd_salinity_empty and has_btl_salinity_col and not all_bottle_salinity_empty:
+        using_btl_salinity = True
+    elif not has_ctd_salinity_col and has_btl_salinity_col and not all_bottle_salinity_empty:
+        using_btl_salinity = True
 
-    logging.info(f"using_temp {using_temp}")
-    logging.info(f"using psal {using_psal}")
-    logging.info(f"using_salinity  {using_salinity}")
+    logging.info(f"using ctd temperature {using_ctd_temperature}")
+    logging.info(f"using ctd temperature 68 {using_ctd_temperature_68}")
+    logging.info(f"using ctd salinity {using_ctd_salinity}")
+    logging.info(f"using bottle salinity  {using_btl_salinity}")
 
-    # if not using_temp and not using_psal and not using_salinity:
-    #     logging.info(
-    #         "For single data type file, source flag is none because no temp or psal")
-    #     meas_source_flag = None
-    # elif not using_temp and using_psal and not using_salinity:
-    #     meas_source_flag = 'CTD'
-    # elif not using_temp and not using_psal and using_salinity:
-    #     meas_source_flag = 'BTL'
-    # elif using_temp and using_psal and not using_salinity:
-    #     meas_source_flag = 'CTD'
-    # elif using_temp and not using_psal and using_salinity:
-    #     meas_source_flag = 'BTL_CTD'  # Or is it just BTL?
-    # elif using_temp and not using_psal and not using_salinity:
-    #     # using temperature so CTD meas_source_flag
-    #     meas_source_flag = 'CTD'
+    meas_sources = {}
 
-    if data_type == 'btl':
-        meas_source_flag = 'BTL'
+    if has_ctd_temperature_col:
+        meas_sources["ctd_temperature"] = using_ctd_temperature
 
-    if data_type == 'ctd':
-        meas_source_flag = 'CTD'
+    if has_ctd_temperature_68_col:
+        meas_sources["ctd_temperature_68"] = using_ctd_temperature_68
 
-    meas_source_qc = {}
-    meas_source_qc['qc'] = meas_qc
-    meas_source_qc[f'use_temp_{data_type}'] = using_temp
-    if has_psal_col:
-        meas_source_qc[f'use_psal_{data_type}'] = using_psal
-    if has_salinity_column:
-        meas_source_qc['use_salinity_btl'] = using_salinity
+    if has_ctd_salinity_col:
+        meas_sources['ctd_salinity'] = using_ctd_salinity
 
-    # For json_str, convert True, False to 'true','false'
-    meas_source_qc = convert_boolean(meas_source_qc)
+    if has_btl_salinity_col:
+        meas_sources['bottle_salinity'] = using_btl_salinity
 
-    return meas_source_flag, meas_source_qc
+    # For json_str need to convert True, False to 'true','false'
+    #meas_sources = convert_boolean(meas_sources)
+
+    return meas_sources
 
 
-def get_argovis_core_meas_values_per_type(data_type):
+def filter_temperature(df_meas, meas_sources):
+    if 'ctd_temperature' in meas_sources:
 
-    # Add in bottle_salinity since will use this in
-    # measurements to check if have ctd_salinity, and
-    # if now, use bottle_salinity
+        using_ctd_temperature = meas_sources['ctd_temperature']
 
-    return ['pres', f"temp_{data_type}", f"temp_{data_type}_qc", f"psal_{data_type}",  f"psal_{data_type}_qc", 'salinity_btl', 'salinity_btl_qc']
+        if not using_ctd_temperature:
+            df_meas = df_meas.drop('ctd_temperature', axis=1)
+
+    if 'using_ctd_temperature_68' in meas_sources:
+
+        using_ctd_temperature_68 = meas_sources['using_ctd_temperature_68']
+
+        if not using_ctd_temperature_68:
+            df_meas = df_meas.drop('ctd_temperature_68', axis=1)
+
+    return df_meas
 
 
-def filter_salinity(df_meas):
+def filter_salinity(df_meas, meas_sources):
 
-    # Now filter to keep psal over salinity and if no
-    # psal, keep salinity  but rename to psal
+    print('meas sources')
+    print(meas_sources)
 
-    psal_exists = 'psal' in df_meas.columns
-    if psal_exists:
-        is_empty_psal = df_meas['psal'].isnull().values.all()
+    if 'ctd_salinity' in meas_sources:
 
-    salinity_exists = 'salinity' in df_meas.columns
-    if salinity_exists:
-        is_empty_salinity = df_meas['salinity'].isnull().values.all()
+        print('ctd_salinity in meas sources')
 
-    if psal_exists and salinity_exists and not is_empty_psal:
-        df_meas = df_meas.drop('salinity', axis=1)
-    elif psal_exists and salinity_exists and is_empty_psal and not is_empty_salinity:
-        df_meas = df_meas.drop('psal', axis=1)
-        df_meas = df_meas.rename(columns={'salinity': 'psal'})
-    elif not psal_exists and salinity_exists and not is_empty_salinity:
-        df_meas = df_meas.rename(columns={'salinity': 'psal'})
+        using_ctd_salinity = meas_sources['ctd_salinity']
+
+        if not using_ctd_salinity:
+            df_meas = df_meas.drop('ctd_salinity', axis=1)
+
+            print('not using ctd salinity')
+
+    if 'bottle_salinity' in meas_sources:
+
+        print('bottle_salinity in meas sources')
+
+        using_bottle_salinity = meas_sources['bottle_salinity']
+
+        if not using_bottle_salinity:
+            df_meas = df_meas.drop('bottle_salinity', axis=1)
+
+            print('not using bottle salinity')
+
+    print('df meas columns after filtering')
+    print(df_meas.columns)
+
+    # ctd_salinity_exists = 'ctd_salinity' in df_meas.columns
+    # if ctd_salinity_exists:
+    #     is_empty_ctd_salinity = df_meas['ctd_salinity'].isnull().values.all()
+
+    # btl_salinity_exists = 'bottle_salinity' in df_meas.columns
+    # if btl_salinity_exists:
+    #     is_empty_btl_salinity = df_meas['bottle_salinity'].isnull(
+    #     ).values.all()
+
+    # if ctd_salinity_exists and btl_salinity_exists and not is_empty_ctd_salinity:
+    #     df_meas = df_meas.drop('bottle_salinity', axis=1)
+    # elif ctd_salinity_exists and btl_salinity_exists and is_empty_ctd_salinity and not is_empty_btl_salinity:
+    #     df_meas = df_meas.drop('ctd_salinity', axis=1)
+
+    # # Now remove empty salinity columns if no salinity value exists
+    # if 'ctd_salinity' in df_meas.columns and is_empty_ctd_salinity:
+    #     df_meas = df_meas.drop('ctd_salinity', axis=1)
+
+    # if 'bottle_salinity' in df_meas.columns and is_empty_btl_salinity:
+    #     df_meas = df_meas.drop('bottle_salinity', axis=1)
 
     return df_meas
 
 
 def filter_meas_core_cols(df_meas):
 
-    # Remove objs where only a pressure value exists so
-    # can remove rows with no values except pressure
-    core_cols = ['temp', 'psal', 'salinity']
-    found_core_cols = [col for col in df_meas.columns if col in core_cols]
-    df_meas = df_meas.dropna(subset=found_core_cols, how='all')
+    # Remove cols such as 'N_PROF', 'station_cast' and qc_source cols.
+    # And only keep top hierarchy of temperature and salinity
+    # filter out objects with only a pressure or
+    # if no temperature
 
+    #core_cols = ['temp', 'psal', 'salinity']
+
+    # here
+    # core cols includes '_qc' vars
+    # core_cols, temperature_name, oxygen_name = get_core_cols_from_hierarchy(
+    #     df_meas)
+
+    core_cols_nonqc = get_core_cols_from_hierarchy(df_meas)
+
+    # core_cols_nonqc = [col for col in core_cols if '_qc' not in col]
+
+    # found_core_cols = [
+    #     col for col in df_meas.columns if col in core_cols_nonqc]
+
+    # print(f"found core cols from df_meas {found_core_cols}")
+
+    # Get temp qc value to be meas source qc (don't know if 0 or 2)
+    # Could also be a bad qc or none. Will store as key in final json,
+    # but not sure this is relevant
+
+    #df_meas['qc_source'] = df_meas[f"{temperature_name}_qc"]
+
+    # Get meas qc source col (which is the temp qc)
+    #temperature_qc = pd.unique(df_meas[f"{temperature_name}_qc"])
+
+    # # remove null values
+    # temperature_qc = [qc for qc in temperature_qc if pd.notnull(qc)]
+
+    # temperature_qc = [
+    #     int(qc) for qc in temperature_qc if int(qc) == 0 or int(qc) == 2]
+
+    # if not len(temperature_qc):
+    #     temperature_qc = None
+
+    # if no_temp:
+    #     # Set to empty dataframe
+    #     df_meas = pd.DataFrame()
+    #     temperature_qc = None
+
+    #logging.info(f"meas source temperature qc {temperature_qc}")
+
+    # Remove any columns that are not core
+    df_meas = df_meas[core_cols_nonqc]
+
+    # # drop qc columns
+    # for col in df_meas.columns:
+    #     if col.endswith('_qc'):
+    #         df_meas = df_meas.drop([col], axis=1)
+
+    df_meas = df_meas.sort_values(by=['pressure'])
+
+    # Remove objects that have all core values nan
+    df_meas = df_meas.dropna(how='all')
+
+    # Filter out if pressure is nan
+    df_meas = df_meas[df_meas['pressure'].notnull()]
+
+    # Filter out if temperature is nan
     # TODO
-    # Check if temp is all null, if it is set df_meas = empty df
-    # Or wait to do this when combine if the logic is a psal val
-    # makes sense if there is no temperature
-
-    no_temp = df_meas['temp'].isnull().all()
-
-    psal_exists = 'psal' in df_meas.columns
-    no_psal = False
-    if psal_exists:
-        no_psal = df_meas['psal'].isnull().all()
-
-    # I already have filtered out rows with qc_source != 0 or != 2
-    # df_meas = df_meas.query('qc_source == 0 | qc_source == 2')
-
-    # Get meas qc source (which is the temp qc)
-    meas_source_qc = pd.unique(df_meas['qc_source'])
-
-    # remove null values
-    meas_source_qc = [qc for qc in meas_source_qc if pd.notnull(qc)]
-
-    meas_source_qc = [
-        qc for qc in meas_source_qc if int(qc) == 0 or int(qc) == 2]
-
-    if len(meas_source_qc) == 1:
-        meas_source_qc = meas_source_qc[0]
-
-    elif not len(meas_source_qc):
-        meas_source_qc = None
-
-    logging.info(f"meas source qc {meas_source_qc}")
-
-    # Remove any columns that are not core such as station_cast
-    # and add pres to core cols
-    keep_cols = ['pres']
-    keep_cols.extend(found_core_cols)
-
-    df_meas = df_meas[keep_cols]
+    # do this later after find meas source qc using flags
+    #df_meas = df_meas[df_meas[temperature_name].notnull()]
 
     # Following not working. Still getting NaN in json string
     # If necessary for json to be null, use simple json
     df_meas = df_meas.where(pd.notnull(df_meas), None)
 
-    # Keeping objs with temp: null if psal exists
-    # if no_temp and not psal_exists:
-    #     meas_source_qc = None
+    # no_temp = df_meas[temperature_name].isnull().all()
 
-    # if no_temp and psal_exists and no_psal:
-    #     meas_source_qc = None
+    # if no_temp:
+    #     # Set to empty dataframe
+    #     df_meas = pd.DataFrame()
+    #     temperature_qc = None
 
-    if no_temp:
-        meas_source_qc = None
-
-    return df_meas, meas_source_qc
+    return df_meas
 
 
-def create_measurements_df_all(df, data_type):
+def create_measurements_df_all(df):
+
+    # Don't rename to argovis, so use goship names
 
     # For measurements, keep core vars pres, temp, psal, salinity
     # Later when filter measurements, if salinity is used,
     # it will be renamed to psal
 
-    # core values includes '_qc' vars
-    core_values = get_argovis_core_meas_values_per_type(data_type)
-    table_columns = list(df.columns)
-    core_cols = [col for col in table_columns if col in core_values]
+    # core cols includes '_qc' vars
 
-    core_non_qc = [elem for elem in core_cols if '_qc' not in elem]
+    # Keep all core named values and filter more when looking
+    # at each profile
+
+    core_names = mapping.get_goship_core_meas_var_names()
+
+    core_cols = [col for col in df.columns if col in core_names]
+
+    # pressure has no qc so don't need to look at it for qc=0 or 2
     core_non_qc_wo_press = [
-        elem for elem in core_cols if '_qc' not in elem and elem != 'pres']
+        col for col in core_cols if '_qc' not in col and col != 'pressure']
 
-    # Also include N_PROF, N_LEVELS, station_cast for unique identifiers
+    # Also include N_PROF, station_cast for unique identifiers
     cols_to_keep = core_cols
     identifier_cols = ['N_PROF', 'station_cast']
     cols_to_keep.extend(identifier_cols)
@@ -285,7 +565,12 @@ def create_measurements_df_all(df, data_type):
     df_meas = df[cols_to_keep].copy()
 
     # If qc != 0 or 2, set corresponding non_qc value to np.nan
-    for col in core_non_qc:
+    # So know to exclude them from core measurements.
+    # Will filter out later for cases where
+    # pressure or temperature are null. Want to filter
+    # for each station_cast profile
+
+    for col in core_non_qc_wo_press:
 
         qc_col = f"{col}_qc"
 
@@ -296,26 +581,26 @@ def create_measurements_df_all(df, data_type):
         except KeyError:
             pass
 
-    # Get temp qc value to be meas source qc (don't know if 0 or 2)
-    # Could also be a bad qc or none
-    df_meas['qc_source'] = df_meas[f"temp_{data_type}_qc"]
+    # # Get temp qc value to be meas source qc (don't know if 0 or 2)
+    # # Could also be a bad qc or none. Will store as key in final json,
+    # # but not sure this is relevant
 
-    # drop qc columns
-    for col in df_meas.columns:
-        if col.endswith('_qc'):
-            df_meas = df_meas.drop([col], axis=1)
+    # df_meas['qc_source'] = df_meas[f"{temperature_name}_qc"]
 
-    df_meas = df_meas.sort_values(by=['pres'])
+    # # drop qc columns
+    # for col in df_meas.columns:
+    #     if col.endswith('_qc'):
+    #         df_meas = df_meas.drop([col], axis=1)
 
-    # Remove data_type ('btl', 'ctd') from  variable names
-    column_mapping = {}
-    column_mapping[f"psal_{data_type}"] = 'psal'
-    column_mapping[f"temp_{data_type}"] = 'temp'
-    column_mapping[f"salinity_btl"] = 'salinity'
+    # df_meas = df_meas.sort_values(by=['pressure'])
 
-    # Will change name of salinity to psal later when filter it
-
-    df_meas = df_meas.rename(columns=column_mapping)
+    # Not using argovis names, so don't need this
+    # # Remove data_type ('btl', 'ctd') from  variable names
+    # column_mapping = {}
+    # column_mapping[f"psal_{data_type}"] = 'psal'
+    # column_mapping[f"temp_{data_type}"] = 'temp'
+    # column_mapping[f"salinity_btl"] = 'salinity'
+    # df_meas = df_meas.rename(columns=column_mapping)
 
     return df_meas
 
@@ -328,8 +613,11 @@ def create_meas_profiles(df_param, data_type):
 
     logging.info("Create all Measurements profiles")
 
+    # df_meas = df_param.groupby('N_PROF').apply(
+    #     create_measurements_df_all, data_type)
+
     df_meas = df_param.groupby('N_PROF').apply(
-        create_measurements_df_all, data_type)
+        create_measurements_df_all)
 
     # Remove N_PROF as index and drop because
     # already have an N_PROF column used for groupby
@@ -352,60 +640,66 @@ def create_meas_profiles(df_param, data_type):
         # logging.info('----------------------')
         # logging.info(f"station cast {station_cast}")
 
-        # Now filter to core meas cols
+        # Now filter to core meas cols using temp and oxygen
+        # from hierarchy
         # still includes bottle salinity because want to see if
-        # it will be kept in measurements if ctd_sal doesn't exist
-        val_df, meas_qc = filter_meas_core_cols(val_df)
+        # it will be kept in measurements if ctd_salinity doesn't exist
 
-        meas_source_flag, meas_source_qc = get_measurements_source(
-            val_df, meas_qc, data_type)
+        # If temperature nan for all values, return df_meas empty df
+        df_meas = filter_meas_core_cols(val_df)
 
-        # Now filter to keep psal over salinity and if no
-        # psal, keep salinity  but rename to psal
-        val_df = filter_salinity(val_df)
+        # Now find which core variables are used (meas_source_flag)
+        # meas_source_flag, meas_sources = get_measurements_sources(
+        #     val_df, meas_qc, data_type)
+
+        # if not df_meas.empty:
+        #     meas_source_flag = {'source': data_type}
+        #     meas_sources = get_measurements_sources(df_meas, meas_qc)
+        # else:
+        #     meas_source_flag = {'source': None}
+        #     meas_sources = {'source_qc': None}
+
+        meas_source_flag = data_type.upper()
+
+        # measurements source is a dict with qc value and
+        # flags of using temperature, ctd_salinity, bottle_salinity
+        meas_sources = get_measurements_sources(df_meas)
+
+        # Now filter to keep ctd_salinity over bottle salinity and if no
+        # ctd_salinity, keep bottle_salinity (rename to argovis psal name later)
+
+        # Filter salinity and psal using meas_sources
+        # if not df_meas.empty:
+        #     df_meas = filter_salinity(df_meas)
+        df_meas = filter_salinity(df_meas, meas_sources)
+
+        df_meas = filter_temperature(df_meas, meas_sources)
 
         # TODO
-        # Should I filter out all values here or leave the
-        # temp as null and have a psal?
+        # change to check meas source qc flag of temperature
+        using_ctd_temperature = False
+        if 'ctd_temperature' in meas_sources:
+            using_ctd_temperature = meas_sources['ctd_temperature']
 
-        # For logging, check if both temp and psal null
-        all_ctd_temp_empty = val_df['temp'].isnull().all()
+        using_ctd_temperature_68 = False
+        if 'ctd_temperature_68' in meas_sources:
+            using_ctd_temperature_68 = meas_sources['ctd_temperature_68']
 
-        psal_exists = 'psal' in val_df.columns
-        if psal_exists:
-            all_psal_empty = val_df['psal'].isnull().all()
+        if not using_ctd_temperature and not using_ctd_temperature_68:
+            meas_dict_list = []
+        else:
+            meas_dict_list = df_meas.to_dict('records')
+            meas_dict_list = to_int_qc(meas_dict_list)
 
-        if all_ctd_temp_empty and psal_exists and all_psal_empty:
-            logging.info(f"station cast {station_cast}")
-            logging.info("No temp or sal values. All null")
-        elif all_ctd_temp_empty and not psal_exists:
-            logging.info(f"station cast {station_cast}")
-            logging.info("No finite temp values and psal not exists.")
-
-        # if all_ctd_temp_empty and psal_exists and all_psal_empty:
-        #     # create empty df
-        #     val_df = pd.DataFrame(columns=val_df.columns)
-        # elif all_ctd_temp_empty and not psal_exists:
-        #     # create empty df
-        #     val_df = pd.DataFrame(columns=val_df.columns)
-
-        # if val_df.empty:
+        # if df_meas.empty:
         #     meas_dict_list = []
-        #     logging.info(f"station cast {station_cast}")
-        #     logging.info("No temp or sal values. All null")
-        #     logging.info("meas dict list is []")
-        #     logging.info("station parameters key is empty")
-        #     meas_names = {}
-        #     meas_names['station_cast'] = station_cast
-        #     meas_names['station_parameters'] = list(val_df.columns)
-        #     all_meas_names.append(meas_names)
-
-        meas_dict_list = val_df.to_dict('records')
-        meas_dict_list = to_int_qc(meas_dict_list)
+        # else:
+        #     meas_dict_list = df_meas.to_dict('records')
+        #     meas_dict_list = to_int_qc(meas_dict_list)
 
         meas_names = {}
         meas_names['station_cast'] = station_cast
-        meas_names['station_parameters'] = list(val_df.columns)
+        meas_names['stationParameters'] = list(df_meas.columns)
         all_meas_names.append(meas_names)
 
         meas_profile = {}
@@ -419,9 +713,12 @@ def create_meas_profiles(df_param, data_type):
         meas_source_profile['measurementsSource'] = meas_source_flag
         all_meas_source_profiles.append(meas_source_profile)
 
-        meas_source_profile_qc = {}
-        meas_source_profile_qc['station_cast'] = station_cast
-        meas_source_profile_qc['measurementsSourceQC'] = meas_source_qc
-        all_meas_source_profiles.append(meas_source_profile_qc)
+        meas_sources_profile = {}
+        meas_sources_profile['station_cast'] = station_cast
+        meas_sources_profile['measurementsSources'] = meas_sources
+        all_meas_source_profiles.append(meas_sources_profile)
+
+        logging.info('measurements sources')
+        logging.info(meas_sources)
 
     return all_meas_profiles, all_meas_source_profiles, all_meas_names

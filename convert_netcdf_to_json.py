@@ -10,7 +10,6 @@ from dask.diagnostics import Profiler
 
 from global_vars import GlobalVars
 from setup_logging import setup_logging
-from process_cruises.get_cruises_file_info import get_all_cruises_file_info
 from process_cruises.process_all_cruises import process_all_cruises
 
 
@@ -34,15 +33,13 @@ def main(start_year, end_year, append):
     time_range['start'] = datetime(start_year, 1, 1)
     time_range['end'] = datetime(end_year, 12, 31)
 
-    cruises_json, files_info = get_all_cruises_file_info()
-
     data_dir = GlobalVars.JSON_DIR
     if os.path.exists(data_dir):
         shutil.rmtree(data_dir)
 
     os.makedirs(data_dir, exist_ok=True)
 
-    process_all_cruises(cruises_json, files_info, time_range)
+    process_all_cruises(time_range)
 
     logging.info("Time to run program")
     logging.info(datetime.now() - program_start_time)

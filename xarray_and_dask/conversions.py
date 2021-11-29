@@ -145,6 +145,11 @@ def get_qc_scale_for_oxygen_conversion(nc, var):
     # convert an oxygen with a bad temperature qc. Same
     # for the salinity.
 
+    # TODO
+    # summarize possible combinations of good/bad vars
+    # and ask Sarah about doing calulation with bad vals
+    # and what flag to use. Do I do calc or skip it?
+
     if f"{var}_qc" in nc.keys():
         oxy_qc = nc[f"{var}_qc"]
     else:
@@ -271,9 +276,17 @@ def get_temp_and_salinity(nc):
     # to do with naming the var doxy then? Would have to
     # rename if doxy_ml_l
 
+    # TODO
+    # What is procedure for converting oxygen when all ctd_sal
+    # is bad but some btl_sal are good. Do I keep the oxy uncoverted val
+    # if sal is null? What flag to use if set oxygen to null?
+
     missing_var_flag = False
     sal_ref_scale = None
     temp_ref_scale = None
+
+    found_good_ctd_sal = False
+    found_good_btl_sal = False
 
     if 'ctd_salinity' in nc.keys():
 
@@ -289,10 +302,21 @@ def get_temp_and_salinity(nc):
             nc['sal_pr'] = xr.where((nc['ctd_salinity_qc'] != 0) &
                                     (nc['ctd_salinity_qc'] != 2.0), nan_array, nc['ctd_salinity'])
 
+            # ctd salinity is all bad so can't do conversion,
+            # try checking bottle salinity then
+
             sal_pr = nc['sal_pr']
             sal_ref_scale = nc['ctd_salinity'].attrs['reference_scale']
 
-    elif 'bottle_salinity' in nc.keys():
+            # Check if sal_pr is all null. If it is, found no good values
+            all_nan = np.isnan(sal_pr).all()
+
+            if not all_nan:
+                found_good_ctd_sal = True
+
+                ctd_sal_pr = sal_pr
+
+    if 'bottle_salinity' in nc.keys():
 
         # Have a temporary var sal_pr so don't overwrite ctd_salinity
 
@@ -309,20 +333,50 @@ def get_temp_and_salinity(nc):
             sal_pr = nc['sal_pr']
             sal_ref_scale = nc['bottle_salinity'].attrs['reference_scale']
 
+            # Check if sal_pr is all null. If it is, found no good values
+            all_nan = np.isnan(sal_pr).all()
+
+            if not all_nan:
+                found_good_btl_sal = True
+
+            btl_sal_pr = sal_pr
+
+    if found_good_ctd_sal:
+        sal_pr = ctd_sal_pr
+
+    elif not found_good_ctd_sal and found_good_btl_sal:
+        # use btl salinity for conversion
+        # TODO
+        # ask if this is OK
+        # save list of files where this is ever the case
+        sal_pr = btl_sal_pr
+
     else:
         logging.info("************************************")
         logging.info("No salinity to convert oxygen units")
         logging.info("************************************")
 
-        sal_pr = None
+        # TODO
+        # So keep oxygen same units instead of set all to null
+
+        # Save these to a file to look at
+
+        sal_pr = np.nan
         missing_var_flag = True
 
     # Check if salinity ref scale is PSS-78
     if sal_ref_scale != 'PSS-78':
         missing_var_flag = True
 
+    # ----------------
+    # Get temperature
+    # ----------------
+
     # Use ctd_temperature first,  then ctd_temperature_68
     # These have just been converted to the ITS-90 scale
+
+    found_good_ctd_temp = False
+    found_good_temp_68 = False
 
     if 'ctd_temperature' in nc.keys():
 
@@ -341,7 +395,14 @@ def get_temp_and_salinity(nc):
             temp = nc['temp']
             temp_ref_scale = nc['ctd_temperature'].attrs['reference_scale']
 
-    elif 'ctd_temperature_68' in nc.keys():
+            # Check if sal_pr is all null. If it is, found no good values
+            all_nan = np.isnan(temp).all()
+
+            if not all_nan:
+                found_good_ctd_temp = True
+                ctd_temp = temp
+
+    if 'ctd_temperature_68' in nc.keys():
 
         # Have a temporary var temp so don't overwrite ctd_temperature
 
@@ -358,6 +419,20 @@ def get_temp_and_salinity(nc):
             temp = nc['temp']
             temp_ref_scale = nc['ctd_temperature_68'].attrs['reference_scale']
 
+            if not all_nan:
+                found_good_temp_68 = True
+                temp_68 = temp
+
+    if found_good_ctd_temp:
+        temp = ctd_temp
+
+    elif not found_good_ctd_temp and found_good_temp_68:
+        # TODO
+        # ask if this is OK
+        # But do I have a ctd_temperature and
+        # ctd_temperature_68 at the same time?
+        # save list of files where this is ever the case
+        temp = temp_68
     else:
         # This shouldn't happen since checked for required
         # CTD vars, ctd temp with ref scale, at the start
@@ -367,8 +442,11 @@ def get_temp_and_salinity(nc):
         logging.info("No ctd temp to convert oxygen units")
         logging.info("************************************")
 
+        # TODO
+        # So keep oxygen same units instead of set all to null
+
         missing_var_flag = True
-        temp = None
+        temp = np.nan
 
     # Check if temperature ref scale is ITS-90
     # Which it should be since did this conversion first
@@ -386,6 +464,17 @@ def get_temp_and_salinity(nc):
 
 
 def convert_oxygen(nc, var):
+
+    # TODO
+    # Ask Sarah about all these possible combinations of
+    # trying to find good values to do conversion with
+
+    # If don't have good sal or temp, do I convert anyway
+    # using whatever values I have and then set flag bad?
+    # And what value for flag?
+
+    #  TODO
+    # sorted on pressure but made level go from large to small?
 
     # Convert ml/l to micromole/kg
 
@@ -413,6 +502,13 @@ def convert_oxygen(nc, var):
 
     nc, temp, sal_pr, missing_var_flag = get_temp_and_salinity(nc)
 
+    # TODO
+    # is this OK to leave as not converted. And keeping units same
+    # as before. So user needs to be aware of oxygen units if case
+    # where it couldn't be converted
+
+    # TODO
+    # ask Sarah if should convert anyway and use bad flag with it
     if missing_var_flag:
         logging.info("Missing temp or sal needed to do Oxygen conversion")
         logging.info(f"Didn't convert {var}")
@@ -564,6 +660,10 @@ def apply_conversions(nc):
     # Rename converted temperature later.
     # Keep 68 in name and show it maps to temp_ctd
     # and ref scale show what scale it was converted to
+
+    # TODO
+    # rename so more general than just argovis request
+    # since Sarah wanted them anyway
 
     # Converting to argovis ref scale if needed
     nc = convert_goship_to_argovis_ref_scale(nc)
