@@ -48,11 +48,11 @@ def unzip_file(zip_folder, zip_file):
 def prepare_profile_json(profile_dict):
 
     # TODO
-    # If want to remove goshipNames list, do it here
-    # profile_dict.pop('goshipNames', None)
+    # If want to remove cchdoNames list, do it here
+    # profile_dict.pop('cchdoNames', None)
 
     # Remove station cast var used to group data
-    profile_dict.pop('stationCast', None)
+    #profile_dict.pop('stationCast', None)
     profile_dict.pop('station_cast', None)
 
     profile_dict.pop('data_type', None)
@@ -78,7 +78,7 @@ def get_filename(profile_dict):
     # ask
     # probably use cruise expocode instead of that in file
 
-    id = profile_dict['id']
+    id = profile_dict['_id']
 
     # TODO
     # When create file id, ask if use cruise expocode instead

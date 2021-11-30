@@ -1,17 +1,18 @@
 import logging
 
 from create_profiles.create_profiles_combined_type import create_profiles_combined_type
-from check_and_save.save_output import save_data_type_profiles
 from check_and_save.save_output import save_data_type_profiles_combined
 
 
-def post_process_cruise_objs_by_collection(cruises_profiles_objs):
+def post_process_cruise_objs_by_collection(cruise_objs_by_type):
 
-    for cruise_profiles_obj in cruises_profiles_objs:
+    single_data_type_cruises = []
 
-        expocode = cruise_profiles_obj['cruise_expocode']
+    for cruise_obj in cruise_objs_by_type:
 
-        all_data_types_profile_objs = cruise_profiles_obj['all_data_types_profile_objs']
+        expocode = cruise_obj['cruise_expocode']
+
+        all_data_types_profile_objs = cruise_obj['all_data_types_profile_objs']
 
         logging.info("****************************")
         logging.info(f"Post processing {expocode}")
@@ -36,11 +37,17 @@ def post_process_cruise_objs_by_collection(cruises_profiles_objs):
             #  when combine btl and ctd profiles.
             # didn't filter btl or ctd first in case need
             # a variable from both
-            profiles_btl_ctd_objs = create_profiles_combined_type(
+            # Each obj in all_data_types_profile_objs is a
+            # dict with keys station_cast, data_type, profile_dict
+            combined_obj_profiles = create_profiles_combined_type(
                 all_data_types_profile_objs)
 
-            save_data_type_profiles_combined(profiles_btl_ctd_objs)
+            save_data_type_profiles_combined(combined_obj_profiles)
 
         else:
-            for data_type_obj_profiles in all_data_types_profile_objs:
-                save_data_type_profiles(data_type_obj_profiles)
+            single_data_type_cruises.append(cruise_obj)
+
+            # for data_type_obj_profiles in all_data_types_profile_objs:
+            #     save_data_type_profiles(data_type_obj_profiles)
+
+    return single_data_type_cruises

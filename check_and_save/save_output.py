@@ -9,6 +9,7 @@ import logging
 from global_vars import GlobalVars
 #from check_and_save.check_of_ctd_vars import check_of_ctd_vars
 from create_profiles.create_meas_profiles import filter_measurements
+from variable_mapping.meta_param_mapping import get_mappings_keys_mapping
 from check_and_save.save_as_zip import save_as_zip
 from check_and_save.save_as_zip import save_as_zip_data_type_profiles
 
@@ -25,39 +26,134 @@ def convert(o):
         return int(o)
 
 
-def write_profile_goship_units_one_profile(profile):
+def get_unique_cchdo_units(data_type_profiles):
 
-    profile_dict = profile['profile_dict']
-    data_type = profile_dict['data_type']
+    # Keep my names and map to latest Argovis names
+    # need this since already renamed individual files
 
-    filename = 'found_goship_units.txt'
+    # cchdo names are the keys and argovis names are the value
+    key_mapping = get_mappings_keys_mapping()
+
+    cchdo_units_key = 'cchdoUnits'
+    renamed_cchdo_units_key = key_mapping[cchdo_units_key]
+
+    cchdo_units_key_btl = 'cchdoUnitsBtl'
+    renamed_cchdo_units_key_btl = key_mapping[cchdo_units_key_btl]
+
+    cchdo_units_key_ctd = 'cchdoUnitsCtd'
+    renamed_cchdo_units_key_ctd = key_mapping[cchdo_units_key_ctd]
+
+    all_cchdo_units_mapping = {}
+
+    for profile in data_type_profiles:
+
+        # TODO
+        # Did I keep or use 'data_type' as a key for profile
+        #  when processing things?
+        # Did I set data_type to 'btl_ctd'?
+        #data_type = profile['data_type']
+        profile_dict = profile['profile_dict']
+        data_type = profile_dict['data_type']
+
+        if data_type == 'btl' or data_type == 'ctd':
+            cchdo_units_mapping = profile_dict[renamed_cchdo_units_key]
+
+        if data_type == 'btl_ctd':
+
+            try:
+                cchdo_units_btl = profile_dict[renamed_cchdo_units_key_btl]
+                cchdo_units_ctd = profile_dict[renamed_cchdo_units_key_ctd]
+                cchdo_units_mapping = {**cchdo_units_btl, **cchdo_units_ctd}
+            except:
+                cchdo_units_mapping = profile_dict[renamed_cchdo_units_key]
+
+        # TODO
+        # overwrite key if it already exists
+        # each variable has same units. Is this true
+        # if it comes from either btl or ctd?
+        # If same key but different units, add suffix to key
+        # of profile_dict['meta']['expocode']
+        expocode = profile_dict['meta']['expocode']
+        for key, val in cchdo_units_mapping.items():
+            if key in all_cchdo_units_mapping and val != all_cchdo_units_mapping[key]:
+                new_key = f"{key}_{expocode}"
+                all_cchdo_units_mapping[new_key] = val
+            else:
+                all_cchdo_units_mapping[key] = val
+
+        return all_cchdo_units_mapping
+
+
+def write_all_cchdo_units(all_cchdo_units_mapping):
+
+    filename = 'found_cchdo_units.txt'
     filepath = os.path.join(GlobalVars.LOGGING_DIR, filename)
 
-    # Write one profile goship units to
-    # keep a record of what units need to be converted
-
-    if data_type == 'btl':
-        goship_units_profile = profile_dict['goshipUnits']
-
-    if data_type == 'ctd':
-        goship_units_profile = profile_dict['goshipUnits']
-
-    if data_type == 'btl_ctd':
-        try:
-            goship_units_btl = profile_dict['goshipUnitsBtl']
-            goship_units_ctd = profile_dict['goshipUnitsCtd']
-            goship_units_profile = {**goship_units_btl, **goship_units_ctd}
-        except:
-            goship_units_profile = profile_dict['goshipUnits']
-
     with open(filepath, 'a') as f:
-        json.dump(goship_units_profile, f, indent=4,
+        json.dump(all_cchdo_units_mapping, f, indent=4,
                   sort_keys=True, default=convert)
 
 
-def write_profile_goship_units(checked_profiles_info):
+def write_profile_cchdo_units_one_profile(data_type, profile):
 
-    # Write one profile goship units to
+    profile_dict = profile['profile_dict']
+
+    filename = 'found_cchdo_units.txt'
+    filepath = os.path.join(GlobalVars.LOGGING_DIR, filename)
+
+    # Write one profile cchdo units to
+    # keep a record of what units need to be converted
+
+    # cchdo names are the keys and argovis names are the value
+    key_mapping = get_mappings_keys_mapping()
+
+    cchdo_units_key = 'cchdoUnits'
+    renamed_cchdo_units_key = key_mapping[cchdo_units_key]
+
+    cchdo_units_key_btl = 'cchdoUnitsBtl'
+    renamed_cchdo_units_key_btl = key_mapping[cchdo_units_key_btl]
+
+    cchdo_units_key_ctd = 'cchdoUnitsCtd'
+    renamed_cchdo_units_key_ctd = key_mapping[cchdo_units_key_ctd]
+
+    if data_type == 'btl':
+        cchdo_units_mapping = profile_dict[renamed_cchdo_units_key]
+
+    if data_type == 'ctd':
+        cchdo_units_mapping = profile_dict[renamed_cchdo_units_key]
+
+    if data_type == 'btl_ctd':
+        try:
+            cchdo_units_btl = profile_dict[renamed_cchdo_units_key_btl]
+            cchdo_units_ctd = profile_dict[renamed_cchdo_units_key_ctd]
+            cchdo_units_mapping = {**cchdo_units_btl, **cchdo_units_ctd}
+        except:
+            cchdo_units_mapping = profile_dict[renamed_cchdo_units_key]
+
+    with open(filepath, 'a') as f:
+        json.dump(cchdo_units_mapping, f, indent=4,
+                  sort_keys=True, default=convert)
+
+
+def write_profile_cchdo_units(checked_profiles_info):
+
+    # TODO
+    # Keep my names and map to latest Argovis names
+    # need this since already renamed individual files
+
+    # cchdo names are the keys and argovis names are the value
+    key_mapping = get_mappings_keys_mapping()
+
+    cchdo_units_key = 'cchdoUnits'
+    renamed_cchdo_units_key = key_mapping[cchdo_units_key]
+
+    cchdo_units_key_btl = 'cchdoUnitsBtl'
+    renamed_cchdo_units_key_btl = key_mapping[cchdo_units_key_btl]
+
+    cchdo_units_key_ctd = 'cchdoUnitsCtd'
+    renamed_cchdo_units_key_ctd = key_mapping[cchdo_units_key_ctd]
+
+    # Write one profile cchdo units to
     # keep a record of what units need to be converted
 
     try:
@@ -65,25 +161,25 @@ def write_profile_goship_units(checked_profiles_info):
 
         data_type = profile_dict['data_type']
 
-        filename = 'found_goship_units.txt'
+        filename = 'found_cchdo_units.txt'
         filepath = os.path.join(GlobalVars.LOGGING_DIR, filename)
 
         if data_type == 'btl':
-            goship_units_profile = profile_dict['goshipUnits']
+            cchdo_units_profile = profile_dict[renamed_cchdo_units_key]
 
         if data_type == 'ctd':
-            goship_units_profile = profile_dict['goshipUnits']
+            cchdo_units_profile = profile_dict[renamed_cchdo_units_key]
 
         if data_type == 'btl_ctd':
             try:
-                goship_units_btl = profile_dict['goshipUnitsBtl']
-                goship_units_ctd = profile_dict['goshipUnitsCtd']
-                goship_units_profile = {**goship_units_btl, **goship_units_ctd}
+                cchdo_units_btl = profile_dict[renamed_cchdo_units_key_btl]
+                cchdo_units_ctd = profile_dict[renamed_cchdo_units_key_ctd]
+                cchdo_units_profile = {**cchdo_units_btl, **cchdo_units_ctd}
             except:
-                goship_units_profile = profile_dict['goshipUnits']
+                cchdo_units_profile = profile_dict[renamed_cchdo_units_key]
 
         with open(filepath, 'a') as f:
-            json.dump(goship_units_profile, f, indent=4,
+            json.dump(cchdo_units_profile, f, indent=4,
                       sort_keys=True, default=convert)
 
     except KeyError:
@@ -94,11 +190,12 @@ def write_profile_goship_units(checked_profiles_info):
 def prepare_profile_json(profile_dict):
 
     # TODO
-    # If want to remove goshipNames list, do it here
-    # profile_dict.pop('goshipNames', None)
+    # If want to remove cchdoNames list, do it here
+    # profile_dict.pop('cchdoNames', None)
 
     # Remove station cast var used to group data
-    profile_dict.pop('stationCast', None)
+    #profile_dict.pop('stationCast', None)
+
     profile_dict.pop('station_cast', None)
 
     profile_dict.pop('data_type', None)
@@ -106,8 +203,11 @@ def prepare_profile_json(profile_dict):
     # Remove station_cast var used to group data
     # profile_dict['meta'].pop('station_cast', None)
 
+    # TODO
+    # already did this?
+
     # Remove  time from meta since it was just used to create date variable
-    profile_dict['meta'].pop('time', None)
+    #profile_dict['meta'].pop('time', None)
 
     # Pop off meta key and use as start of data_dict
     meta_dict = profile_dict.pop('meta', None)
@@ -126,7 +226,7 @@ def write_profile_json(profile_dict):
     # ask
     # probably use cruise expocode instead of that in file
 
-    id = data_dict['id']
+    id = data_dict['_id']
 
     # TODO
     # When create file id, ask if use cruise expocode instead
@@ -161,33 +261,33 @@ def write_profile_json(profile_dict):
                   sort_keys=False, default=convert)
 
 
-def save_one_btl_ctd_profile(ctd_var_check):
+# def save_one_btl_ctd_profile(ctd_var_check):
 
-    has_all_ctd_vars = ctd_var_check['has_all_ctd_vars']
+#     has_all_ctd_vars = ctd_var_check['has_all_ctd_vars']
 
-    profile = ctd_var_check['profile_checked']
+#     profile = ctd_var_check['profile_checked']
 
-    profile_dict = profile['profile_dict']
+#     profile_dict = profile['profile_dict']
 
-    if has_all_ctd_vars['btl'] or has_all_ctd_vars['ctd']:
-        write_profile_json(profile_dict)
-
-
-def save_all_btl_ctd_profiles(checked_profiles_info):
-
-    # checked_profiles_info holds info for all profiles
-    for checked_profile_info in checked_profiles_info:
-
-        has_all_ctd_vars = checked_profile_info['has_all_ctd_vars']
-
-        profile = checked_profile_info['profile_checked']
-        profile_dict = profile['profile_dict']
-
-        if has_all_ctd_vars['btl'] or has_all_ctd_vars['ctd']:
-            write_profile_json(profile_dict)
+#     if has_all_ctd_vars['btl'] or has_all_ctd_vars['ctd']:
+#         write_profile_json(profile_dict)
 
 
-def save_included_excluded_goship_vars(included, excluded):
+# def save_all_btl_ctd_profiles(checked_profiles_info):
+
+#     # checked_profiles_info holds info for all profiles
+#     for checked_profile_info in checked_profiles_info:
+
+#         has_all_ctd_vars = checked_profile_info['has_all_ctd_vars']
+
+#         profile = checked_profile_info['profile_checked']
+#         profile_dict = profile['profile_dict']
+
+#         if has_all_ctd_vars['btl'] or has_all_ctd_vars['ctd']:
+#             write_profile_json(profile_dict)
+
+
+def save_included_excluded_cchdo_vars(included, excluded):
     """
         Save included vars
     """
@@ -230,26 +330,26 @@ def save_included_excluded_goship_vars(included, excluded):
                 f.write(f"{id}\n")
 
 
-def save_profile_one_type(checked_profile_info):
+# def save_profile_one_type(checked_profile_info):
 
-    has_all_ctd_vars = checked_profile_info['has_all_ctd_vars']
-    data_type = checked_profile_info['data_type']
+#     has_all_ctd_vars = checked_profile_info['has_all_ctd_vars']
+#     data_type = checked_profile_info['data_type']
 
-    profile = checked_profile_info['profile_checked']
-    profile_dict = profile['profile_dict']
-    expocode = profile_dict['meta']['expocode']
+#     profile = checked_profile_info['profile_checked']
+#     profile_dict = profile['profile_dict']
+#     expocode = profile_dict['meta']['expocode']
 
-    # add_vars_to_included_excluded_collections(
-    #     profile_dict, cruises_collections)
+#     # add_vars_to_included_excluded_collections(
+#     #     profile_dict, cruises_collections)
 
-    if has_all_ctd_vars[data_type]:
-        write_profile_json(profile_dict)
+#     if has_all_ctd_vars[data_type]:
+#         write_profile_json(profile_dict)
 
 
-def save_all_profiles_one_type(checked_profiles_info):
+# def save_all_profiles_one_type(checked_profiles_info):
 
-    for checked_profile_info in checked_profiles_info:
-        save_profile_one_type(checked_profile_info)
+#     for checked_profile_info in checked_profiles_info:
+#         save_profile_one_type(checked_profile_info)
 
 
 # def check_and_save_per_type(data_type_obj_profiles):
@@ -276,7 +376,7 @@ def save_all_profiles_one_type(checked_profiles_info):
 #         logging.info('Saving files')
 #         logging.info('----------------------')
 
-#         write_profile_goship_units(checked_profiles_info)
+#         write_profile_cchdo_units(checked_profiles_info)
 
 #         save_as_zip(checked_profiles_info)
 
@@ -307,7 +407,7 @@ def save_all_profiles_one_type(checked_profiles_info):
 #         logging.info('Saving files')
 #         logging.info('----------------------')
 
-#         write_profile_goship_units(checked_profiles_info)
+#         write_profile_cchdo_units(checked_profiles_info)
 
 #         save_as_zip(checked_profiles_info)
 
@@ -369,23 +469,34 @@ def save_data_type_profiles(data_type_obj_profiles):
 
     logging.info('Saving files single type')
 
+    data_type = data_type_obj_profiles['data_type']
+
     data_type_profiles = data_type_obj_profiles['data_type_profiles_list']
 
     # Set measurements = [] if all vals null besides pres
-    data_type_profiles = filter_measurements(data_type_profiles)
+    # I already accounted for this
+    #data_type_profiles = filter_measurements(data_type_profiles)
 
-    profile = data_type_profiles[0]
+    # TODO
+    # Look at one profile to get the cchdo units
+    # assuming same for all profiles. Is this true?
+    all_cchdo_units_mapping = get_unique_cchdo_units(data_type_profiles)
 
-    write_profile_goship_units_one_profile(profile)
+    write_all_cchdo_units(all_cchdo_units_mapping)
 
     save_as_zip_data_type_profiles(data_type_profiles)
 
 
-def save_data_type_profiles_combined(data_type_profiles):
+def save_data_type_profiles_combined(combined_obj_profiles):
 
     logging.info('Saving files combined type')
 
-    profile = data_type_profiles[0]
-    write_profile_goship_units_one_profile(profile)
+    # don't know data type of profile, so this logic doesn't work
+    # of just picking first profile.
 
-    save_as_zip_data_type_profiles(data_type_profiles)
+    # Loop through all profiles, get all units and get unique
+    all_cchdo_units_mapping = get_unique_cchdo_units(combined_obj_profiles)
+
+    write_all_cchdo_units(all_cchdo_units_mapping)
+
+    save_as_zip_data_type_profiles(combined_obj_profiles)

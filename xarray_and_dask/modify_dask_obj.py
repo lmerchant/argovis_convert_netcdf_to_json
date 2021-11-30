@@ -2,10 +2,27 @@ import logging
 import numpy as np
 
 
+def modify_meta_dask_obj(ddf_meta):
+
+    # With meta columns, xarray exploded them
+    # for all levels. Only keep one Level
+    # since they repeat
+    logging.info('Get level = 0 meta rows')
+
+    # N_LEVELS is an index
+    ddf_meta = ddf_meta[ddf_meta['N_LEVELS'] == 0]
+    ddf_meta = ddf_meta.drop('N_LEVELS', axis=1)
+
+    # df_meta = ddf_meta.compute()
+
+    return ddf_meta
+
+
 def remove_empty_rows(df):
 
     # TODO
     # Do qc cols mess this up or are they NaN also?
+    # Skipping qc cols since don't hold np.nan values
 
     # If have '' and 'NaT' values, replace with NaN,
     # drop the rows, then replace with previous
@@ -27,17 +44,21 @@ def remove_empty_rows(df):
 
     df_dropped = df.dropna(subset=subset_cols, how='all').copy()
 
+    # Update df_copy to only retain rows existing in df_dropped
+    # df_copy has all data columns
     df_dropped.update(df_copy)
 
     return df_dropped
 
 
-def modify_dask_obj(ddf_param, data_type):
+def modify_param_dask_obj(ddf_param):
+
+    # TODO
+    # Is removing rows with dask faster than with pandas?
 
     # ******************************************
     # Remove empty rows so don't include in JSON
-    # Change NaN to None for JSON to be null
-    # Add back in temp_qc = 0 col if existed
+    # Change NaN to None for final JSON to be null.
     # ******************************************
 
     logging.info('Remove empty rows')
@@ -48,29 +69,10 @@ def modify_dask_obj(ddf_param, data_type):
     ddf_param = ddf_param.map_partitions(
         lambda part: part.groupby('N_PROF').apply(remove_empty_rows), meta=dask_meta)
 
-    # Now both indexed by N_PROF  and retained as a column
-    # drop the index
     ddf_param = ddf_param.drop(['N_LEVELS'], axis=1)
     ddf_param = ddf_param.reset_index(drop=True)
 
     # Change NaN to None so in json, converted to null
     ddf_param = ddf_param.replace({np.nan: None})
-
-    # # Add back in temp_qc = 0 if column exists and all np.nan
-    # try:
-    #     if ddf_param[f"temp_{data_type}_qc"].isnull().values.all():
-    #         ddf_param[f"temp_{data_type}_qc"] = ddf_param[f"temp_{data_type}_qc"].fillna(
-    #             0)
-
-    # except KeyError:
-    #     pass
-
-    # # Add back in pres_qc = 1 if column exists and all np.nan
-    # try:
-    #     if ddf_param[f"pres_qc"].isnull().values.all():
-    #         ddf_param[f"pres_qc"] = ddf_param[f"pres_qc"].fillna(1)
-
-    # except KeyError:
-    #     pass
 
     return ddf_param

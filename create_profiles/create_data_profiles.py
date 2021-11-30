@@ -51,7 +51,7 @@ def remove_empty_cols(df):
     return df
 
 
-def create_bgc_profiles(df_param):
+def create_data_profiles(df_param):
 
     # TODO
     # check columns, does N_PROF occur as an index?
@@ -65,20 +65,20 @@ def create_bgc_profiles(df_param):
     # filtered df_param profile
     # **********************************
 
-    logging.info('create all_bgc profile and get name mapping')
+    logging.info('create data profile and get name mapping')
 
-    # Sort columns so qc next to its var
     # TODO
+    # Sort columns so qc next to its var
     # Just for testing preview
     # remove when finished
     df_param = df_param.reindex(sorted(df_param.columns), axis=1)
 
-    bgc_df_groups = dict(tuple(df_param.groupby('N_PROF')))
+    all_data_df_groups = dict(tuple(df_param.groupby('N_PROF')))
 
-    all_bgc_profiles = []
+    all_data_profiles = []
     all_name_mapping = []
 
-    for val_df in bgc_df_groups.values():
+    for val_df in all_data_df_groups.values():
 
         station_cast = val_df['station_cast'].values[0]
 
@@ -92,20 +92,23 @@ def create_bgc_profiles(df_param):
 
         val_df = remove_empty_cols(val_df)
 
-        non_empty_cols = list(val_df.columns)
+        # TODO
+        # Why do this sort?
+        val_df = val_df.sort_values(by=['pressure'])
 
-        val_df = val_df.sort_values(by=['pres'])
+        all_data_dict_list = val_df.to_dict('records')
 
-        bgc_dict_list = val_df.to_dict('records')
+        all_data_obj = {}
+        all_data_obj['station_cast'] = station_cast
+        all_data_obj['data'] = to_int_qc(all_data_dict_list)
+        all_data_profiles.append(all_data_obj)
 
-        bgc_obj = {}
-        bgc_obj['station_cast'] = station_cast
-        bgc_obj['bgcMeas'] = to_int_qc(bgc_dict_list)
-        all_bgc_profiles.append(bgc_obj)
-
+        # Do filtering out empty col names per profile later
         name_mapping_obj = {}
         name_mapping_obj['station_cast'] = station_cast
+        non_empty_cols = list(val_df.columns)
         name_mapping_obj['non_empty_cols'] = non_empty_cols
+
         all_name_mapping.append(name_mapping_obj)
 
-    return all_bgc_profiles, all_name_mapping
+    return all_data_profiles, all_name_mapping

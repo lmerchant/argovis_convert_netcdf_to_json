@@ -164,25 +164,42 @@ def get_var_mapping(nc, var_names):
     return mapping
 
 
-def get_nc_variable_mappings(nc, coords_vars_mapping):
+def get_nc_variable_mappings(nc, coords_vars_names):
 
     # get names, units, ref_scale, c_format, dtype
 
-    coords_names = coords_vars_mapping['coords']
-    coords_mapping = get_var_mapping(nc, coords_names)
-
-    vars_names = coords_vars_mapping['vars']
-    vars_mapping = get_var_mapping(nc, vars_names)
+    coords_vars_mapping = get_var_mapping(nc, coords_vars_names)
 
     mapping = {}
 
     keys = ['units', 'ref_scale', 'c_format', 'dtype']
 
     for key in keys:
-        mapping[key] = {**coords_mapping[key], **vars_mapping[key]}
+        mapping[key] = coords_vars_mapping[key]
 
-    coords_names.extend(vars_names)
-
-    mapping['names'] = coords_names
+    mapping['names'] = coords_vars_names
 
     return mapping
+
+# def get_nc_variable_mappings_orig(nc, coords_vars_mapping):
+
+#     # get names, units, ref_scale, c_format, dtype
+
+#     coords_names = coords_vars_mapping['coords']
+#     coords_mapping = get_var_mapping(nc, coords_names)
+
+#     vars_names = coords_vars_mapping['vars']
+#     vars_mapping = get_var_mapping(nc, vars_names)
+
+#     mapping = {}
+
+#     keys = ['units', 'ref_scale', 'c_format', 'dtype']
+
+#     for key in keys:
+#         mapping[key] = {**coords_mapping[key], **vars_mapping[key]}
+
+#     all_names = [*coords_names, *vars_names]
+
+#     mapping['names'] = all_names
+
+#     return mapping
