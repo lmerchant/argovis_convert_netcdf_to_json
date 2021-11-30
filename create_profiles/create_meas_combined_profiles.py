@@ -1,6 +1,8 @@
 import logging
 import pandas as pd
 
+from variable_mapping.meta_param_mapping import get_measurements_mapping
+
 
 def convert_boolean(obj):
     if isinstance(obj, bool):
@@ -400,11 +402,6 @@ def find_btl_ctd_combinations(hierarchy_btl, hierarchy_ctd):
     has_salinity = hierarchy_btl['has_salinity']
     has_psal_ctd = hierarchy_ctd['has_psal']
 
-    print('inside find_btl_ctd_combinations')
-    print(f"has_psal_btl {has_psal_btl}")
-    print(f"has_salinity {has_salinity}")
-    print(f"has_psal_ctd {has_psal_ctd}")
-
     # *************
     # combination 1
     # *************
@@ -720,8 +717,6 @@ def find_btl_ctd_combinations(hierarchy_btl, hierarchy_ctd):
 
 def get_hierarchy_single_source(source_dict):
 
-    print('inside get_hierarchy_single_source')
-
     # TODO
     # redo all this logic. seems repetitive
 
@@ -735,12 +730,13 @@ def get_hierarchy_single_source(source_dict):
     # But I didn't include use_temp
 
     # Gives true or false values
-    key = 'measurementsSources'
-    source = source_dict[key]
 
-    print('measurementsSources key')
-    print('sources from key')
-    print(source)
+    # Get mapped names since btl and ctd dicts had keys renamed
+    measurements_mapping = get_measurements_mapping()
+
+    meas_sources_key = measurements_mapping['measurementsSources']
+
+    source = source_dict[meas_sources_key]
 
     hierarchy = {}
 
@@ -798,18 +794,26 @@ def find_meas_hierarchy_btl_ctd(btl_dict, ctd_dict):
 
 def combine_btl_ctd_measurements(btl_dict, ctd_dict):
 
+    # Get mapped names since btl and ctd dicts had keys renamed
+    measurements_mapping = get_measurements_mapping()
+
+    measurements_key = measurements_mapping['measurements']
+    source_flag_key = measurements_mapping['measurementsSource']
+    meas_sources_key = measurements_mapping['measurementsSources']
+
     btl_meas = {}
     ctd_meas = {}
 
     if btl_dict:
-        btl_meas = btl_dict['measurements']
-        hierarchy_source_flag = btl_dict['measurementsSource']
-        hierarchy_meas_sources = btl_dict['measurementsSources']
+
+        btl_meas = btl_dict[measurements_key]
+        hierarchy_source_flag = btl_dict[source_flag_key]
+        hierarchy_meas_sources = btl_dict[meas_sources_key]
 
     if ctd_dict:
-        ctd_meas = ctd_dict['measurements']
-        hierarchy_source_flag = ctd_dict['measurementsSource']
-        hierarchy_meas_sources = ctd_dict['measurementsSources']
+        ctd_meas = ctd_dict[measurements_key]
+        hierarchy_source_flag = ctd_dict[source_flag_key]
+        hierarchy_meas_sources = ctd_dict[meas_sources_key]
 
     hierarchy_btl, hierarchy_ctd = find_meas_hierarchy_btl_ctd(
         btl_dict, ctd_dict)
@@ -838,9 +842,9 @@ def combine_btl_ctd_measurements(btl_dict, ctd_dict):
     hierarchy_meas_sources = convert_boolean(hierarchy_meas_sources)
 
     combined_mappings = {}
-    combined_mappings['measurements'] = combined_measurements
-    combined_mappings['measurementsSource'] = hierarchy_source_flag
-    combined_mappings['measurementsSources'] = hierarchy_meas_sources
+    combined_mappings[measurements_key] = combined_measurements
+    combined_mappings[source_flag_key] = hierarchy_source_flag
+    combined_mappings[meas_sources_key] = hierarchy_meas_sources
     #combined_mappings['stationParameters'] = meas_names
 
     return combined_mappings

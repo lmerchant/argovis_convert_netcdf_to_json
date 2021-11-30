@@ -73,12 +73,14 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
         # BTL & CTD
         # oxygen_ml_l with qc = 3 for BTL
         # oxygen_ml_l with qc = 2 for CTD
+        # Ask using btl salinity for oxy conversion
+        # if ctd salinity bad flags
         # ctd_temperature_68 for CTD
         # Can check qc of oxy CTD
         # where sal & temp qc = 9.0
         # Can check qc  of oxy BTL with oxy qc=3
         # and ctd temp no qc so qc =  0
-        test_cruise_expocode = '316N154_2'
+        #test_cruise_expocode = '316N154_2'
 
         # CTD with oxygen_ml_l qc = 2.0 and 4.0
         # ctd_salinity has 2.0  and 9.0
@@ -87,7 +89,7 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
         # different from oxygen qc
         # do I have qc = 2 unless sal and temp not good qc
         # and leave rest of qc alone
-        # test_cruise_expocode = '316N145_12'
+        test_cruise_expocode = '316N145_12'
 
         # Says there are 200 included vars
         # but that number doesn't exist
@@ -268,11 +270,14 @@ def get_cchdo_cruise_meta(cruise_json):
 
     for index, elem in enumerate(programs_lowercase):
 
-        if elem == 'go-ship' or elem == 'cchdo':
+        if elem == 'go-ship':
             programs.pop(index)
             programs.insert(0, 'GO-SHIP')
             break
 
+    # Modify program names
+    # Want lowercase and prefixed with 'cchdo_'
+    programs = [f"cchdo_{program}" for program in programs_lowercase]
     cruise_meta['programs'] = programs
 
     cruise_meta['groups'] = groups
@@ -288,6 +293,9 @@ def get_cchdo_cruise_meta(cruise_json):
         cruise_url = f"https://cchdo.ucsd.edu/cruise/{expocode}"
 
     cruise_meta['cruise_url'] = cruise_url
+
+    cruise_id = cruise_meta.pop('id', None)
+    cruise_meta['cruise_id'] = cruise_id
 
     return cruise_meta
 

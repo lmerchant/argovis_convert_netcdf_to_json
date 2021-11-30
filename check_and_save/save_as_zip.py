@@ -52,7 +52,7 @@ def prepare_profile_json(profile_dict):
     # profile_dict.pop('cchdoNames', None)
 
     # Remove station cast var used to group data
-    profile_dict.pop('stationCast', None)
+    #profile_dict.pop('stationCast', None)
     profile_dict.pop('station_cast', None)
 
     profile_dict.pop('data_type', None)

@@ -1,7 +1,6 @@
 import logging
 
 from create_profiles.create_profiles_combined_type import create_profiles_combined_type
-from check_and_save.save_output import save_data_type_profiles
 from check_and_save.save_output import save_data_type_profiles_combined
 
 

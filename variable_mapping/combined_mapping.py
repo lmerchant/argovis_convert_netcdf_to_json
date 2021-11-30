@@ -1,109 +1,125 @@
-from variable_mapping.meta_param_mapping import get_meta_param_mapping_keys
-from variable_mapping.meta_param_mapping import get_cchdo_var_attributes_keys
-from variable_mapping.meta_param_mapping import get_argovis_var_attributes_keys
+from variable_mapping.meta_param_mapping import get_mappings_keys_mapping
 
 
-def get_combined_variable_mapping(btl_dict, ctd_dict):
+def create_combined_mappings(btl_mappings, ctd_mappings):
 
-    mapping = {}
+    # Add suffix if find base key name in mappings_keys_mapping
+    # But only add suffix to some and for others combine the dicts
 
-    meta_param_mapping_keys = get_meta_param_mapping_keys()
+    # then combine this suffixed names together into one mappings var
 
-    for key in meta_param_mapping_keys:
-        btl_key_name = f"{key}Btl"
-        mapping[btl_key_name] = btl_dict[key]
+    # keys are cchdo names and values are argovis names
+    # for btl and ctd mapping, already using argovis names
+    # just need to change into suffix version if in the mappings dict
+    mappings_keys_mapping = get_mappings_keys_mapping()
 
-        ctd_key_name = f"{key}Ctd"
-        mapping[ctd_key_name] = ctd_dict[key]
+    # Some mapping keys won't have a btl suffix like argovis names
+    # but need to be combined into one dict
 
-    # # mapping['cchdoMetaNamesBtl'] = btl_dict['cchdoMetaNames']
-    # # mapping['cchdoMetaNamesCtd'] = ctd_dict['cchdoMetaNames']
+    # TODO
+    # Create better search if change name and don't use suffix
+    # Like could combine all into same name
+    # I think it still works though
 
-    # mapping['cchdoParamNamesBtl'] = btl_dict['cchdoParamNames']
-    # mapping['cchdoParamNamesCtd'] = ctd_dict['cchdoParamNames']
+    suffixed_btl_mapping = {}
+    same_btl_mapping = {}
 
-    # # mapping['cchdoArgovisMetaMappingBtl'] = cchdo_argovis_meta_mapping_btl
-    # # mapping['cchdoArgovisMetaMappingCtd'] = ctd_dict['cchdoArgovisMetaMapping']
+    for key, value in btl_mappings.items():
 
-    # mapping['cchdoArgovisParamMappingBtl'] = btl_dict['cchdoArgovisParamMapping']
-    # mapping['cchdoArgovisParamMappingCtd'] = ctd_dict['cchdoArgovisParamMapping']
+        suffixed_key = f"{key}_btl"
 
-    cchdo_var_attributes_mapping_keys = get_cchdo_var_attributes_keys()
+        if suffixed_key in mappings_keys_mapping.values():
+            suffixed_btl_mapping[suffixed_key] = value
 
-    for key in cchdo_var_attributes_mapping_keys:
-        btl_key_name = f"{key}Btl"
-        mapping[btl_key_name] = btl_dict[key]
+        else:
 
-        ctd_key_name = f"{key}Ctd"
-        mapping[ctd_key_name] = ctd_dict[key]
+            same_btl_mapping[key] = value
 
-    # mapping['cchdoReferenceScaleBtl'] = btl_dict['cchdoReferenceScale']
-    # mapping['cchdoReferenceScaleCtd'] = ctd_dict['cchdoReferenceScale']
+    suffixed_ctd_mapping = {}
+    same_ctd_mapping = {}
 
-    # mapping['cchdoUnitsBtl'] = btl_dict['cchdoUnits']
-    # mapping['cchdoUnitsCtd'] = ctd_dict['cchdoUnits']
+    for key, value in ctd_mappings.items():
 
-    # For Argovis meta names, didn't add suffix to them
-    # But now that are combining, put suffix on the
-    # btl dict names that  are filtered to remove
-    # btl_exclude set
-    # argovis_meta_names_btl = btl_dict['argovisMetaNames']
-    # argovis_meta_names_btl = [
-    #     f"{name}_btl" for name in argovis_meta_names_btl if name in argovis_meta_names_btl_subset]
+        suffixed_key = f"{key}_ctd"
 
-    # argovis_meta_names = [*ctd_dict['argovisMetaNames'],
-    #                       *argovis_meta_names_btl]
+        if suffixed_key in mappings_keys_mapping.values():
+            suffixed_ctd_mapping[suffixed_key] = value
+        else:
+            same_ctd_mapping[key] = value
 
-    # argovis_param_names = [*ctd_dict['argovisParamNames'],
-    #                        *btl_dict['argovisParamNames']]
+    combined_same_mapping = {**same_btl_mapping, **same_ctd_mapping}
 
-    # #mapping['argovisMetaNames'] = argovis_meta_names
-    # mapping['argovisParamNames'] = argovis_param_names
+    combined_suffixed_mapping = {
+        **suffixed_btl_mapping, **suffixed_ctd_mapping}
 
-    # argovis_ref_scale_mapping = {
-    #     **ctd_dict['argovisReferenceScale'], **btl_dict['argovisReferenceScale']}
+    new_mappings = {**combined_same_mapping, **combined_suffixed_mapping}
 
-    # argovis_units_mapping = {
-    #     **ctd_dict['argovisUnits'], **btl_dict['argovisUnits']}
-
-    # mapping['argovisReferenceScale'] = argovis_ref_scale_mapping
-    # mapping['argovisUnits'] = argovis_units_mapping
-
-    argovis_var_attributes_keys = get_argovis_var_attributes_keys()
-
-    for key in argovis_var_attributes_keys:
-        mapping[key] = {**ctd_dict[key], **btl_dict[key]}
-
-    # mapping['all_dataMeasKeys'] = [
-    #     *btl_dict['all_dataMeasKeys'], *ctd_dict['all_dataMeasKeys']]
-
-    return mapping
+    return new_mappings
 
 
-def get_data_type_mapping(data_dict):
+# def create_combined_mappings_orig(btl_dict, ctd_dict):
 
-    mapping = {}
+#     print('inside get_combined_mappings')
 
-    meta_param_mapping_keys = get_meta_param_mapping_keys()
-    cchdo_var_attributes_mapping_keys = get_cchdo_var_attributes_keys()
-    argovis_var_attributes_keys = get_argovis_var_attributes_keys()
+#     mapping = {}
 
-    for key in meta_param_mapping_keys:
-        mapping[key] = data_dict[key]
+#     meta_param_mapping_keys = get_meta_mapping_keys()
 
-    for key in cchdo_var_attributes_mapping_keys:
-        mapping[key] = data_dict[key]
+#     mappings_keys_mapping = get_mappings_keys_mapping()
 
-    for key in argovis_var_attributes_keys:
-        mapping[key] = data_dict[key]
+#     for key in meta_param_mapping_keys:
 
-    return mapping
+#         print(f"key {key}")
+
+#         btl_key_name = f"{key}Btl"
+#         mapping[btl_key_name] = btl_dict[key]
+
+#         ctd_key_name = f"{key}Ctd"
+#         mapping[ctd_key_name] = ctd_dict[key]
+
+#     cchdo_var_attributes_mapping_keys = get_cchdo_var_attributes_keys()
+
+#     for key in cchdo_var_attributes_mapping_keys:
+#         btl_key_name = f"{key}Btl"
+#         mapping[btl_key_name] = btl_dict[key]
+
+#         ctd_key_name = f"{key}Ctd"
+#         mapping[ctd_key_name] = ctd_dict[key]
+
+#     argovis_var_attributes_keys = get_argovis_var_attributes_keys()
+
+#     for key in argovis_var_attributes_keys:
+#         mapping[key] = {**ctd_dict[key], **btl_dict[key]}
+
+#     return mapping
 
 
-def get_all_variable_mappings(source_independent_meta_names, btl_dict, ctd_dict):
+# def get_data_type_mapping(data_dict):
+
+#     mapping = {}
+
+#     meta_param_mapping_keys = get_meta_mapping_keys()
+
+#     cchdo_var_attributes_mapping_keys = get_cchdo_var_attributes_keys()
+#     argovis_var_attributes_keys = get_argovis_var_attributes_keys()
+
+#     for key in meta_param_mapping_keys:
+#         mapping[key] = data_dict[key]
+
+#     for key in cchdo_var_attributes_mapping_keys:
+#         mapping[key] = data_dict[key]
+
+#     for key in argovis_var_attributes_keys:
+#         mapping[key] = data_dict[key]
+
+#     return mapping
+
+
+def get_combined_mappings(btl_dict, ctd_dict):
 
     # *******************************
-    # Create combined mapping profile
+    # Create combined mappings
+    # Where btl and ctd suffix added
     # *******************************
 
     # May have case where bot dict or ctd dict doesn't exist for same profile
@@ -112,108 +128,43 @@ def get_all_variable_mappings(source_independent_meta_names, btl_dict, ctd_dict)
     # All profiles have a profile and station_cast key but
     # profile_dict may be empty
 
-    btl_mapping = {}
-    ctd_mapping = {}
-    combined_mapping = {}
+    btl_mappings = {}
+    ctd_mappings = {}
+    combined_mappings = {}
 
     # If decide to use mapping of meta names, use source_independent_meta_names
     # to take into account if have both btl and ctd, don't
     # include _btl suffix on meta not dependent on data source
 
+    mapping_keys_mapping = get_mappings_keys_mapping()
+
+    if btl_dict:
+
+        # btl_dict already renamed
+        # so use mapped key names from mapping_keys_mapping
+        argovis_mapping_keys = mapping_keys_mapping.values()
+
+        btl_mappings = {key: value for key,
+                        value in btl_dict.items() if key in argovis_mapping_keys}
+
+    if ctd_dict:
+
+        # ctd_dict already renamed
+        # so use mapped key names from mapping_keys_mapping
+        argovis_mapping_keys = mapping_keys_mapping.values()
+
+        ctd_mappings = {key: value for key,
+                        value in ctd_dict.items() if key in argovis_mapping_keys}
+
     if btl_dict and not ctd_dict:
-        # #btl_mapping['argovisMetaNames'] = btl_dict['argovisMetaNames']
-        # btl_mapping['argovisParamNames'] = btl_dict['argovisParamNames']
-        # btl_mapping['argovisReferenceScale'] = btl_dict['argovisReferenceScale']
-        # btl_mapping['argovisUnits'] = btl_dict['argovisUnits']
+        combined_mappings = btl_mappings
 
-        # #btl_mapping['cchdoMetaNames'] = btl_dict['cchdoMetaNames']
-        # btl_mapping['cchdoParamNames'] = btl_dict['cchdoParamNames']
-        # # btl_mapping['cchdoArgovisMetaMapping'] = btl_dict['cchdoArgovisMetaMapping']
-        # btl_mapping['cchdoArgovisParamMapping'] = btl_dict['cchdoArgovisParamMapping']
-        # btl_mapping['cchdoReferenceScale'] = btl_dict['cchdoReferenceScale']
-        # btl_mapping['cchdoUnits'] = btl_dict['cchdoUnits']
-        # btl_mapping['all_dataMeasKeys'] = btl_dict['all_dataMeasKeys']
-
-        btl_mapping = get_data_type_mapping(btl_dict)
-
-    if ctd_dict and not btl_dict:
-        # #ctd_mapping['argovisMetaNames'] = ctd_dict['argovisMetaNames']
-        # ctd_mapping['argovisParamNames'] = ctd_dict['argovisParamNames']
-        # ctd_mapping['argovisReferenceScale'] = ctd_dict['argovisReferenceScale']
-        # ctd_mapping['argovisUnits'] = ctd_dict['argovisUnits']
-
-        # #ctd_mapping['cchdoMetaNames'] = ctd_dict['cchdoMetaNames']
-        # ctd_mapping['cchdoParamNames'] = ctd_dict['cchdoParamNames']
-        # # ctd_mapping['cchdoArgovisMetaMapping'] = ctd_dict['cchdoArgovisMetaMapping']
-        # ctd_mapping['cchdoArgovisParamMapping'] = ctd_dict['cchdoArgovisParamMapping']
-        # ctd_mapping['cchdoReferenceScale'] = ctd_dict['cchdoReferenceScale']
-        # ctd_mapping['cchdoUnits'] = ctd_dict['cchdoUnits']
-        # ctd_mapping['all_dataMeasKeys'] = ctd_dict['all_dataMeasKeys']
-        ctd_mapping = get_data_type_mapping(ctd_dict)
+    if not btl_dict and ctd_dict:
+        combined_mappings = ctd_mappings
 
     if btl_dict and ctd_dict:
 
-        # Check if have both because in combined profile,
-        # can be case of only having one type for that station_cast
+        combined_mappings = create_combined_mappings(
+            btl_mappings, ctd_mappings)
 
-        combined_mapping = get_combined_variable_mapping(btl_dict, ctd_dict)
-
-        # argovis_meta_names_btl_subset = list(
-        #     set(btl_dict['argovisMetaNames']).difference(btl_exclude))
-
-        # Put suffix of '_btl' in  bottle meta except
-        # for unique meta names iin btl_exclude list
-        # cchdo_argovis_meta_mapping_btl = btl_dict['cchdoArgovisMetaMapping']
-        # cchdo_argovis_meta_mapping_btl = {
-        #     f"{key}_btl": val for key, val in cchdo_argovis_meta_mapping_btl.items() if val in argovis_meta_names_btl_subset}
-
-        # # combined_btl_ctd_dict['cchdoMetaNamesBtl'] = btl_dict['cchdoMetaNames']
-        # # combined_btl_ctd_dict['cchdoMetaNamesCtd'] = ctd_dict['cchdoMetaNames']
-
-        # combined_btl_ctd_dict['cchdoParamNamesBtl'] = btl_dict['cchdoParamNames']
-        # combined_btl_ctd_dict['cchdoParamNamesCtd'] = ctd_dict['cchdoParamNames']
-
-        # # combined_btl_ctd_dict['cchdoArgovisMetaMappingBtl'] = cchdo_argovis_meta_mapping_btl
-        # # combined_btl_ctd_dict['cchdoArgovisMetaMappingCtd'] = ctd_dict['cchdoArgovisMetaMapping']
-
-        # combined_btl_ctd_dict['cchdoArgovisParamMappingBtl'] = btl_dict['cchdoArgovisParamMapping']
-        # combined_btl_ctd_dict['cchdoArgovisParamMappingCtd'] = ctd_dict['cchdoArgovisParamMapping']
-
-        # combined_btl_ctd_dict['cchdoReferenceScaleBtl'] = btl_dict['cchdoReferenceScale']
-        # combined_btl_ctd_dict['cchdoReferenceScaleCtd'] = ctd_dict['cchdoReferenceScale']
-
-        # combined_btl_ctd_dict['cchdoUnitsBtl'] = btl_dict['cchdoUnits']
-        # combined_btl_ctd_dict['cchdoUnitsCtd'] = ctd_dict['cchdoUnits']
-
-        # # For Argovis meta names, didn't add suffix to them
-        # # But now that are combining, put suffix on the
-        # # btl dict names that  are filtered to remove
-        # # btl_exclude set
-        # # argovis_meta_names_btl = btl_dict['argovisMetaNames']
-        # # argovis_meta_names_btl = [
-        # #     f"{name}_btl" for name in argovis_meta_names_btl if name in argovis_meta_names_btl_subset]
-
-        # # argovis_meta_names = [*ctd_dict['argovisMetaNames'],
-        # #                       *argovis_meta_names_btl]
-
-        # argovis_param_names = [*ctd_dict['argovisParamNames'],
-        #                        *btl_dict['argovisParamNames']]
-
-        # #combined_btl_ctd_dict['argovisMetaNames'] = argovis_meta_names
-        # combined_btl_ctd_dict['argovisParamNames'] = argovis_param_names
-
-        # argovis_ref_scale_mapping = {
-        #     **ctd_dict['argovisReferenceScale'], **btl_dict['argovisReferenceScale']}
-
-        # argovis_units_mapping = {
-        #     **ctd_dict['argovisUnits'], **btl_dict['argovisUnits']}
-
-        # combined_btl_ctd_dict['argovisReferenceScale'] = argovis_ref_scale_mapping
-        # combined_btl_ctd_dict['argovisUnits'] = argovis_units_mapping
-
-        # combined_btl_ctd_dict['all_dataMeasKeys'] = [
-        #     *btl_dict['all_dataMeasKeys'], *ctd_dict['all_dataMeasKeys']]
-
-    mappings = {**btl_mapping, **ctd_mapping, **combined_mapping}
-
-    return mappings
+    return combined_mappings

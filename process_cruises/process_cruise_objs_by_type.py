@@ -32,7 +32,7 @@ def combine_profiles(meta_profiles, all_data_profiles, all_meas_profiles, meas_s
         new_obj = {}
         new_obj['station_cast'] = key
         val['data_type'] = data_type
-        val['stationCast'] = key
+        #val['stationCast'] = key
         new_obj['profile_dict'] = val
         combined_profiles.append(new_obj)
 

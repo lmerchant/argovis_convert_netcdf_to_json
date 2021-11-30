@@ -4,7 +4,7 @@ import xarray_and_dask.modify_xarray_meta as mod_xr_meta
 import xarray_and_dask.modify_xarray_param as mod_xr_param
 import xarray_and_dask.get_xarray_mappings as xr_map
 import xarray_and_dask.conversions as xr_conv
-from xarray_and_dask.rename_to_argovis import rename_to_argovis
+#from variable_mapping.rename_to_argovis import rename_to_argovis
 
 from global_vars import GlobalVars
 

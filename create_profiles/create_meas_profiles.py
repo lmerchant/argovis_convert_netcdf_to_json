@@ -262,7 +262,6 @@ def filter_measurements(data_type_profiles):
         station_cast = profile['station_cast']
 
         measurements = profile_dict['measurements']
-
         meas_sources = profile_dict['measurementsSources']
 
         # For json_str need to convert True, False to 'true','false'
@@ -283,13 +282,11 @@ def filter_measurements(data_type_profiles):
             all_temp_vals.extend(temp_vals)
 
         if not len(all_vals):
-            logging.info(f"Station cast {station_cast}")
-            logging.info("All elems null so measurements = []")
+
             measurements = []
 
         if not len(all_temp_vals):
-            logging.info(f"Station cast {station_cast}")
-            logging.info("All temps null so measurements = []")
+
             measurements = []
 
         profile_dict['measurements'] = measurements
@@ -356,11 +353,6 @@ def get_measurements_sources(df_meas):
     elif not has_ctd_salinity_col and has_btl_salinity_col and not all_bottle_salinity_empty:
         using_btl_salinity = True
 
-    logging.info(f"using ctd temperature {using_ctd_temperature}")
-    logging.info(f"using ctd temperature 68 {using_ctd_temperature_68}")
-    logging.info(f"using ctd salinity {using_ctd_salinity}")
-    logging.info(f"using bottle salinity  {using_btl_salinity}")
-
     meas_sources = {}
 
     if has_ctd_temperature_col:
@@ -401,33 +393,19 @@ def filter_temperature(df_meas, meas_sources):
 
 def filter_salinity(df_meas, meas_sources):
 
-    print('meas sources')
-    print(meas_sources)
-
     if 'ctd_salinity' in meas_sources:
-
-        print('ctd_salinity in meas sources')
 
         using_ctd_salinity = meas_sources['ctd_salinity']
 
         if not using_ctd_salinity:
             df_meas = df_meas.drop('ctd_salinity', axis=1)
 
-            print('not using ctd salinity')
-
     if 'bottle_salinity' in meas_sources:
-
-        print('bottle_salinity in meas sources')
 
         using_bottle_salinity = meas_sources['bottle_salinity']
 
         if not using_bottle_salinity:
             df_meas = df_meas.drop('bottle_salinity', axis=1)
-
-            print('not using bottle salinity')
-
-    print('df meas columns after filtering')
-    print(df_meas.columns)
 
     # ctd_salinity_exists = 'ctd_salinity' in df_meas.columns
     # if ctd_salinity_exists:
@@ -699,7 +677,7 @@ def create_meas_profiles(df_param, data_type):
 
         meas_names = {}
         meas_names['station_cast'] = station_cast
-        meas_names['stationParameters'] = list(df_meas.columns)
+        #meas_names['stationParameters'] = list(df_meas.columns)
         all_meas_names.append(meas_names)
 
         meas_profile = {}
@@ -717,8 +695,5 @@ def create_meas_profiles(df_param, data_type):
         meas_sources_profile['station_cast'] = station_cast
         meas_sources_profile['measurementsSources'] = meas_sources
         all_meas_source_profiles.append(meas_sources_profile)
-
-        logging.info('measurements sources')
-        logging.info(meas_sources)
 
     return all_meas_profiles, all_meas_source_profiles, all_meas_names

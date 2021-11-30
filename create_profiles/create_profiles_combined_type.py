@@ -3,7 +3,7 @@ import logging
 
 from create_profiles.create_meas_combined_profiles import combine_btl_ctd_measurements
 #from create_profiles.create_meas_combined_profiles import get_combined_meas_source
-from variable_mapping.combined_mapping import get_all_variable_mappings
+from variable_mapping.combined_mapping import get_combined_mappings
 from variable_mapping.meta_param_mapping import get_source_independent_meta_names
 
 
@@ -564,7 +564,7 @@ def combine_btl_ctd_per_profile(btl_profile, ctd_profile):
     # TODO
     # remove stationCast
     combined_btl_ctd_dict = {}
-    combined_btl_ctd_dict['stationCast'] = station_cast
+    #combined_btl_ctd_dict['stationCast'] = station_cast
 
     # May have case where bot dict or ctd dict doesn't exist for same profile
     # But they have the same station_cast
@@ -578,14 +578,8 @@ def combine_btl_ctd_per_profile(btl_profile, ctd_profile):
     btl_meta = {}
     ctd_meta = {}
 
-    # btl_meas = []
-    # ctd_meas = []
-
     btl_data = []
     ctd_data = []
-
-    # btl_qc = {}
-    # ctd_qc = {}
 
     # If both btl and ctd,
     # Put suffix of '_btl' in  bottle meta
@@ -597,17 +591,11 @@ def combine_btl_ctd_per_profile(btl_profile, ctd_profile):
         data_type = 'btl'
         btl_meta = btl_dict['meta']
         btl_data = btl_dict['data']
-        #btl_meas = btl_dict['measurements']
-        # btl_qc = btl_dict['measurementsSourceQC']
-        # btl_qc_val = btl_qc['qc']
 
     if ctd_dict:
         data_type = 'ctd'
         ctd_meta = ctd_dict['meta']
         ctd_data = ctd_dict['data']
-        #ctd_meas = ctd_dict['measurements']
-        # ctd_qc = ctd_dict['measurementsSourceQC']
-        # ctd_qc_val = ctd_qc['qc']
 
     if btl_dict and ctd_dict:
 
@@ -664,53 +652,27 @@ def combine_btl_ctd_per_profile(btl_profile, ctd_profile):
         # Put suffix of '_btl' in  bottle meta
         # Remove _btl variables that are source independent
 
-        print('source_independent_meta_names')
-        print(source_independent_meta_names)
-
         for item in source_independent_meta_names:
             if item in btl_meta:
                 btl_meta.pop(item)
-
-        print('btl meta after popping off independent meta names')
-        print(btl_meta)
 
         btl_meta = rename_btl_by_key_meta(btl_meta)
 
     meta = {**ctd_meta, **btl_meta}
     data = [*ctd_data, *btl_data]
 
-    # TODO
-    # modify criteria
     combined_measurement_mappings = combine_btl_ctd_measurements(
         btl_dict, ctd_dict)
-
-    #meas_sources_qc = get_combined_meas_sources_qc(meas_sources, btl_dict, ctd_dict)
-
-    # if btl_dict and ctd_dict:
-    #     meas_sources['qc'] = qc_val
-    # elif btl_dict and not ctd_dict:
-    #     meas_sources = btl_qc
-    # elif not btl_dict and ctd_dict:
-    #     meas_sources = ctd_qc
 
     combined_btl_ctd_dict['meta'] = meta
     combined_btl_ctd_dict['data'] = data
 
-    # combined_btl_ctd_dict['all_dataMeasKeys'] = [
-    #     *btl_dict['all_dataMeasKeys'], *ctd_dict['all_dataMeasKeys']]
-
     combined_btl_ctd_dict = {
         **combined_btl_ctd_dict, **combined_measurement_mappings}
 
-    # combined_btl_ctd_dict['measurements'] = measurements
-    # combined_btl_ctd_dict['measurementsSource'] = meas_source
-    # combined_btl_ctd_dict['measurementsSourceQC'] = meas_sources
-    # combined_btl_ctd_dict['stationParameters'] = meas_names
+    combined_mappings = get_combined_mappings(btl_dict, ctd_dict)
 
-    variable_mappings = get_all_variable_mappings(
-        source_independent_meta_names, btl_dict, ctd_dict)
-
-    combined_btl_ctd_dict = {**combined_btl_ctd_dict, **variable_mappings}
+    combined_btl_ctd_dict = {**combined_btl_ctd_dict, **combined_mappings}
 
     combined_profile = {}
     combined_profile['data_type'] = data_type

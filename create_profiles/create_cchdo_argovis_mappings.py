@@ -183,9 +183,9 @@ def create_cchdo_argovis_mappings(
         all_argovis_meta_names = argovis_meta_mapping['names']
         all_argovis_param_names = argovis_param_mapping['names']
 
-        new_mapping['cchdoMetaNames'] = all_cchdo_meta_names
+        #new_mapping['cchdoMetaNames'] = all_cchdo_meta_names
         new_mapping['cchdoParamNames'] = all_cchdo_param_names
-        new_mapping['argovisMetaNames'] = all_argovis_meta_names
+        #new_mapping['argovisMetaNames'] = all_argovis_meta_names
         new_mapping['argovisParamNames'] = all_argovis_param_names
 
         # TODO
@@ -218,13 +218,13 @@ def create_cchdo_argovis_mappings(
                 if argovis_name in all_argovis_names:
                     name_mapping[var] = argovis_name
 
-        meta_name_mapping = {key: val for key,
-                             val in name_mapping.items() if key in all_cchdo_meta_names}
+        # meta_name_mapping = {key: val for key,
+        #                      val in name_mapping.items() if key in all_cchdo_meta_names}
 
         param_name_mapping = {key: val for key,
                               val in name_mapping.items() if key in all_cchdo_param_names}
 
-        new_mapping['cchdoArgovisMetaMapping'] = meta_name_mapping
+        #new_mapping['cchdoArgovisMetaMapping'] = meta_name_mapping
         new_mapping['cchdoArgovisParamMapping'] = param_name_mapping
 
         new_mapping['cchdoReferenceScale'] = {
@@ -274,7 +274,8 @@ def create_cchdo_mappings(nc_mappings, all_name_mapping):
 
         # So filter each cchdo mapping and keep only those in non_empty_cols
         # meta names don't change
-        new_mapping['cchdoMetaNames'] = all_cchdo_meta_names
+        #new_mapping['cchdoMetaNames'] = all_cchdo_meta_names
+
         new_mapping['cchdoParamNames'] = [
             col for col in all_cchdo_param_names if col in non_empty_cols]
 

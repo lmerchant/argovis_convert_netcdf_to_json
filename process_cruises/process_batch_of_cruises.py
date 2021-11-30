@@ -65,6 +65,8 @@ def process_batch_of_cruises(cruise_objs):
 
     # print(one_profile)
 
+    # exit(1)
+
     # ***********************************
     # Write included/excluded cchdo vars
     # ***********************************
@@ -75,6 +77,12 @@ def process_batch_of_cruises(cruise_objs):
     logging.info('-------------------------------')
     logging.info("Log excluded and included vars")
     logging.info('-------------------------------')
+
+    # TODO
+    # fix variable naming
+    # Have already renamed to argovis
+    # Use my names and rename to latest argovis in the function
+    # so only have to create mapping once
 
     cruises_all_included, cruises_all_excluded = gather_included_excluded_vars(
         cruise_objs_by_type)
@@ -99,11 +107,13 @@ def process_batch_of_cruises(cruise_objs):
     single_data_type_cruises = post_process_cruise_objs_by_collection(
         cruise_objs_by_type)
 
+    # TODO test this part with expocode of one data type
     for cruise_obj in single_data_type_cruises:
 
         all_data_types_profile_objs = cruise_obj['all_data_types_profile_objs']
 
         for data_type_obj_profiles in all_data_types_profile_objs:
+
             save_data_type_profiles(data_type_obj_profiles)
 
     # ----------------
