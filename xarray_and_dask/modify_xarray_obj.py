@@ -192,7 +192,7 @@ def modify_xarray_obj(file_obj):
     # So load it back to pure xarray
     nc.load()
 
-    nc = xr_conv.apply_conversions(nc)
+    nc, profiles_no_oxy_conversions = xr_conv.apply_conversions(nc)
 
     # Get mapping to keep track of which var units or scale were converted
     cchdo_meta_mapping_after = xr_map.get_nc_variable_mappings(nc, meta_names)
@@ -280,6 +280,8 @@ def modify_xarray_obj(file_obj):
 
     nc_mappings['cchdo_units_changed'] = params_units_changed
     nc_mappings['cchdo_ref_scale_changed'] = params_ref_scale_changed
+
+    nc_mappings['cchdo_oxy_not_converted'] = profiles_no_oxy_conversions
 
     # Save current meta and param names
     meta_param_names = {}

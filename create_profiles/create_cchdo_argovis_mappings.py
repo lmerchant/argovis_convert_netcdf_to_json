@@ -162,7 +162,7 @@ def create_cchdo_argovis_mappings(
 
     all_mapping_profiles = []
 
-    # Loop over number of statin_cast mappings
+    # Loop over number of station_cast mappings
     # Since meta and param have the same number,
     # loop over filtered  all_argovis_param_mapping_list
 
@@ -260,6 +260,7 @@ def create_cchdo_mappings(nc_mappings, all_name_mapping):
 
     params_units_changed = nc_mappings['cchdo_units_changed']
     params_ref_scale_changed = nc_mappings['cchdo_ref_scale_changed']
+    params_no_oxy_conversion = nc_mappings['cchdo_oxy_not_converted']
 
     all_mapping_profiles = []
 
@@ -267,6 +268,8 @@ def create_cchdo_mappings(nc_mappings, all_name_mapping):
     for name_mapping in all_name_mapping:
 
         new_mapping = {}
+
+        station_cast = name_mapping['station_cast']
 
         new_mapping['station_cast'] = name_mapping['station_cast']
 
@@ -293,11 +296,27 @@ def create_cchdo_mappings(nc_mappings, all_name_mapping):
         new_mapping['cchdoUnits'] = {
             **cchdo_meta_mapping['units'], **new_param_units_mapping}
 
+        # Update station_casts with unconverted oxygen
+
         new_param_ref_scale_mapping = {
             key: val for key, val in params_ref_scale_changed.items() if key in non_empty_cols}
 
         new_mapping['cchdoConvertedReferenceScale'] = {
             **params_ref_scale_changed, **new_param_ref_scale_mapping}
+
+        # params_no_oxy_conversion has key var and list of
+        # station_cast without units attribute changing
+        vars_no_oxy_conversion = params_no_oxy_conversion.keys()
+
+        params_not_units_changed = []
+        for var in vars_no_oxy_conversion:
+            station_casts_no_oxy_conversion = params_no_oxy_conversion[var]
+            if station_cast in station_casts_no_oxy_conversion:
+                params_not_units_changed.append(var)
+
+        # Remove params_not_units_changed from params_units_changed mapping
+        for param in params_not_units_changed:
+            params_units_changed.pop(param, None)
 
         new_param_units_mapping = {
             key: val for key, val in params_units_changed.items() if key in non_empty_cols}

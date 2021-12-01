@@ -126,6 +126,11 @@ def get_argovis_mappings_meta(nc):
 
 def get_var_mapping(nc, var_names):
 
+    # TODO
+    # Need to update with oxygen not converted to units
+    # Doesn't show after conversion because all units
+    # needed to be set to the same value
+
     mapping = {}
 
     var_units = {}

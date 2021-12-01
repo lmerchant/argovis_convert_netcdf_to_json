@@ -674,6 +674,10 @@ def combine_btl_ctd_per_profile(btl_profile, ctd_profile):
 
     combined_btl_ctd_dict = {**combined_btl_ctd_dict, **combined_mappings}
 
+    # TODO
+    # check if need this or just always put data type with profile parent
+    combined_btl_ctd_dict['data_type'] = data_type
+
     combined_profile = {}
     combined_profile['data_type'] = data_type
     combined_profile['profile_dict'] = combined_btl_ctd_dict

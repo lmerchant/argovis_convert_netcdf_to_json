@@ -140,6 +140,8 @@ def get_argovis_reference_scale_per_type():
 
 def get_qc_scale_for_oxygen_conversion(nc, var, temp_qc, sal_qc):
 
+    profile_size = nc.sizes['N_LEVELS']
+
     # If the temp_qc is bad, use in calculation but set qc
     # of that oxygen value to qc of temperature. Can't
     # convert an oxygen with a bad temperature qc. Same
@@ -153,7 +155,10 @@ def get_qc_scale_for_oxygen_conversion(nc, var, temp_qc, sal_qc):
     if f"{var}_qc" in nc.keys():
         oxy_qc = nc[f"{var}_qc"]
     else:
-        oxy_qc = []
+        # Set qc to nan same size as var
+        oxy_qc = np.empty(profile_size)
+        oxy_qc[:] = np.nan
+
         # shape = list(nc[var].shape)
         # oxy_qc = np.empty(shape)
         # oxy_qc[:] = 2.0
@@ -212,8 +217,16 @@ def get_qc_scale_for_oxygen_conversion(nc, var, temp_qc, sal_qc):
     # If stack next to each other,
     # Where there is a -1 (bad qc) for temp or sal, set to oxy
     # otherwise use oxy value
+    try:
+        sal_temp_qc = np.column_stack([flagged_sal_qc, flagged_temp_qc])
+    except:
+        sal_qc = np.empty(profile_size)
+        sal_qc[:] = np.nan
 
-    sal_temp_qc = np.column_stack([flagged_sal_qc, flagged_temp_qc])
+        temp_qc = np.empty(profile_size)
+        temp_qc[:] = np.nan
+
+        sal_temp_qc = np.column_stack([sal_qc, temp_qc])
 
     # Sum them together into one array
     # Sum values row by row, and then search for those with neg sum,
@@ -228,18 +241,6 @@ def get_qc_scale_for_oxygen_conversion(nc, var, temp_qc, sal_qc):
 
     # For this qc, set back to nan if oxy starting was nan which
     # occurs because in xarray where it pads each profile with nan
-
-    # print('sal temp qc')
-    # print(sal_temp_qc)
-
-    # print('*** sum qc ***')
-    # print(sum_qc)
-
-    # print('*** oxy qc ***')
-    # print(oxy_qc)
-
-    # print('**** new qc ****')
-    # print(new_qc)
 
     # if len(sal_qc) and len(temp_qc):
 
@@ -422,6 +423,12 @@ def get_converted_oxy(oxy, temp, sal_pr, pres, lon, lat, oxy_dtype):
 
 def get_temp_and_salinity(nc):
 
+    profile_size = nc.sizes['N_LEVELS']
+
+    # Keep track of bad salinity or temperature and not converting
+    # store station_cast. Later associate with var
+    station_casts_bad_temp_salinity = []
+
     # TODO
     # Instead of setting bad qc to nan, just convert
     # and use flag of value with bad qc if exists
@@ -453,18 +460,30 @@ def get_temp_and_salinity(nc):
     found_good_ctd_sal = False
     found_good_btl_sal = False
 
-    ctd_sal_pr = []
-    btl_sal_pr = []
+    ctd_sal_pr = np.empty(profile_size)
+    btl_sal_pr = np.empty(profile_size)
 
     if 'ctd_salinity' in nc.keys():
 
+        ctd_sal_pr = nc['ctd_salinity']
+
+        all_nan = np.isnan(ctd_sal_pr.to_numpy()).all()
+
+        if not all_nan:
+            found_good_ctd_sal = True
+
+            # Do I assign a qc of nan or maybe 0?
+
+        else:
+            found_good_ctd_sal = False
+            # Do I assign a qc of nan or maybe 0?
+
         # Have a temporary var sal_pr so don't overwrite ctd_salinity
 
-        shape = list(nc['ctd_salinity'].shape)
-        nan_array = np.empty(shape)
-        nan_array[:] = np.nan
-
         if 'ctd_salinity_qc' in nc.keys():
+
+            nan_array = np.empty(profile_size)
+            nan_array[:] = np.nan
 
             # replace all values not equal to 0 or 2 with np.nan
             # nc['sal_pr'] = xr.where((nc['ctd_salinity_qc'] != 0) &
@@ -476,13 +495,13 @@ def get_temp_and_salinity(nc):
             # ctd salinity is all bad so can't do conversion,
             # try checking bottle salinity then
 
-            #sal_pr = nc['sal_pr']
+            # sal_pr = nc['sal_pr']
             sal_pr = nc['ctd_salinity']
             sal_ref_scale = nc['ctd_salinity'].attrs['reference_scale']
 
             # Check if sal_pr has qc=0 or 2. If it does, found good values
 
-            #all_nan = np.isnan(sal_pr).all()
+            # all_nan = np.isnan(sal_pr).all()
             all_nan = np.isnan(search_good_vals).all()
 
             if not all_nan:
@@ -491,16 +510,50 @@ def get_temp_and_salinity(nc):
                 ctd_sal_pr = sal_pr
                 ctd_sal_pr_qc = nc['ctd_salinity_qc']
 
-        else:
-            ctd_sal_pr = nc['ctd_salinity']
-            ctd_sal_pr_qc = []
+            else:
+                found_good_ctd_sal = False
+                ctd_sal_pr = sal_pr
+                ctd_sal_pr_qc = nc['ctd_salinity_qc']
+
+        # else:
+        #     ctd_sal_pr = nc['ctd_salinity']
+
+        #     print('ctd sal pr')
+        #     print(ctd_sal_pr.to_numpy())
+
+        #     all_nan = np.isnan(ctd_sal_pr.to_numpy()).all()
+
+        #     print(f"all_nan {all_nan}")
+
+        #     if not all_nan:
+        #         found_good_ctd_sal = True
+
+        #         # Do I assign a qc of nan or maybe 0?
+
+        #     else:
+        #         found_good_ctd_sal = False
+        #         # Do I assign a qc of nan or maybe 0?
+
+        #     # Set qc to nan same size as sal
+        #     ctd_sal_pr_qc = np.empty(profile_size)
+        #     ctd_sal_pr_qc[:] = np.nan
 
     if 'bottle_salinity' in nc.keys():
 
-        # Have a temporary var sal_pr so don't overwrite ctd_salinity
+        btl_sal_pr = nc['bottle_salinity']
 
-        shape = list(nc['bottle_salinity'].shape)
-        nan_array = np.empty(shape)
+        all_nan = np.isnan(btl_sal_pr.to_numpy()).all()
+
+        if not all_nan:
+            found_good_btl_sal = True
+
+            # Do I assign a qc of nan or maybe 0?
+
+        else:
+            found_good_btl_sal = False
+            # Do I assign a qc of nan or maybe 0?
+
+        nan_array = np.empty(profile_size)
         nan_array[:] = np.nan
 
         if 'bottle_salinity_qc' in nc.keys():
@@ -512,12 +565,11 @@ def get_temp_and_salinity(nc):
             search_good_vals = xr.where((nc['bottle_salinity_qc'] != 0) &
                                         (nc['bottle_salinity_qc'] != 2.0), nan_array, nc['bottle_salinity'])
 
-            #sal_pr = nc['sal_pr']
             sal_pr = nc['bottle_salinity']
             sal_ref_scale = nc['bottle_salinity'].attrs['reference_scale']
 
             # Check if sal_pr is all null. If it is, found no good values
-            #all_nan = np.isnan(sal_pr).all()
+            # all_nan = np.isnan(sal_pr).all()
             all_nan = np.isnan(search_good_vals).all()
 
             if not all_nan:
@@ -526,9 +578,28 @@ def get_temp_and_salinity(nc):
             btl_sal_pr = sal_pr
             btl_sal_pr_qc = nc['bottle_salinity_qc']
 
-        else:
-            btl_sal_pr = nc['bottle_salinity']
-            btl_sal_pr_qc = []
+        # else:
+
+        #     # TODO
+        #     # don't need this section
+        #     btl_sal_pr = nc['bottle_salinity']
+
+        #     all_nan = np.isnan(btl_sal_pr.to_numpy()).all()
+
+        #     if not all_nan:
+        #         found_good_btl_sal = True
+
+        #         # Do I assign a qc of nan or maybe 0?
+
+        #     else:
+        #         found_good_btl_sal = False
+        #         # Do I assign a qc of nan or maybe 0?
+
+        #     # Set qc to nan same size as sal
+        #     # Why do this? Does it just let qc be
+        #     # determined by temp and sal?
+        #     btl_sal_pr_qc = np.empty(profile_size)
+        #     btl_sal_pr_qc[:] = np.nan
 
     if found_good_ctd_sal:
         sal_pr = ctd_sal_pr
@@ -543,24 +614,34 @@ def get_temp_and_salinity(nc):
         sal_pr_qc = btl_sal_pr_qc
 
     else:
-        logging.info("************************************")
-        logging.info("No salinity to convert oxygen units")
-        logging.info("************************************")
+        logging.info("********************************************")
+        logging.info("No non nan salinity to convert oxygen units")
+        logging.info("*******************************************")
 
-        if ctd_sal_pr:
+        missing_good_sal_flag = True
+
+        station_cast = nc['station_cast'].values
+        station_cast = station_cast.tolist()
+
+        station_casts_bad_temp_salinity.append(station_cast)
+
+        if np.size(ctd_sal_pr):
             sal_pr = ctd_sal_pr
-        elif btl_sal_pr:
+            sal_pr_qc = ctd_sal_pr_qc
+
+        elif np.size(btl_sal_pr):
             sal_pr = btl_sal_pr
+            sal_pr_qc = btl_sal_pr_qc
+
         else:
-            sal_pr = []
-            sal_pr_qc = []
-            missing_good_sal_flag = True
+            sal_pr = np.empty(profile_size)
+            sal_pr_qc = np.empty(profile_size)
 
         # TODO
         # So keep oxygen same units instead of set all to null. No?
 
         # Save these to a file to look at
-        #sal_pr = np.nan
+        # sal_pr = np.nan
 
     # Check if salinity ref scale is PSS-78
     if sal_ref_scale != 'PSS-78':
@@ -583,8 +664,22 @@ def get_temp_and_salinity(nc):
 
         # Have a temporary var temp so don't overwrite ctd_temperature
 
-        shape = list(nc['ctd_temperature'].shape)
-        nan_array = np.empty(shape)
+        ctd_temp = nc['ctd_temperature']
+
+        all_nan = np.isnan(ctd_temp.to_numpy()).all()
+
+        if not all_nan:
+            found_good_ctd_temp = True
+
+            # Do I assign a qc of nan or maybe 0?
+
+        else:
+            found_good_ctd_temp = False
+            # Do I assign a qc of nan or maybe 0?
+
+        # Have a temporary var temp so don't overwrite ctd_salinity
+
+        nan_array = np.empty(profile_size)
         nan_array[:] = np.nan
 
         if 'ctd_temperature_qc' in nc.keys():
@@ -596,12 +691,12 @@ def get_temp_and_salinity(nc):
             search_good_vals = xr.where((nc['ctd_temperature_qc'] != 0) &
                                         (nc['ctd_temperature_qc'] != 2.0), nan_array, nc['ctd_temperature'])
 
-            #temp = nc['temp']
+            # temp = nc['temp']
             temp = nc['ctd_temperature']
             temp_ref_scale = nc['ctd_temperature'].attrs['reference_scale']
 
             # Check if sal_pr is all null. If it is, found no good values
-            #all_nan = np.isnan(temp).all()
+            # all_nan = np.isnan(temp).all()
             all_nan = np.isnan(search_good_vals).all()
 
             if not all_nan:
@@ -609,16 +704,42 @@ def get_temp_and_salinity(nc):
                 ctd_temp = temp
                 ctd_temp_qc = nc['ctd_temperature_qc']
 
-        else:
-            ctd_temp = nc['ctd_temperature']
-            ctd_temp_qc = []
+        # else:
+        #     ctd_temp = nc['ctd_temperature']
+
+        #     all_nan = np.isnan(ctd_temp.to_numpy()).all()
+
+        #     if not all_nan:
+        #         found_good_ctd_temp = True
+
+        #         # Do I assign a qc of nan or maybe 0?
+
+        #     else:
+        #         found_good_ctd_temp = False
+        #         # Do I assign a qc of nan or maybe 0?
+
+        #     # Set qc to nan same size as temp
+        #     ctd_temp_qc = np.empty(profile_size)
+        #     ctd_temp_qc[:] = np.nan
 
     if 'ctd_temperature_68' in nc.keys():
 
         # Have a temporary var temp so don't overwrite ctd_temperature
 
-        shape = list(nc['ctd_temperature_68'].shape)
-        nan_array = np.empty(shape)
+        temp_68 = nc['ctd_temperature_68']
+
+        all_nan = np.isnan(temp_68.to_numpy()).all()
+
+        if not all_nan:
+            found_good_temp_68 = True
+
+            # Do I assign a qc of nan or maybe 0?
+
+        else:
+            found_good_temp_68 = False
+            # Do I assign a qc of nan or maybe 0?
+
+        nan_array = np.empty(profile_size)
         nan_array[:] = np.nan
 
         if 'ctd_temperature_68_qc' in nc.keys():
@@ -630,11 +751,11 @@ def get_temp_and_salinity(nc):
             search_good_vals = xr.where((nc['ctd_temperature_68_qc'] != 0) &
                                         (nc['ctd_temperature_68_qc'] != 2.0), nan_array, nc['ctd_temperature_68'])
 
-            #temp = nc['temp']
+            # temp = nc['temp']
             temp = nc['ctd_temperature_68']
             temp_ref_scale = nc['ctd_temperature_68'].attrs['reference_scale']
 
-            #all_nan = np.isnan(temp).all()
+            # all_nan = np.isnan(temp).all()
             all_nan = np.isnan(search_good_vals).all()
 
             if not all_nan:
@@ -642,9 +763,23 @@ def get_temp_and_salinity(nc):
                 temp_68 = temp
                 temp_68_qc = nc['ctd_temperature_68_qc']
 
-        else:
-            temp_68 = nc['ctd_temperature_68']
-            temp_68_qc = []
+        # else:
+        #     temp_68 = nc['ctd_temperature_68']
+
+        #     all_nan = np.isnan(temp_68.to_numpy()).all()
+
+        #     if not all_nan:
+        #         found_good_temp_68 = True
+
+        #         # Do I assign a qc of nan or maybe 0?
+
+        #     else:
+        #         found_good_temp_68 = False
+        #         # Do I assign a qc of nan or maybe 0?
+
+        #     # Set qc to nan same size as temp
+        #     temp_68_qc = np.empty(profile_size)
+        #     temp_68_qc[:] = np.nan
 
     if found_good_ctd_temp:
         temp = ctd_temp
@@ -659,34 +794,48 @@ def get_temp_and_salinity(nc):
         temp = temp_68
         temp_qc = temp_68_qc
     else:
-        # This shouldn't happen since checked for required
-        # CTD vars, ctd temp with ref scale, at the start
-        # of the program, and excluded files if there
-        # was no ctd temp with a ref scale.
-        logging.info("************************************")
-        logging.info("No ctd temp to convert oxygen units")
-        logging.info("************************************")
+        logging.info("*******************************************")
+        logging.info("No non nan ctd temp to convert oxygen units")
+        logging.info("*******************************************")
+
+        station_cast = nc['station_cast'].values
+        station_cast = station_cast.tolist()
+
+        station_casts_bad_temp_salinity.append(station_cast)
 
         # TODO
         # So keep oxygen same units instead of set all to null
 
-        if ctd_temp:
+        # What happens if I try to proceed with all nan values?
+
+        # Get problem when saving since attributes not all the
+        # same for
+
+        # Can only have one attribute for the entire nc set
+
+        # Can I keep track of the profiles and change the attribute later
+        # when I create mappings?
+        # What to do in mean time? change attribute?
+
+        if np.size(ctd_temp):
             temp = ctd_temp
             temp_qc = ctd_temp_qc
-        elif temp_68:
+        elif np.size(temp_68):
             temp = temp_68
             temp_qc = temp_68_qc
         else:
-            temp = []
-            temp_qc = []
+            temp = np.empty(profile_size)
+            temp_qc = np.empty(profile_size)
             missing_good_temp_flag = True
-
-        #temp = np.nan
 
     # Check if temperature ref scale is ITS-90
     # Which it should be since did this conversion first
     if temp_ref_scale != 'ITS-90':
         missing_good_temp_flag = True
+
+    # TODO
+    # Why did I add them to nc?
+    # change this
 
     # Now drop these temporary vars from nc
     if 'temp' in nc.keys():
@@ -698,7 +847,11 @@ def get_temp_and_salinity(nc):
     if missing_good_sal_flag or missing_good_temp_flag:
         missing_var_flag = True
 
-    return nc, temp, temp_qc, sal_pr, sal_pr_qc, missing_var_flag
+    # remove duplicates
+    station_casts_bad_temp_salinity = list(
+        set(station_casts_bad_temp_salinity))
+
+    return nc, temp, temp_qc, sal_pr, sal_pr_qc, missing_var_flag, station_casts_bad_temp_salinity
 
 
 # def get_temp_and_salinity_orig(nc):
@@ -904,7 +1057,7 @@ def get_temp_and_salinity(nc):
 #     return nc, temp, sal_pr, missing_var_flag
 
 
-def convert_oxygen(nc, var):
+def convert_oxygen(nc, var, profiles_no_oxy_conversions):
 
     # TODO
     # Ask Sarah about all these possible combinations of
@@ -941,8 +1094,11 @@ def convert_oxygen(nc, var):
     oxy = nc[var]
     oxy_dtype = nc[var].dtype
 
-    nc, temp, temp_qc, sal_pr, sal_pr_qc, missing_var_flag = get_temp_and_salinity(
+    nc, temp, temp_qc, sal_pr, sal_pr_qc, missing_var_flag, station_casts_bad_temp_salinity = get_temp_and_salinity(
         nc)
+
+    if station_casts_bad_temp_salinity:
+        profiles_no_oxy_conversions[var] = station_casts_bad_temp_salinity
 
     # TODO
     # is this OK to leave as not converted. And keeping units same
@@ -954,8 +1110,13 @@ def convert_oxygen(nc, var):
     if missing_var_flag:
         logging.info(
             "Missing quality temp or sal needed to do Oxygen conversion")
-        # logging.info(f"Didn't convert {var}")
-        # return nc
+        logging.info(f"Didn't convert {var} for profile")
+
+        # # set attribute and keep track of whatt didn't convert
+        # can do this after do oxygen conversion for var
+        nc[var].attrs['units'] = 'micromole/kg'
+
+        return nc, temp_qc, sal_pr_qc, profiles_no_oxy_conversions
 
     pres = nc['pressure']
     lat = nc['latitude']
@@ -969,17 +1130,27 @@ def convert_oxygen(nc, var):
                                          lat,
                                          oxy_dtype)
 
+    # If  station_casts_bad_temp_salinity, setting units as if
+    # converted, but wasn't which is kept track of
+    # by station_casts_bad_temp_salinity
+
     nc[var] = converted_oxygen
     nc[var].attrs['units'] = 'micromole/kg'
 
-    return nc, temp_qc, sal_pr_qc
+    return nc, temp_qc, sal_pr_qc, profiles_no_oxy_conversions
 
 
-def convert_oxygen_to_new_units(nc, var):
+def convert_oxygen_to_new_units(nc, var, profiles_no_oxy_conversions):
 
     logging.info('***** o2 conversion ******')
 
+    # Check if values exist or if empty
+    # because variables in nc can exist but be all null
+    # for some profiles or all
+
     converted_groups = []
+
+    profile_size = nc.sizes['N_LEVELS']
 
     first_group = True
 
@@ -987,14 +1158,97 @@ def convert_oxygen_to_new_units(nc, var):
 
         nc_profile = nc_group[1]
 
-        out, temp_qc, sal_pr_qc = convert_oxygen(nc_profile, var)
+        # TODO
+        # Add check for all null values of oxy, sal or temp
+        # if they are, can't convert and revert back to original
+        # oxy with same units attribute.
+        # Don't modify c[var].attrs['units']
+
+        # oxy = nc_profile[var]
+        # See what ctd temperature exists and check if all nan
+        # Check both bottle and ctd salinity to see if one exists
+        # or if both all nan
+
+        oxy = nc_profile[var]
+
+        oxy_all_nan = np.isnan(oxy).all()
+
+        if 'ctd_temperature' in nc_profile.keys():
+            temp = nc_profile['ctd_temperature']
+            temp_all_nan = np.isnan(temp).all()
+        else:
+            temp_all_nan = True
+
+        if 'ctd_temperature_68' in nc_profile.keys():
+            temp = nc_profile['ctd_temperature_68']
+            temp_68_all_nan = np.isnan(temp).all()
+        else:
+            temp_68_all_nan = True
+
+        one_temp_exists = not temp_all_nan or not temp_68_all_nan
+
+        if 'ctd_salinity' in nc_profile.keys():
+            sal = nc_profile['ctd_salinity']
+            sal_all_nan = np.isnan(sal).all()
+        else:
+            sal_all_nan = True
+
+        if 'bottle_salinity' in nc_profile.keys():
+            sal = nc_profile['bottle_salinity']
+            sal_btl_all_nan = np.isnan(sal).all()
+        else:
+            sal_btl_all_nan = True
+
+        one_sal_exists = not sal_all_nan or not sal_btl_all_nan
+
+        if oxy_all_nan or not one_temp_exists or not one_sal_exists:
+            logging.info(
+                '*** No oxygen conversion because missing S,T or Ox ***')
+            no_s_t_or_ox = True
+            out = nc_profile
+
+        else:
+            out, temp_qc, sal_pr_qc, profiles_no_oxy_conversions = convert_oxygen(
+                nc_profile, var, profiles_no_oxy_conversions)
+
+            if profiles_no_oxy_conversions.keys():
+                no_s_t_or_ox = True
+            else:
+                no_s_t_or_ox = False
 
         converted_groups.append(out)
 
+        if oxy_all_nan or not one_temp_exists or not one_sal_exists:
+
+            if f"{var}_qc" in nc.keys():
+                oxy_qc = np.empty(profile_size)
+                oxy_qc[:] = np.nan
+
+                if first_group:
+                    all_oxy_qc = oxy_qc
+                    first_group = False
+                else:
+                    # This stacks downward
+                    all_oxy_qc = np.vstack((all_oxy_qc, oxy_qc))
+
+                continue
+
         if f"{var}_qc" in nc.keys():
 
-            oxy_qc = get_qc_scale_for_oxygen_conversion(
-                out, var, temp_qc, sal_pr_qc)
+            # If var qc is nan, skip this
+            if no_s_t_or_ox:
+
+                oxy_qc = np.empty(profile_size)
+                # Set qc empty or nan?
+                oxy_qc[:] = np.nan
+
+            else:
+                # TODO
+                # I've been setting qc = nan if one doesn't exist
+                # Is this right? Seems to be skip giving qc?
+                # Or set as 9 or set as 0?
+                oxy_qc = get_qc_scale_for_oxygen_conversion(
+                    out, var, temp_qc, sal_pr_qc)
 
             if first_group:
                 all_oxy_qc = oxy_qc
@@ -1006,30 +1260,26 @@ def convert_oxygen_to_new_units(nc, var):
     ds_grid = [converted_groups]
 
     # problem with this where sometimes pressure didn't have 'N_PROF' dim
-    # nc = xr.combine_nested(
-    #     ds_grid, concat_dim=["N_LEVELS", "N_PROF"], combine_attrs='identical')
-
     nc = xr.combine_nested(
-        ds_grid, concat_dim=["N_LEVELS", "N_PROF"], combine_attrs='identical', compat='broadcast_equals')
+        ds_grid, concat_dim=["N_LEVELS", "N_PROF"], combine_attrs='identical')
+
+    # nc = xr.combine_nested(
+    #     ds_grid, concat_dim=["N_LEVELS", "N_PROF"], combine_attrs='override', compat='broadcast_equals')
+
+    # Try override instead of identical for combine_attrs
+    # “override”: skip comparing and copy attrs from the first dataset to the result.
 
     # TODO
-    # Check this
-    # look at nc and extract out oxygen
-    # see if nan values match up with qc
-
-    # TODO,change this logic to always have a calculated oxy value and its qc
-    # If no sal_qc or no temp_qc, all_oxy_qc = []
-
-    # for all groups and so don't change oxy qc
+    # Even though been giving oxy nan qc, here it says has to be qc in nc
     if f"{var}_qc" in nc.keys() and len(all_oxy_qc):
         qc_var = {f"{var}_qc": (('N_PROF', 'N_LEVELS'), all_oxy_qc)}
 
         nc = nc.assign(qc_var)
 
-    return nc
+    return nc, profiles_no_oxy_conversions
 
 
-def convert_cchdo_to_argovis_units(nc):
+def convert_cchdo_to_argovis_units(nc, profiles_no_oxy_conversions):
 
     params = nc.keys()
 
@@ -1044,9 +1294,10 @@ def convert_cchdo_to_argovis_units(nc):
             continue
 
         if 'oxygen' in var and var_cchdo_units == 'ml/l':
-            nc = convert_oxygen_to_new_units(nc, var)
+            nc, profiles_no_oxy_conversions = convert_oxygen_to_new_units(
+                nc, var, profiles_no_oxy_conversions)
 
-    return nc
+    return nc, profiles_no_oxy_conversions
 
 
 def convert_sea_water_temp(nc, var, var_cchdo_ref_scale, argovis_ref_scale):
@@ -1116,6 +1367,11 @@ def apply_conversions(nc):
     nc = convert_cchdo_to_argovis_ref_scale(nc)
 
     # Apply equations to convert units
-    nc = convert_cchdo_to_argovis_units(nc)
+    # TODO
+    # keep track of no oxy conversions for all vars
+    profiles_no_oxy_conversions = {}
 
-    return nc
+    nc, profiles_no_oxy_conversions = convert_cchdo_to_argovis_units(
+        nc, profiles_no_oxy_conversions)
+
+    return nc, profiles_no_oxy_conversions

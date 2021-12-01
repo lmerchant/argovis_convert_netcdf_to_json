@@ -82,6 +82,8 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
         # and ctd temp no qc so qc =  0
         #test_cruise_expocode = '316N154_2'
 
+        # --------------------
+
         # CTD with oxygen_ml_l qc = 2.0 and 4.0
         # ctd_salinity has 2.0  and 9.0
         # ctd_temp qc = 2.0 and 9.0
@@ -89,7 +91,69 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
         # different from oxygen qc
         # do I have qc = 2 unless sal and temp not good qc
         # and leave rest of qc alone
-        test_cruise_expocode = '316N145_12'
+        #test_cruise_expocode = '316N145_12'
+
+        # -----------------------
+
+        # Testing key existence ('data_type')
+        # BTL and CTD
+        # check profile_dict['data_type'] keyerror
+        #test_cruise_expocode = '325020210420'
+
+        # -----------------------
+
+        # Bad temperature and salinity
+        # All bad so need to not calculate or
+        # need a way to catch this error.
+        # Looks like no values at all? Weird
+        # operands could not be broadcast together
+        # with shapes (0,) (6000,) () ()
+        # CTD file
+        # All temperature values are bad
+        # but why not try and calculate?
+
+        # All oxygen values flagged bad = 9
+        # Oxy doesn't exist, it's all null
+        # Need to check if all values are null
+        # Also look to see if I include the oxygen var
+        # in data and source keys if all oxy are nan
+        # I don't include it. It's removed after
+        # processing xarray with conversions
+
+        # Also good case to show measurements = []
+        # some have all psal and temp bad, some
+        # temp bad and psal good, so measurements = []
+
+        # Has ctd_temperature, but all flagged bad = 1
+        # but kept in data set
+        #test_cruise_expocode = '49NZ199909_2'
+
+        # ----------------------
+
+        # Case of bad flagged S or T for converting Ox
+        # and it failing to go ahead and do it
+
+        # station cast 35 01 doesn't convert units
+        # No non nan salinity to convert oxygen units
+
+        # doxy_ctd has no qc
+        # other casts do
+        # hmmm, looks like not having an oxy qc
+        # screwed things up to look like it
+        # can't convert because there is ctd sal,
+        # it's just flag = 4
+        # It's not nan. But maybe don't convert
+        # if all flags = 4 for salinity or temp
+        # It's the non 0 and 2 flags for all values
+        # that causes it not to convert
+
+        # "doxy_ctd": 217.6,
+        # "psal_ctd": 32.1522,
+        # "psal_ctd_woceqc": 4,
+
+        test_cruise_expocode = '49KA199905_1'
+
+        # --------------------
 
         # Says there are 200 included vars
         # but that number doesn't exist

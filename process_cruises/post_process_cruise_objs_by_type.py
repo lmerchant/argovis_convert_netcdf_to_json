@@ -288,9 +288,11 @@ def get_subset_meta(meta):
 
     # keys are cchdo name, values are argovis names
     rename_mapping = get_meta_mapping()
+    meta_keys = meta.keys()
 
     for key, value in rename_mapping.items():
-        meta_subset[value] = meta[key]
+        if key in meta_keys:
+            meta_subset[value] = meta[key]
 
     return meta_subset
 
