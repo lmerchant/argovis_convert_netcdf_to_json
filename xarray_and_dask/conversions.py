@@ -770,7 +770,7 @@ def convert_units(oxy, temp, sal_pr, pres, lon, lat):
 
 def get_converted_oxy(oxy, temp, sal_pr, pres, lon, lat, oxy_dtype):
 
-    return xr.apply_ufunc(
+    converted_oxygen = xr.apply_ufunc(
         convert_units,
         oxy,
         temp,
@@ -786,6 +786,8 @@ def get_converted_oxy(oxy, temp, sal_pr, pres, lon, lat, oxy_dtype):
         keep_attrs=True,
         # dask="parallelized"
     )
+
+    return converted_oxygen
 
  # TODO ***
  # break this up for checking separately
@@ -888,9 +890,28 @@ def convert_oxygen(nc_profile, var, profiles_no_oxy_conversions):
                                              lat,
                                              oxy_dtype)
 
-    else:
+        try:
+            # If the returned varible says name is temperature and not var,
+            # rename it
+            # Occured with oxygen all nan
+            converted_var_name = list(converted_oxygen.keys())[0]
+            rename_map = {converted_var_name: var}
+            converted_oxygen = converted_oxygen.rename(rename_map)
+        except:
+            # It is a xarray.DataArray with var name
+            pass
 
+    else:
         converted_oxygen = oxy
+
+    # Update with new values
+    try:
+        # If it's a dataset
+        # Like if all oxy nan or unconverted
+        nc_profile.update(converted_oxygen)
+    except:
+        # If it's a data array
+        nc_profile[var] = converted_oxygen
 
     # If  station_casts_bad_temp_salinity, setting units as if
     # converted, but wasn't which is kept track of
@@ -903,15 +924,10 @@ def convert_oxygen(nc_profile, var, profiles_no_oxy_conversions):
     # Maybe because some profiles weren't converted, so need to
     # keep track of that too. so make a profiles_w_conversons. But
     # don't I reverse the unit change notation?
-    nc_profile[var] = converted_oxygen
 
     # TODO ***
     # comment this out
     # nc_profile[var].attrs['units'] = 'micromole/kg'
-
-    # TODO
-    # Find out why not converting first
-    # Could be a qc logic issue that I made
 
     return nc_profile, profiles_no_oxy_conversions
 
@@ -1300,7 +1316,9 @@ def check_if_all_nan(nc_profile, var):
     one_sal_exists = not sal_all_nan
 
     # Change to not convert is no temp  or sal
+
     # if oxy all nan, result will be all nan
+
     # if oxy_all_nan or not one_temp_exists or not one_sal_exists:
     if not one_temp_exists or not one_sal_exists:
         if not one_temp_exists:

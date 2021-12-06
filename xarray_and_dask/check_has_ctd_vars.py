@@ -66,6 +66,10 @@ def check_has_ctd_vars(file_obj):
     # Look for ctd_temperature
     found_ctd_temps = [param for param in params if param in ctd_temps]
 
+    # TODO
+    # What if all temperatures are not a 0 or 2 flag?
+    # See 49NZ199909_2 cruise
+
     if found_ctd_temps:
         has_ctd_temp = True
     else:

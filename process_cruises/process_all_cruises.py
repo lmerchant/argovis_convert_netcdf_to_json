@@ -151,7 +151,7 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
         # "psal_ctd": 32.1522,
         # "psal_ctd_woceqc": 4,
 
-        test_cruise_expocode = '49KA199905_1'
+        #test_cruise_expocode = '49KA199905_1'
 
         # --------------------
 
@@ -165,13 +165,17 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
         # for ctd_oxy qc = 3
         # for oxygen, qc = 2 and 9
         # And CTD converts
-        # test_cruise_expocode = '316N154_2'
+        #test_cruise_expocode = '316N154_2'
 
         # oxygen conversion
         # CTD file
         # And has temp:null, psal: #
         # also temp: null, psal: null
-        # test_cruise_expocode = '49NZ199909_2'
+
+        # TODO
+        # So has ctd_temperature but no good values
+        # Should I skip these profiles and not save them
+        #test_cruise_expocode = '49NZ199909_2'
 
         # 'N_LEVELS': 6070, 'N_PROF': 152
         #  test_cruise_expocode  = '33RO200306_01
