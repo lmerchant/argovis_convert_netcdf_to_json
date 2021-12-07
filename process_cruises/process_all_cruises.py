@@ -189,6 +189,10 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
         # meas source qc not unique. [3.0 2.0]
         # test_cruise_expocode = '29HE06_1'
 
+        # Has Oxy in ml/l and bottle salinity
+        # but no ctd_salinity
+        test_cruise_expocode = '32OC258_3'
+
         # This cruise is BTL_CTD
         # test_cruise_expocode = '64TR90_3'
 
