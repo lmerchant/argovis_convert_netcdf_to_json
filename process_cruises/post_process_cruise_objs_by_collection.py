@@ -47,7 +47,4 @@ def post_process_cruise_objs_by_collection(cruise_objs_by_type):
         else:
             single_data_type_cruises.append(cruise_obj)
 
-            # for data_type_obj_profiles in all_data_types_profile_objs:
-            #     save_data_type_profiles(data_type_obj_profiles)
-
     return single_data_type_cruises
