@@ -119,8 +119,9 @@ def create_mappings(profile_dict, data_type, meta, argovis_col_names_mapping):
     #cchdo_meta_names = profile_dict['cchdoMetaNames']
     cchdo_units = profile_dict['cchdoUnits']
     cchdo_ref_scale = profile_dict['cchdoReferenceScale']
+    cchdo_standard_names = profile_dict['cchdoStandardNames']
 
-    # vars changed
+    # vars with attributes changed
     cchdo_converted_units = profile_dict['cchdoConvertedUnits']
     cchdo_converted_ref_scale = profile_dict['cchdoConvertedReferenceScale']
 
@@ -136,94 +137,12 @@ def create_mappings(profile_dict, data_type, meta, argovis_col_names_mapping):
     # (listing of all the var names in data)
     mappings['argovisParamNames'] = list(argovis_col_names_mapping.values())
 
-    # key cchdoArgovisMetaMapping
-    # (unchanging dictionary created by hand)
-    # Not really needed. Only was there because argovis
-    # changed name of latitude to lat
-
     # key cchdoArgovisParamMapping
     # from above, this is argovis_col_names_mapping
     mappings['cchdoArgovisParamMapping'] = argovis_col_names_mapping
 
-    # # key cchdoReferenceScale
-    # # starting reference scales before any conversions
-    # mappings['cchdoReferenceScale'] = cchdo_ref_scale
-
-    # # key cchdoUnits
-    # # starting units before any conversions
-    # mappings['cchdoUnits'] = cchdo_units
-
-    # key argovisReferenceScale
-    # Values are the same as cchdo except those converted
-    # And rename
-    argovis_ref_scale_mapping = {
-        **cchdo_ref_scale, **cchdo_converted_ref_scale}
-
-    # Get mapping and then swap out keys with argovis names
-    argovis_name_mapping = rename_to_argovis(
-        list(argovis_ref_scale_mapping.keys()), data_type)
-
-    mappings['argovisReferenceScale'] = {argovis_name_mapping[key]: value for key,
-                                         value in argovis_ref_scale_mapping.items()}
-
-    # key argovisUnits
-    # Values are the same as cchdo except those converted
-    # And rename
-    argovis_units_mapping = {
-        **cchdo_units, **cchdo_converted_units}
-
-    # Get mapping and then swap out keys with argovis names
-    argovis_name_mapping = rename_to_argovis(
-        list(argovis_units_mapping.keys()), data_type)
-
-    mappings['argovisUnits'] = {argovis_name_mapping[key]: value for key,
-                                value in argovis_units_mapping.items()}
-
-    return mappings
-
-
-def create_mappings_orig(profile_dict, data_type, meta, argovis_col_names_mapping):
-
-    mappings = {}
-
-    # Copy over current mappings
-    cchdo_key_mapping = get_mappings_keys_mapping()
-
-    for key, value in profile_dict.items():
-
-        if key in cchdo_key_mapping.keys():
-            mappings[key] = value
-
-    # Want before and after conversions
-    # before
-    #cchdo_meta_names = profile_dict['cchdoMetaNames']
-    cchdo_units = profile_dict['cchdoUnits']
-    cchdo_ref_scale = profile_dict['cchdoReferenceScale']
-
-    # vars changed
-    cchdo_converted_units = profile_dict['cchdoConvertedUnits']
-    cchdo_converted_ref_scale = profile_dict['cchdoConvertedReferenceScale']
-
-    # later need to add cchdo names to netcdf names mapping.
-    # Do this earlier in the program since getting info from
-    # netcdf file
-
-    # key argovisMetaNames
-    # (listing of all the var names in meta)
-    #mappings['argovisMetaNames'] = list(meta.keys())
-
-    # key argovisParamNames
-    # (listing of all the var names in data)
-    mappings['argovisParamNames'] = list(argovis_col_names_mapping.values())
-
-    # key cchdoArgovisMetaMapping
-    # (unchanging dictionary created by hand)
-    # Not really needed. Only was there because argovis
-    # changed name of latitude to lat
-
-    # key cchdoArgovisParamMapping
-    # from above, this is argovis_col_names_mapping
-    mappings['cchdoArgovisParamMapping'] = argovis_col_names_mapping
+    # key cchdoStandardNames
+    mappings['cchdoStandardNames'] = cchdo_standard_names
 
     # # key cchdoReferenceScale
     # # starting reference scales before any conversions
@@ -274,8 +193,6 @@ def rename_data(data, data_type):
 
     df_data = df_data.set_axis(
         argovis_col_names, axis='columns', inplace=False)
-
-    # df_data.columns = argovis_col_names_mapping.values()
 
     data = df_data.to_dict('records')
 
@@ -383,7 +300,6 @@ def add_cchdo_meta(meta, cchdo_file_meta, cchdo_cruise_meta):
     # cchdo_cruise_meta from  cchdo cruise json
 
     meta['file_expocode'] = meta.pop('expocode', None)
-    #meta['cruise_id'] = cchdo_cruise_meta.pop('id', None)
 
     meta = {**meta, **cchdo_file_meta, **cchdo_cruise_meta}
 
@@ -497,10 +413,6 @@ def process_data_profiles(profiles_obj):
 
         new_profile_dict = {}
 
-        # TODO
-        # why keep station cast and data type part of profile dict
-        # when can store them in the parent dict profile?
-
         new_profile_dict['station_cast'] = station_cast
         new_profile_dict['data_type'] = data_type
 
@@ -512,11 +424,6 @@ def process_data_profiles(profiles_obj):
         new_profile_dict['measurementsSources'] = measurements_sources
         #profile_dict['stationParameters'] = station_parameters
 
-        # TODO
-        # Change into renaming measurements
-        # and renaming core profile keys
-        # meta key is placeholder and not part of final JSON
-        # since it is expanded out of meta dict
         renamed_profile_dict = rename_core_profile_keys(new_profile_dict)
 
         renamed_profile_dict = rename_measurements_keys(renamed_profile_dict)
