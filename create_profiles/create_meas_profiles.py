@@ -186,63 +186,6 @@ def convert_boolean(obj):
 #     return df_meas
 
 
-def get_core_cols_from_hierarchy(df):
-
-    # TODO
-    # don't include oxygen values in core cols
-
-    # core cols includes '_qc' vars
-    #core_values = get_argovis_core_meas_values_per_type(data_type)
-    core_names = mapping.get_cchdo_core_meas_var_names()
-
-    core_temperature_names = mapping.get_cchdo_core_meas_temperature_names()
-
-    # Salinity names not filtered yet
-    #core_salinity_names = mapping.get_cchdo_core_meas_salinity_names()
-
-    # oxygen not a core value
-    #core_oxygen_names = mapping.get_cchdo_core_meas_oxygen_names()
-
-    columns = list(df.columns)
-    core_cols = [col for col in columns if col in core_names]
-
-    # There is a hierarchy of which variable to use in core cchdo names
-    # if both ref scale and units variables exist
-    temperature_name = mapping.choose_core_temperature_from_hierarchy(
-        core_cols)
-
-    #oxygen_name = mapping.choose_core_oxygen_from_hierarchy(core_cols)
-
-    # hierarchy_temp_oxy_names = [
-    #     temperature_name, temperature_name + '_qc', oxygen_name, oxygen_name + '_qc']
-
-    hierarchy_temperature_names = [temperature_name, temperature_name + '_qc']
-
-    # Use only hierarchy core value
-    # get non temperature and oxygen names and then add back in
-    # temperature and oxygen names from hierarchy
-    # all_temperature_oxygen_names = [
-    #     *core_temperature_names, *core_oxygen_names]
-
-    # non_temperature_oxygen = [
-    #     col for col in core_cols if col not in all_temperature_oxygen_names]
-
-    non_temperature = [
-        col for col in core_cols if col not in hierarchy_temperature_names]
-
-    # core_cols = [*non_temperature_oxygen, *hierarchy_temp_oxy_names]
-
-    core_cols = [*non_temperature, *hierarchy_temperature_names]
-
-    #core_non_qc = [elem for elem in core_cols if '_qc' not in elem]
-
-    # return core_cols, temperature_name, oxygen_name
-
-    core_cols_nonqc = [col for col in core_cols if '_qc' not in col]
-
-    return core_cols_nonqc
-
-
 def filter_measurements(data_type_profiles):
 
     # TODO
@@ -407,85 +350,50 @@ def filter_salinity(df_meas, meas_sources):
         if not using_bottle_salinity:
             df_meas = df_meas.drop('bottle_salinity', axis=1)
 
-    # ctd_salinity_exists = 'ctd_salinity' in df_meas.columns
-    # if ctd_salinity_exists:
-    #     is_empty_ctd_salinity = df_meas['ctd_salinity'].isnull().values.all()
-
-    # btl_salinity_exists = 'bottle_salinity' in df_meas.columns
-    # if btl_salinity_exists:
-    #     is_empty_btl_salinity = df_meas['bottle_salinity'].isnull(
-    #     ).values.all()
-
-    # if ctd_salinity_exists and btl_salinity_exists and not is_empty_ctd_salinity:
-    #     df_meas = df_meas.drop('bottle_salinity', axis=1)
-    # elif ctd_salinity_exists and btl_salinity_exists and is_empty_ctd_salinity and not is_empty_btl_salinity:
-    #     df_meas = df_meas.drop('ctd_salinity', axis=1)
-
-    # # Now remove empty salinity columns if no salinity value exists
-    # if 'ctd_salinity' in df_meas.columns and is_empty_ctd_salinity:
-    #     df_meas = df_meas.drop('ctd_salinity', axis=1)
-
-    # if 'bottle_salinity' in df_meas.columns and is_empty_btl_salinity:
-    #     df_meas = df_meas.drop('bottle_salinity', axis=1)
-
     return df_meas
+
+
+def get_core_cols_from_hierarchy(df):
+
+    # core cols includes '_qc' vars
+    core_names = mapping.get_cchdo_core_meas_var_names()
+
+    # Salinity names not filtered yet
+
+    columns = list(df.columns)
+    core_cols = [col for col in columns if col in core_names]
+
+    # There is a hierarchy of which variable to use in core cchdo names
+    # if both ref scale and units variables exist
+    temperature_name = mapping.choose_core_temperature_from_hierarchy(
+        core_cols)
+
+    hierarchy_temperature_names = [temperature_name, temperature_name + '_qc']
+
+    # Use only hierarchy core value
+
+    non_temperature = [
+        col for col in core_cols if col not in hierarchy_temperature_names]
+
+    core_cols = [*non_temperature, *hierarchy_temperature_names]
+
+    core_cols_nonqc = [col for col in core_cols if '_qc' not in col]
+
+    return core_cols_nonqc
 
 
 def filter_meas_core_cols(df_meas):
 
     # Remove cols such as 'N_PROF', 'station_cast' and qc_source cols.
+
     # And only keep top hierarchy of temperature and salinity
     # filter out objects with only a pressure or
     # if no temperature
 
-    #core_cols = ['temp', 'psal', 'salinity']
-
-    # here
-    # core cols includes '_qc' vars
-    # core_cols, temperature_name, oxygen_name = get_core_cols_from_hierarchy(
-    #     df_meas)
-
     core_cols_nonqc = get_core_cols_from_hierarchy(df_meas)
-
-    # core_cols_nonqc = [col for col in core_cols if '_qc' not in col]
-
-    # found_core_cols = [
-    #     col for col in df_meas.columns if col in core_cols_nonqc]
-
-    # print(f"found core cols from df_meas {found_core_cols}")
-
-    # Get temp qc value to be meas source qc (don't know if 0 or 2)
-    # Could also be a bad qc or none. Will store as key in final json,
-    # but not sure this is relevant
-
-    #df_meas['qc_source'] = df_meas[f"{temperature_name}_qc"]
-
-    # Get meas qc source col (which is the temp qc)
-    #temperature_qc = pd.unique(df_meas[f"{temperature_name}_qc"])
-
-    # # remove null values
-    # temperature_qc = [qc for qc in temperature_qc if pd.notnull(qc)]
-
-    # temperature_qc = [
-    #     int(qc) for qc in temperature_qc if int(qc) == 0 or int(qc) == 2]
-
-    # if not len(temperature_qc):
-    #     temperature_qc = None
-
-    # if no_temp:
-    #     # Set to empty dataframe
-    #     df_meas = pd.DataFrame()
-    #     temperature_qc = None
-
-    #logging.info(f"meas source temperature qc {temperature_qc}")
 
     # Remove any columns that are not core
     df_meas = df_meas[core_cols_nonqc]
-
-    # # drop qc columns
-    # for col in df_meas.columns:
-    #     if col.endswith('_qc'):
-    #         df_meas = df_meas.drop([col], axis=1)
 
     df_meas = df_meas.sort_values(by=['pressure'])
 
@@ -496,8 +404,8 @@ def filter_meas_core_cols(df_meas):
     df_meas = df_meas[df_meas['pressure'].notnull()]
 
     # Filter out if temperature is nan
-    # TODO
-    # do this later after find meas source qc using flags
+    # Don't do this yet since using temp existence as part
+    # of measurements cacluation when combining btl and ctd
     #df_meas = df_meas[df_meas[temperature_name].notnull()]
 
     # Following not working. Still getting NaN in json string
@@ -509,7 +417,6 @@ def filter_meas_core_cols(df_meas):
     # if no_temp:
     #     # Set to empty dataframe
     #     df_meas = pd.DataFrame()
-    #     temperature_qc = None
 
     return df_meas
 
@@ -559,26 +466,12 @@ def create_measurements_df_all(df):
         except KeyError:
             pass
 
-    # # Get temp qc value to be meas source qc (don't know if 0 or 2)
-    # # Could also be a bad qc or none. Will store as key in final json,
-    # # but not sure this is relevant
-
-    # df_meas['qc_source'] = df_meas[f"{temperature_name}_qc"]
-
     # # drop qc columns
     # for col in df_meas.columns:
     #     if col.endswith('_qc'):
     #         df_meas = df_meas.drop([col], axis=1)
 
     # df_meas = df_meas.sort_values(by=['pressure'])
-
-    # Not using argovis names, so don't need this
-    # # Remove data_type ('btl', 'ctd') from  variable names
-    # column_mapping = {}
-    # column_mapping[f"psal_{data_type}"] = 'psal'
-    # column_mapping[f"temp_{data_type}"] = 'temp'
-    # column_mapping[f"salinity_btl"] = 'salinity'
-    # df_meas = df_meas.rename(columns=column_mapping)
 
     return df_meas
 
@@ -590,9 +483,6 @@ def create_meas_profiles(df_param, data_type):
     # ********************************
 
     logging.info("Create all Measurements profiles")
-
-    # df_meas = df_param.groupby('N_PROF').apply(
-    #     create_measurements_df_all, data_type)
 
     df_meas = df_param.groupby('N_PROF').apply(
         create_measurements_df_all)
@@ -615,11 +505,7 @@ def create_meas_profiles(df_param, data_type):
 
         station_cast = val_df['station_cast'].values[0]
 
-        # logging.info('----------------------')
-        # logging.info(f"station cast {station_cast}")
-
-        # Now filter to core meas cols using temp and oxygen
-        # from hierarchy
+        # Now filter to core meas cols
         # still includes bottle salinity because want to see if
         # it will be kept in measurements if ctd_salinity doesn't exist
 
@@ -627,16 +513,6 @@ def create_meas_profiles(df_param, data_type):
         df_meas = filter_meas_core_cols(val_df)
 
         # Now find which core variables are used (meas_source_flag)
-        # meas_source_flag, meas_sources = get_measurements_sources(
-        #     val_df, meas_qc, data_type)
-
-        # if not df_meas.empty:
-        #     meas_source_flag = {'source': data_type}
-        #     meas_sources = get_measurements_sources(df_meas, meas_qc)
-        # else:
-        #     meas_source_flag = {'source': None}
-        #     meas_sources = {'source_qc': None}
-
         meas_source_flag = data_type.upper()
 
         # measurements source is a dict with qc value and
@@ -647,10 +523,9 @@ def create_meas_profiles(df_param, data_type):
         # ctd_salinity, keep bottle_salinity (rename to argovis psal name later)
 
         # Filter salinity and psal using meas_sources
-        # if not df_meas.empty:
-        #     df_meas = filter_salinity(df_meas)
         df_meas = filter_salinity(df_meas, meas_sources)
 
+        # Filter on temperature
         df_meas = filter_temperature(df_meas, meas_sources)
 
         # TODO
@@ -668,12 +543,6 @@ def create_meas_profiles(df_param, data_type):
         else:
             meas_dict_list = df_meas.to_dict('records')
             meas_dict_list = to_int_qc(meas_dict_list)
-
-        # if df_meas.empty:
-        #     meas_dict_list = []
-        # else:
-        #     meas_dict_list = df_meas.to_dict('records')
-        #     meas_dict_list = to_int_qc(meas_dict_list)
 
         meas_names = {}
         meas_names['station_cast'] = station_cast
