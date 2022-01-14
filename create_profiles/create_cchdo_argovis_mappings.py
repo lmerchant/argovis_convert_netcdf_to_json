@@ -1,51 +1,49 @@
 
-def filter_argovis_mapping(nc_mappings, all_name_mapping):
+# def filter_argovis_mapping(nc_mappings, all_name_mapping):
 
-    argovis_param_mapping = nc_mappings['argovis_param']
+#     argovis_param_mapping = nc_mappings['argovis_param']
 
-    # Take param mapping and filter it to only contain all_name_mapping
-    # list of non-empty columnn for each station_cast
-    # This is taking into account for dropped empty cols
+#     # Take param mapping and filter it to only contain all_name_mapping
+#     # list of non-empty columnn for each station_cast
+#     # This is taking into account for dropped empty cols
 
-    units = argovis_param_mapping['units']
-    ref_scale = argovis_param_mapping['ref_scale']
-    c_format = argovis_param_mapping['c_format']
-    dtype = argovis_param_mapping['dtype']
+#     units = argovis_param_mapping['units']
+#     ref_scale = argovis_param_mapping['ref_scale']
+#     c_format = argovis_param_mapping['c_format']
+#     dtype = argovis_param_mapping['dtype']
 
-    all_filtered_mappings = []
+#     all_filtered_mappings = []
 
-    for name_mapping in all_name_mapping:
+#     for name_mapping in all_name_mapping:
 
-        argovis_names = name_mapping['non_empty_cols']
+#         argovis_names = name_mapping['non_empty_cols']
 
-        new_mapping = {}
+#         new_mapping = {}
 
-        # ******************************
-        # filter names to non empty cols
-        # ******************************
+#         # ******************************
+#         # filter names to non empty cols
+#         # ******************************
 
-        new_mapping['station_cast'] = name_mapping['station_cast']
+#         new_mapping['station_cast'] = name_mapping['station_cast']
 
-        new_mapping['names'] = argovis_names
+#         new_mapping['names'] = argovis_names
 
-        new_mapping['units'] = {key: val for key,
-                                val in units.items() if key in argovis_names}
-        new_mapping['ref_scale'] = {
-            key: val for key, val in ref_scale.items() if key in argovis_names}
-        new_mapping['c_format'] = {
-            key: val for key, val in c_format.items() if key in argovis_names}
-        new_mapping['dtype'] = {key: val for key,
-                                val in dtype.items() if key in argovis_names}
+#         new_mapping['units'] = {key: val for key,
+#                                 val in units.items() if key in argovis_names}
+#         new_mapping['ref_scale'] = {
+#             key: val for key, val in ref_scale.items() if key in argovis_names}
+#         new_mapping['c_format'] = {
+#             key: val for key, val in c_format.items() if key in argovis_names}
+#         new_mapping['dtype'] = {key: val for key,
+#                                 val in dtype.items() if key in argovis_names}
 
-        all_filtered_mappings.append(new_mapping)
+#         all_filtered_mappings.append(new_mapping)
 
-    return all_filtered_mappings
+#     return all_filtered_mappings
 
 
 def get_cchdo_core_meas_var_names():
     return ['pressure', 'ctd_salinity', 'ctd_salinity_qc', 'bottle_salinity', 'bottle_salinity_qc', 'ctd_temperature', 'ctd_temperature_qc', 'ctd_temperature_68', 'ctd_temperature_68_qc']
-
-    # return ['pressure', 'ctd_salinity', 'ctd_salinity_qc', 'bottle_salinity', 'bottle_salinity_qc', 'ctd_temperature', 'ctd_temperature_qc', 'ctd_temperature_68', 'ctd_temperature_68_qc', 'ctd_oxygen', 'ctd_oxygen_qc', 'ctd_oxygen_ml_l', 'ctd_oxygen_ml_l_qc']
 
 
 def get_cchdo_core_meas_salinity_names():
@@ -282,6 +280,13 @@ def create_cchdo_mappings(nc_mappings, all_name_mapping):
         new_mapping['cchdoParamNames'] = [
             col for col in all_cchdo_param_names if col in non_empty_cols]
 
+        cur_param_standard_names_mapping = cchdo_param_mapping['netcdf_name']
+        new_param_standard_names_mapping = {
+            key: val for key, val in cur_param_standard_names_mapping.items() if key in non_empty_cols}
+
+        new_mapping['cchdoStandardNames'] = {
+            **cchdo_meta_mapping['netcdf_name'], **new_param_standard_names_mapping}
+
         cur_param_ref_scale_mapping = cchdo_param_mapping['ref_scale']
         new_param_ref_scale_mapping = {
             key: val for key, val in cur_param_ref_scale_mapping.items() if key in non_empty_cols}
@@ -306,7 +311,7 @@ def create_cchdo_mappings(nc_mappings, all_name_mapping):
 
         # params_no_oxy_conversion has key var and list of
         # station_cast without units attribute changing
-        vars_no_oxy_conversion = params_no_oxy_conversion.keys()
+        vars_no_oxy_conversion = list(params_no_oxy_conversion.keys())
 
         params_not_units_changed = []
         for var in vars_no_oxy_conversion:
