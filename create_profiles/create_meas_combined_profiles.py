@@ -385,12 +385,11 @@ def get_combined_measurements(btl_meas, ctd_meas, hierarchy_meas_cols, hierarchy
 
     print(f"hierarchy_meas_sources {hierarchy_meas_sources}")
 
+    # num_pts_before_btl = len(btl_meas)
+    # num_pts_before_ctd = len(ctd_meas)
 
-    num_pts_before_btl = len(btl_meas)
-    num_pts_before_ctd = len(ctd_meas)
-
-    btl_meas_before = btl_meas
-    ctd_meas_before = ctd_meas
+    # btl_meas_before = btl_meas
+    # ctd_meas_before = ctd_meas
 
     if hierarchy_source_flag != 'BTL_CTD':
         if btl_meas:
@@ -399,21 +398,20 @@ def get_combined_measurements(btl_meas, ctd_meas, hierarchy_meas_cols, hierarchy
         if ctd_meas:
             ctd_meas = [obj for obj in ctd_meas if pd.notna(obj['temp'])]
 
-        num_pts_after_btl = len(btl_meas)
-        num_pts_after_ctd = len(ctd_meas)
+        # num_pts_after_btl = len(btl_meas)
+        # num_pts_after_ctd = len(ctd_meas)
 
-        if num_pts_before_btl != num_pts_after_btl:
-            logging.info('btl meas before')
-            logging.info(btl_meas_before)
-            logging.info(f'\n\nbtl meas after')
-            logging.info(btl_meas)
+        # if num_pts_before_btl != num_pts_after_btl:
+        #     logging.info('btl meas before')
+        #     logging.info(btl_meas_before)
+        #     logging.info(f'\n\nbtl meas after')
+        #     logging.info(btl_meas)
 
-        if num_pts_before_ctd != num_pts_after_ctd:
-            logging.info('ctd meas before')
-            logging.info(ctd_meas_before)
-            logging.info(f'\n\nctd meas after')
-            logging.info(ctd_meas)
-
+        # if num_pts_before_ctd != num_pts_after_ctd:
+        #     logging.info('ctd meas before')
+        #     logging.info(ctd_meas_before)
+        #     logging.info(f'\n\nctd meas after')
+        #     logging.info(ctd_meas)
 
     btl_meas.extend(ctd_meas)
     combined_meas = []

@@ -60,9 +60,6 @@ def prepare_profile_json(profile_dict):
 
     print(f"\n\ndata type is {data_type}")
 
-
-
-
     # If has psal and all null, don't save in masurement data obj
     df_meas = pd.DataFrame.from_dict(measurements)
 
@@ -75,7 +72,6 @@ def prepare_profile_json(profile_dict):
 
     print('measurements_source')
     print(profile_dict['measurements_source'])
-
 
     print('measurements_sources')
     print(profile_dict['measurements_sources'])
@@ -108,11 +104,11 @@ def prepare_profile_json(profile_dict):
 
         profile_dict['measurements'] = filtered_measurements
 
-        print('filtered measurements')
-        print(filtered_measurements)
+        # print('filtered measurements')
+        # print(filtered_measurements)
 
-        print(f"\n\nmeasurements")
-        print(measurements)
+        # print(f"\n\nmeasurements")
+        # print(measurements)
 
     # Remove station cast var used to group data
     profile_dict.pop('station_cast', None)
