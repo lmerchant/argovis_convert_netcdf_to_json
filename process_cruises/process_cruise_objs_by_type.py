@@ -3,8 +3,6 @@ import logging
 from collections import defaultdict
 import itertools
 
-import numpy as np
-
 
 from xarray_and_dask.check_has_ctd_vars import check_has_ctd_vars
 from xarray_and_dask.modify_xarray_obj import modify_xarray_obj
@@ -13,8 +11,6 @@ from xarray_and_dask.modify_dask_obj import modify_meta_dask_obj
 from xarray_and_dask.modify_dask_obj import modify_param_dask_obj
 from create_profiles.create_meas_profiles import create_meas_profiles
 from create_profiles.create_data_profiles import create_data_profiles
-from create_profiles.create_cchdo_argovis_mappings import create_cchdo_argovis_mappings
-from create_profiles.create_cchdo_argovis_mappings import filter_argovis_mapping
 from create_profiles.create_cchdo_argovis_mappings import create_cchdo_mappings
 
 
@@ -32,36 +28,12 @@ def combine_profiles(meta_profiles, all_data_profiles, all_meas_profiles, meas_s
         new_obj = {}
         new_obj['station_cast'] = key
         val['data_type'] = data_type
-        #val['stationCast'] = key
         new_obj['profile_dict'] = val
         combined_profiles.append(new_obj)
 
     logging.info(f"Total profiles {len(combined_profiles)}")
 
     return combined_profiles
-
-
-# def combine_profiles_orig(meta_profiles, all_data_profiles, all_meas_profiles, meas_source_profiles, meas_names, mapping_profiles, data_type):
-
-
-#     #  https://stackoverflow.com/questions/5501810/join-two-lists-of-dictionaries-on-a-single-key
-
-#     profile_dict = defaultdict(dict)
-#     for elem in itertools.chain(meta_profiles, all_data_profiles,  all_meas_profiles, meas_names, meas_source_profiles, mapping_profiles):
-#         profile_dict[elem['station_cast']].update(elem)
-
-#     combined_profiles = []
-#     for key, val in profile_dict.items():
-#         new_obj = {}
-#         new_obj['station_cast'] = key
-#         val['data_type'] = data_type
-#         val['stationCast'] = key
-#         new_obj['profile_dict'] = val
-#         combined_profiles.append(new_obj)
-
-#     logging.info(f"Total profiles {len(combined_profiles)}")
-
-#     return combined_profiles
 
 
 def create_profiles_objs(cruise_ddf_obj):
@@ -108,16 +80,6 @@ def create_profiles_objs(cruise_ddf_obj):
         cchdo_mapping_profiles = create_cchdo_mappings(
             nc_mappings, all_name_mapping)
 
-        # # Filter out from var name mappings any that have no values.
-        # # This can happen since xarray fills variables if they
-        # # don't exist in a station cast to create one array of variables
-        # # for the collection
-        # all_argovis_param_mapping_list = filter_argovis_mapping(
-        #     nc_mappings, all_name_mapping)
-
-        # cchdo_argovis_mapping_profiles = create_cchdo_argovis_mappings(
-        #     nc_mappings, all_argovis_param_mapping_list, data_type)
-
         # **************************************************
         # Combine all the profile parts into one object list
         # **************************************************
@@ -127,8 +89,6 @@ def create_profiles_objs(cruise_ddf_obj):
 
         # create cchdo_argovis_mapping_profiles later
         logging.info('start combining profiles')
-        # combined_profiles = combine_profiles(all_meta_profiles, all_data_profiles,
-        #                                 all_meas_profiles, all_meas_source_profiles, all_meas_names, cchdo_argovis_mapping_profiles, data_type)
 
         combined_profiles = combine_profiles(all_meta_profiles, all_data_profiles,
                                              all_meas_profiles, all_meas_source_profiles, all_meas_names, cchdo_mapping_profiles, data_type)
@@ -294,10 +254,6 @@ def process_cruise_objs_by_type(cruise_objs):
         logging.info('Process all xarray objects into Dask dataframe objects')
 
         cruise_ddf_obj = create_dask_dataframe_obj(cruise_xr_obj)
-
-        # cruise_ddf_obj = {}
-        # cruise_ddf_obj['cruise_expocode'] = cruise_xr_obj['cruise_expocode']
-        # cruise_ddf_obj['ddf_objs'] = ddf_objs
 
         # ******************************
         # Convert Dask dataframe objects
