@@ -350,7 +350,7 @@ def convert_boolean(obj):
 #     return meas_objs, source_flag, meas_sources
 
 
-def get_combined_measurements(btl_meas, ctd_meas, hierarchy_meas_cols):
+def get_combined_measurements(btl_meas, ctd_meas, hierarchy_meas_cols, hierarchy_source_flag, hierarchy_meas_sources):
 
     # Convert btl_meas and ctd_meas into df and then select columns I want
     # using hierarchy_meas_cols
@@ -375,6 +375,45 @@ def get_combined_measurements(btl_meas, ctd_meas, hierarchy_meas_cols):
     # Turn back into a list of dict and combine each dict for combined_meas
     btl_meas = df_meas_btl.to_dict('records')
     ctd_meas = df_meas_ctd.to_dict('records')
+
+    # TODO
+    # Exclude data point if temperature is NaN but only if not
+    # in a combined source
+    # look at hierarchy meas cols. Get source easier
+
+    print(f"hierarchy source flag {hierarchy_source_flag}")
+
+    print(f"hierarchy_meas_sources {hierarchy_meas_sources}")
+
+
+    num_pts_before_btl = len(btl_meas)
+    num_pts_before_ctd = len(ctd_meas)
+
+    btl_meas_before = btl_meas
+    ctd_meas_before = ctd_meas
+
+    if hierarchy_source_flag != 'BTL_CTD':
+        if btl_meas:
+            btl_meas = [obj for obj in btl_meas if pd.notna(obj['temp'])]
+
+        if ctd_meas:
+            ctd_meas = [obj for obj in ctd_meas if pd.notna(obj['temp'])]
+
+        num_pts_after_btl = len(btl_meas)
+        num_pts_after_ctd = len(ctd_meas)
+
+        if num_pts_before_btl != num_pts_after_btl:
+            logging.info('btl meas before')
+            logging.info(btl_meas_before)
+            logging.info(f'\n\nbtl meas after')
+            logging.info(btl_meas)
+
+        if num_pts_before_ctd != num_pts_after_ctd:
+            logging.info('ctd meas before')
+            logging.info(ctd_meas_before)
+            logging.info(f'\n\nctd meas after')
+            logging.info(ctd_meas)
+
 
     btl_meas.extend(ctd_meas)
     combined_meas = []
@@ -740,8 +779,6 @@ def get_hierarchy_single_source(source_dict):
 
     hierarchy = {}
 
-    #hierarchy['qc'] = source['qc']
-
     # check ctd_temperature
     has_key = "temp" in source
 
@@ -805,7 +842,6 @@ def combine_btl_ctd_measurements(btl_dict, ctd_dict):
     ctd_meas = {}
 
     if btl_dict:
-
         btl_meas = btl_dict[measurements_key]
         hierarchy_source_flag = btl_dict[source_flag_key]
         hierarchy_meas_sources = btl_dict[meas_sources_key]
@@ -823,7 +859,7 @@ def combine_btl_ctd_measurements(btl_dict, ctd_dict):
             hierarchy_btl, hierarchy_ctd)
 
         combined_measurements = get_combined_measurements(btl_meas, ctd_meas,
-                                                          hierarchy_meas_cols)
+                                                          hierarchy_meas_cols, hierarchy_source_flag, hierarchy_meas_sources)
 
     # -----------
 
@@ -832,11 +868,6 @@ def combine_btl_ctd_measurements(btl_dict, ctd_dict):
 
     if not hierarchy_btl and hierarchy_ctd:
         combined_measurements = ctd_meas
-
-    # TODO
-    # get rid of qc value for sources.
-    # too much trouble trying to combine a 0 and 2
-    # instead of QC, call it measurementsSources
 
     # For JSON conversion later
     hierarchy_meas_sources = convert_boolean(hierarchy_meas_sources)
