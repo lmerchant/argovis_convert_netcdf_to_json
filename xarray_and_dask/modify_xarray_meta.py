@@ -24,7 +24,7 @@ def change_units_to_argovis(nc, cchdo_meta_mapping):
 
     names = cchdo_meta_mapping['names']
     unit_name_mapping = get_cchdo_argovis_unit_name_mapping()
-    cchdo_unit_names = unit_name_mapping.keys()
+    cchdo_unit_names = list(unit_name_mapping.keys())
 
     # No saliniity in coordinates so don't have to
     # worry about units = 1 being salinity

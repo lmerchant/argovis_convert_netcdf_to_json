@@ -21,7 +21,7 @@ def change_units_to_argovis(nc, cchdo_param_mapping):
 
     param_names = cchdo_param_mapping['names']
     unit_name_mapping = get_cchdo_argovis_unit_name_mapping()
-    cchdo_unit_names = unit_name_mapping.keys()
+    cchdo_unit_names = list(unit_name_mapping.keys())
 
     # Get reference scale to determine if salinity because there
     # can be a cchdo unit of '1' that is not salinity
