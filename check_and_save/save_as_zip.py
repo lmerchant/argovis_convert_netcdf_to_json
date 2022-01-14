@@ -5,6 +5,7 @@ import zipfile
 import json
 import os
 import numpy as np
+import pandas as pd
 import logging
 
 from global_vars import GlobalVars
@@ -48,17 +49,75 @@ def unzip_file(zip_folder, zip_file):
 def prepare_profile_json(profile_dict):
 
     # TODO
-    # If want to remove cchdoNames list, do it here
-    # profile_dict.pop('cchdoNames', None)
+    # is this only called for single cruise?
+    # If so,if missing temp or it's emppty, do logic
+
+    # Filter measurements by removing any points with NaN temp
+    # and points with all NaN values except pressure
+    measurements = profile_dict['measurements']
+
+    data_type = profile_dict['data_type']
+
+    print(f"\n\ndata type is {data_type}")
+
+
+
+
+    # If has psal and all null, don't save in masurement data obj
+    df_meas = pd.DataFrame.from_dict(measurements)
+
+    if 'psal' in df_meas.columns:
+        all_psal_null = df_meas['psal'].isnull().values.all()
+        if all_psal_null:
+            df_meas = df_meas.drop(['psal'], axis=1)
+
+    measurements = df_meas.to_dict('records')
+
+    print('measurements_source')
+    print(profile_dict['measurements_source'])
+
+
+    print('measurements_sources')
+    print(profile_dict['measurements_sources'])
+
+    # If data_type is 'btl_ctd', can have case of temp=nan but keep data_point
+    # So don't filter out temp = nan values.
+
+    # TODO
+    # Could ask if temp = nan, if shouldn't display it when have psal finite
+
+    if data_type != 'btl_ctd':
+
+        filtered_measurements = []
+
+        for obj in measurements:
+            has_temp = 'temp' in obj.keys()
+
+            if has_temp:
+                not_null_temp = pd.notnull(obj['temp'])
+            else:
+                not_null_temp = False
+
+            if has_temp and not_null_temp:
+                filtered_measurements.append(obj)
+            elif not has_temp:
+                filtered_measurements.append(obj)
+            else:
+                print('has null temp and not included')
+                print(obj)
+
+        profile_dict['measurements'] = filtered_measurements
+
+        print('filtered measurements')
+        print(filtered_measurements)
+
+        print(f"\n\nmeasurements")
+        print(measurements)
 
     # Remove station cast var used to group data
-    #profile_dict.pop('stationCast', None)
     profile_dict.pop('station_cast', None)
 
     profile_dict.pop('data_type', None)
-
-    # Remove station_cast var used to group data
-    # profile_dict['meta'].pop('station_cast', None)
 
     # Remove  time from meta since it was just used to create date variable
     profile_dict['meta'].pop('time', None)
