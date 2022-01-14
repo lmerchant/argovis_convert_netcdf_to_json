@@ -10,7 +10,7 @@ class GlobalVars:
 
     INCLUDE_EXCLUDE_DIR = './logging/included_excluded'
 
-    OUTPUT_LOG = 'output_log'
+    OUTPUT_LOG = 'output_log.txt'
 
     CHUNK_SIZE = 30
 
