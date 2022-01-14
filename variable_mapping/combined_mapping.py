@@ -142,7 +142,7 @@ def get_combined_mappings(btl_dict, ctd_dict):
 
         # btl_dict already renamed
         # so use mapped key names from mapping_keys_mapping
-        argovis_mapping_keys = mapping_keys_mapping.values()
+        argovis_mapping_keys = list(mapping_keys_mapping.values())
 
         btl_mappings = {key: value for key,
                         value in btl_dict.items() if key in argovis_mapping_keys}
@@ -151,7 +151,7 @@ def get_combined_mappings(btl_dict, ctd_dict):
 
         # ctd_dict already renamed
         # so use mapped key names from mapping_keys_mapping
-        argovis_mapping_keys = mapping_keys_mapping.values()
+        argovis_mapping_keys = list(mapping_keys_mapping.values())
 
         ctd_mappings = {key: value for key,
                         value in ctd_dict.items() if key in argovis_mapping_keys}
