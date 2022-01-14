@@ -8,7 +8,7 @@ from variable_mapping.meta_param_mapping import rename_mappings_keys
 from variable_mapping.meta_param_mapping import get_meta_mapping
 from variable_mapping.meta_param_mapping import rename_core_profile_keys
 from variable_mapping.meta_param_mapping import rename_measurements_keys
-from variable_mapping.meta_param_mapping import get_mappings_keys_mapping
+from variable_mapping.meta_param_mapping import get_program_argovis_mapping
 
 
 def rename_measurements(data_type, measurements):
@@ -363,7 +363,7 @@ def process_data_profiles(profiles_obj):
         # Copy over current mappings
         current_mappings = {}
 
-        cchdo_key_mapping = get_mappings_keys_mapping()
+        cchdo_key_mapping = get_program_argovis_mapping()
 
         for key, value in profile_dict.items():
 
