@@ -1,4 +1,4 @@
-from variable_mapping.meta_param_mapping import get_mappings_keys_mapping
+from variable_mapping.meta_param_mapping import get_program_argovis_mapping
 import logging
 
 
@@ -87,9 +87,9 @@ def get_argovis_param_names(profile_dict):
     # need this since already renamed individual files
 
     # cchdo names are the keys and argovis names are the value
-    key_mapping = get_mappings_keys_mapping()
+    key_mapping = get_program_argovis_mapping()
 
-    cchdo_units_key = 'argovisParamNames'
+    param_names_key = 'argovisParamNames'
     renamed_param_names_key = key_mapping(param_names_key)
 
     param_names_key_btl = 'argovisParamNamesBtl'
@@ -339,7 +339,7 @@ def add_argovis_vars_one_profile(profile_dict):
 
     # cchdo names are the keys and argovis names are the value
     cchdo_key = 'cchdoArgovisParamMapping'
-    key_mapping = get_mappings_keys_mapping()
+    key_mapping = get_program_argovis_mapping()
     renamed_key = key_mapping[cchdo_key]
 
     name_mapping = profile_dict[renamed_key]
@@ -353,7 +353,7 @@ def add_argovis_vars_one_profile(profile_dict):
 
     #argovis_meta_names = profile_dict['argovisMetaNames']
 
-    key_mapping = get_mappings_keys_mapping()
+    key_mapping = get_program_argovis_mapping()
     cchdo_key = 'argovisParamNames'
     renamed_argovis_param_names_key = key_mapping[cchdo_key]
 
