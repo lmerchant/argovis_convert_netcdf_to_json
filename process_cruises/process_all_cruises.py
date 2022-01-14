@@ -191,14 +191,20 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
 
         # Has Oxy in ml/l and bottle salinity
         # but no ctd_salinity
-        test_cruise_expocode = '32OC258_3'
+        #test_cruise_expocode = '32OC258_3'
 
         # This cruise is BTL_CTD
         # test_cruise_expocode = '64TR90_3'
 
         # has both btl and ctd and want to filter
         # out meas objs without a temp var
-        # test_cruise_expocode = '09AR9601_1'
+        #test_cruise_expocode = '09AR9601_1'
+        # expo_09AR9391_2_sta_063_cast_001.json
+        #test_cruise_expocode = '09AR9391_2'
+
+        # btl and ctd files
+        # has some btl_ctd meas sources
+        test_cruise_expocode = '33KB184_1'
 
         # test temp_unk for ctd and temp for btl
         # when combining. Want to exclude ctd in this case
