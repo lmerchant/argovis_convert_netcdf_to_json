@@ -202,9 +202,16 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
         # expo_09AR9391_2_sta_063_cast_001.json
         #test_cruise_expocode = '09AR9391_2'
 
+        # Look at btl and ctd profiles that have nan values
+        test_cruise_expocode = '32MW893_3'
+
         # btl and ctd files
-        # has some btl_ctd meas sources
-        test_cruise_expocode = '33KB184_1'
+        # has some profiles with btl_ctd meas sources
+        # Check how NaN values removed from meas pts
+        # measurements_sources
+        # {'pres_btl': 'true', 'temp_btl': 'false', 'psal_btl': 'true',
+        #     'pres_ctd': 'true', 'temp_ctd': 'true', 'psal_ctd': 'false'}
+        #test_cruise_expocode = '33KB184_1'
 
         # test temp_unk for ctd and temp for btl
         # when combining. Want to exclude ctd in this case
