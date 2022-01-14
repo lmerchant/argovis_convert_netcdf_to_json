@@ -1,32 +1,23 @@
 import logging
 
-#from process_cruises.process_cruise_objs_by_type import process_cruise_objs_by_type
 from process_cruises.process_cruise_objs_by_type import process_cruise_objs_by_type
 from process_cruises.post_process_cruise_objs_by_type import post_process_cruise_objs_by_type
 from process_cruises.post_process_cruise_objs_by_collection import post_process_cruise_objs_by_collection
 
-from check_and_save.save_output import save_data_type_profiles
-
-# from xarray_and_dask.apply_argovis_names_and_conversions import apply_argovis_names_and_conversions
-
+from check_and_save.save_output import save_data_type_profiles_per_type
 from check_and_save.add_vars_to_logged_collections import gather_included_excluded_vars
 from check_and_save.save_output import save_included_excluded_cchdo_vars
-#from check_and_save.remove_non_ctd_profiles import remove_non_ctd_profiles
 
 
 def process_batch_of_cruises(cruise_objs):
 
-   # Return a list of objs with keys
+    # Return a list of objs with keys
     # cruise_expocode and profiles_objs
 
     # cruises_profiles_objs is for a batch of cruises
 
     # And within cruise, get set of profiles by type
     # If there is both a ctd and btl, will get two types back
-
-    # Instead of bunching by xarray type, dask type, and
-    # profiles. Run through all steps in series
-    # slightly slower. but same result. Easier logging this way
 
     logging.info('-------------------------------')
     logging.info("Create profiles for cruises")
@@ -40,8 +31,6 @@ def process_batch_of_cruises(cruise_objs):
     # And create mapping keys for Argovis values
     # **********************************
 
-    # Redo name and unit change functions for Argovis
-
     # Load dict back into pandas dataframe to rename and then
     # save back as json.
     #
@@ -49,8 +38,7 @@ def process_batch_of_cruises(cruise_objs):
     # Make sure the precision didn't change
     # from the c_format
 
-    # Don't rename measurements vars from cchdo names
-    # becase want to use it to determine hierarchy when combining
+    # Rename variables and add argovis mappings
     cruise_objs_by_type = post_process_cruise_objs_by_type(
         cruise_objs_by_type)
 
@@ -71,18 +59,9 @@ def process_batch_of_cruises(cruise_objs):
     # Write included/excluded cchdo vars
     # ***********************************
 
-    # If profile not included, I guess that means it
-    # is excluded? But does that make sense if
-    # entire cruise excluded?
     logging.info('-------------------------------')
     logging.info("Log excluded and included vars")
     logging.info('-------------------------------')
-
-    # TODO
-    # fix variable naming
-    # Have already renamed to argovis
-    # Use my names and rename to latest argovis in the function
-    # so only have to create mapping once
 
     cruises_all_included, cruises_all_excluded = gather_included_excluded_vars(
         cruise_objs_by_type)
@@ -107,13 +86,5 @@ def process_batch_of_cruises(cruise_objs):
     single_data_type_cruises = post_process_cruise_objs_by_collection(
         cruise_objs_by_type)
 
-    # TODO test this part with expocode of one data type
-    for cruise_obj in single_data_type_cruises:
-
-        all_data_types_profile_objs = cruise_obj['all_data_types_profile_objs']
-
-        for data_type_obj_profiles in all_data_types_profile_objs:
-
-            save_data_type_profiles(data_type_obj_profiles)
-
-    # ----------------
+    # Remove any measurements with temp = NaN when saving
+    save_data_type_profiles_per_type(single_data_type_cruises)
