@@ -28,7 +28,7 @@ def get_source_independent_meta_names():
 
 
 # TODO
-# Why use this when could use get_mappings_keys_mapping
+# Why use this when could use get_program_argovis_mapping
 
 # def get_meta_mapping_keys():
 
@@ -49,7 +49,7 @@ def get_source_independent_meta_names():
 #     cchdo_mapping_keys = ['cchdoParamNames',
 #                           'argovisParamNames', 'cchdoArgovisParamMapping']
 
-#     key_mapping = get_mappings_keys_mapping()
+#     key_mapping = get_program_argovis_mapping()
 
 #     new_mappings_keys = {}
 #     for key in cchdo_mapping_keys:
@@ -104,7 +104,7 @@ def get_meta_mapping():
     }
 
 
-def get_mappings_keys_mapping():
+def get_program_argovis_mapping():
 
     # TODO
     # could have the case where always apply the suffix?
@@ -142,7 +142,7 @@ def get_core_profile_keys_mapping():
 def rename_mappings_keys(mappings):
 
     # keys are CCHDO and values are Argovis
-    key_mapping = get_mappings_keys_mapping()
+    key_mapping = get_program_argovis_mapping()
 
     new_mappings = {}
     for key, value in mappings.items():
