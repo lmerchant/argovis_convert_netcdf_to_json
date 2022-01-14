@@ -127,7 +127,10 @@ def get_mappings_keys_mapping():
         'cchdoUnitsBtl': 'data_source_units_btl',
         'cchdoUnitsCtd': 'data_source_units_ctd',
         'argovisReferenceScale': 'data_reference_scale',
-        'argovisUnits': 'data_units'
+        'argovisUnits': 'data_units',
+        'cchdoStandardNames': 'data_source_standard_names',
+        'cchdoStandardNamesBtl': 'data_source_standard_names_btl',
+        'cchdoStandardNamesCtd': 'data_source_standard_names_ctd'
     }
 
 
