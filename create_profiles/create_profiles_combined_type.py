@@ -17,17 +17,17 @@ from variable_mapping.meta_param_mapping import get_source_independent_meta_name
 #     return obj
 
 
-def rename_btl_by_key_meta(obj):
+# def add_btl_suffix(obj):
 
-    new_obj = {}
+#     new_obj = {}
 
-    for key, val in obj.items():
+#     for key, val in obj.items():
 
-        new_key = f"{key}_btl"
+#         new_key = f"{key}_btl"
 
-        new_obj[new_key] = val
+#         new_obj[new_key] = val
 
-    return new_obj
+#     return new_obj
 
 
 # def filter_btl_ctd_measurements(btl_meas, ctd_meas, use_cols, meas_sources):
@@ -555,6 +555,30 @@ def rename_btl_by_key_meta(obj):
 
 #     return combined_measurements, meas_source, meas_sources, meas_names
 
+def add_meta_w_data_type(meta, data_type):
+
+    # Also add meta with suffix of the data_type
+    # Will have duplicate information in file
+    # This is because if combining files, will be using ctd meta without
+    # suffix but still have ctd meta with suffix. To have a consistent
+    # naming scheme across all files
+
+    # But don't need a suffix for common meta for btl and ctd
+    source_independent_meta_names = get_source_independent_meta_names()
+
+    meta_w_data_type = {}
+    meta_wo_data_type = {}
+
+    for key, val in meta.items():
+
+        if key not in source_independent_meta_names:
+            new_key = f"{key}_{data_type}"
+            meta_w_data_type[new_key] = val
+        else:
+            meta_wo_data_type[key] = val
+
+    return meta_w_data_type, meta_wo_data_type
+
 
 def combine_btl_ctd_per_profile(btl_profile, ctd_profile):
 
@@ -578,108 +602,72 @@ def combine_btl_ctd_per_profile(btl_profile, ctd_profile):
     btl_meta = {}
     ctd_meta = {}
 
+    btl_meta_w_data_type = {}
+    ctd_meta_w_data_type = {}
+
+    btl_meta_wo_data_type = {}
+    ctd_meta_wo_data_type = {}
+
     btl_data = []
     ctd_data = []
 
-    # If both btl and ctd,
-    # Put suffix of '_btl' in  bottle meta
-    # remove _btl variables that are core unchanging values
-    # between btl and ctd
-    source_independent_meta_names = get_source_independent_meta_names()
-
     if btl_dict:
-        data_type = 'btl'
+        file_data_type = 'btl'
         btl_meta = btl_dict['meta']
+        btl_meta_w_data_type, btl_meta_wo_data_type = add_meta_w_data_type(
+            btl_meta, file_data_type)
+
         btl_data = btl_dict['data']
 
     if ctd_dict:
-        data_type = 'ctd'
+        file_data_type = 'ctd'
         ctd_meta = ctd_dict['meta']
+        ctd_meta_w_data_type, ctd_meta_wo_data_type = add_meta_w_data_type(
+            ctd_meta, file_data_type)
+
         ctd_data = ctd_dict['data']
 
     if btl_dict and ctd_dict:
-
+        meta = ctd_meta
         data_type = 'btl_ctd'
+    elif btl_dict and not ctd_dict:
+        # TODO
+        # Check if this is true
+        # keep only meta without a _btl suffix since no ctd meta
+        #meta = btl_meta_wo_data_type
+        meta = btl_meta
+        data_type = 'btl'
 
-        # # TODO
-        # # redo all this using different critea of combining
-        # # for measurements object
+    elif ctd_dict and not btl_dict:
+        meta = ctd_meta
+        data_type = 'ctd'
 
-        # # TODO
-        # # use a dict instead and take into account for combining
-        # # if one of those qc's is None (empty collection)
-        # qc = {}
-        # qc_btl = btl_qc_val
-        # qc_ctd = ctd_qc_val
+    meta_w_data_type = {**ctd_meta_w_data_type, **btl_meta_w_data_type}
 
-        # if btl_qc_val == 0 and ctd_qc_val == 0:
-        #     # Would use btl values?
-        #     # would ctd_qc_val = 2 ever?
-        #     qc_val = 0
-        # elif btl_qc_val == 2 and ctd_qc_val == 2:
-        #     # Would use ctd values
-        #     qc_val = 2
-        # elif btl_qc_val == 0 and ctd_qc_val == 2:
-        #     qc_val = [0, 2]
-        # elif pd.isnull(ctd_qc_val) and pd.notnull(btl_qc_val):
-        #     logging.info(f"CTD qc = None for station cast {station_cast}")
-        #     qc_val = btl_qc_val
-        # elif pd.isnull(btl_qc_val) and pd.notnull(ctd_qc_val):
-        #     logging.info(f"BTL qc = None for station cast {station_cast}")
-        #     qc_val = ctd_qc_val
-        # else:
-        #     qc_val = None
-        #     logging.info("QC MEAS IS NONE for btl and ctd")
-        #     logging.info(f"for station cast {station_cast}")
+    combined_meta = {**meta, **meta_w_data_type}
 
-        #     # logging.info(f"btl_qc  {btl_qc_val}")
-        #     # logging.info(f"ctd_qc  {ctd_qc_val}")
+    # Add instrument key to indicate profile data type
+    # It's ship_btl_ctd because cruise has both a bottle and ctd file
+    combined_meta['instrument'] = 'ship_ctd_btl'
 
-        #     # logging.info("*** Btl meas")
-        #     # logging.info(btl_meas)
+    combined_data = [*ctd_data, *btl_data]
 
-        #     # logging.info(f"\n\n\n*** Ctd Meas")
-        #     # logging.info(ctd_meas)
-
-        #     # Means btl_Meas and ctd_meas both empty,
-        #     # So do I keep the profile?
-
-        #     # TODO
-        #     # What to do in this case?
-
-        #qc_val = get_combined_meas_source(station_cast, btl_qc_val, ctd_qc_val)
-
-        # Put suffix of '_btl' in  bottle meta
-        # Remove _btl variables that are source independent
-
-        for item in source_independent_meta_names:
-            if item in btl_meta:
-                btl_meta.pop(item)
-
-        btl_meta = rename_btl_by_key_meta(btl_meta)
-
-    meta = {**ctd_meta, **btl_meta}
-    data = [*ctd_data, *btl_data]
-
-    combined_measurement_mappings = combine_btl_ctd_measurements(
+    combined_measurements = combine_btl_ctd_measurements(
         btl_dict, ctd_dict)
 
-    combined_btl_ctd_dict['meta'] = meta
-    combined_btl_ctd_dict['data'] = data
+    combined_btl_ctd_dict['meta'] = combined_meta
+    combined_btl_ctd_dict['data'] = combined_data
 
     combined_btl_ctd_dict = {
-        **combined_btl_ctd_dict, **combined_measurement_mappings}
+        **combined_btl_ctd_dict, **combined_measurements}
 
-    combined_mappings = get_combined_mappings(btl_dict, ctd_dict)
+    combined_mappings = get_combined_mappings(btl_dict, ctd_dict, data_type)
 
     combined_btl_ctd_dict = {**combined_btl_ctd_dict, **combined_mappings}
 
-    # TODO
-    # check if need this or just always put data type with profile parent
     combined_btl_ctd_dict['data_type'] = data_type
 
     combined_profile = {}
-    combined_profile['data_type'] = data_type
     combined_profile['profile_dict'] = combined_btl_ctd_dict
     combined_profile['station_cast'] = station_cast
 
@@ -796,7 +784,6 @@ def balance_profiles_by_station_cast(profiles_objs):
 
         profile_btl = {}
         profile_btl['station_cast'] = station_cast
-        #profile_btl['cchdo_meta'] = cchdo_meta
         profile_btl['profile_dict'] = profile_dict_btl
 
         try:
@@ -808,7 +795,6 @@ def balance_profiles_by_station_cast(profiles_objs):
 
         profile_ctd = {}
         profile_ctd['station_cast'] = station_cast
-        #profile_ctd['cchdo_meta'] = cchdo_meta
         profile_ctd['profile_dict'] = profile_dict_ctd
 
         profile = {}
@@ -825,6 +811,7 @@ def create_profiles_combined_type(profiles_objs):
     # Have a btl and ctd profile for each station cast
     # If don't have data type at a station cast,
     # set it to be an empty object
+
     all_profiles = balance_profiles_by_station_cast(profiles_objs)
 
     profiles_list_btl_ctd = []
