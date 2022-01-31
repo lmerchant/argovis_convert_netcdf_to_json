@@ -58,8 +58,6 @@ def prepare_profile_json(profile_dict):
 
     data_type = profile_dict['data_type']
 
-    print(f"\n\ndata type is {data_type}")
-
     # If has psal and all null, don't save in masurement data obj
     df_meas = pd.DataFrame.from_dict(measurements)
 
@@ -70,17 +68,32 @@ def prepare_profile_json(profile_dict):
 
     measurements = df_meas.to_dict('records')
 
-    print('measurements_source')
-    print(profile_dict['measurements_source'])
+    measurement_sources = profile_dict['measurements_sources']
 
-    print('measurements_sources')
-    print(profile_dict['measurements_sources'])
+    for key, val in measurement_sources.items():
+
+        if 'temp' in key:
+
+            temp_null = df_meas['temp'].isnull().values.any()
+
+            if temp_null:
+                print(val)
+
+                print(f"\n\ndata type is {data_type}")
+
+                print('measurements_source')
+                print(profile_dict['measurements_source'])
+
+                print('measurements_sources')
+                print(profile_dict['measurements_sources'])
 
     # If data_type is 'btl_ctd', can have case of temp=nan but keep data_point
     # So don't filter out temp = nan values.
 
     # TODO
-    # Could ask if temp = nan, if shouldn't display it when have psal finite
+    # But do I actually include temp var in object if temp = nan? It really
+    # means temp not qc of 0 or 2. Not that it is nan. NaN is actually a placeholder
+    # if doesn't have a good qc so I could filter on it
 
     if data_type != 'btl_ctd':
 
@@ -97,6 +110,7 @@ def prepare_profile_json(profile_dict):
             if has_temp and not_null_temp:
                 filtered_measurements.append(obj)
             elif not has_temp:
+                # Is this only for btl_ctd data type?
                 filtered_measurements.append(obj)
             else:
                 print('has null temp and not included')

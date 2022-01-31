@@ -381,9 +381,9 @@ def get_combined_measurements(btl_meas, ctd_meas, hierarchy_meas_cols, hierarchy
     # in a combined source
     # look at hierarchy meas cols. Get source easier
 
-    print(f"hierarchy source flag {hierarchy_source_flag}")
+    # print(f"hierarchy source flag {hierarchy_source_flag}")
 
-    print(f"hierarchy_meas_sources {hierarchy_meas_sources}")
+    # print(f"hierarchy_meas_sources {hierarchy_meas_sources}")
 
     # num_pts_before_btl = len(btl_meas)
     # num_pts_before_ctd = len(ctd_meas)
