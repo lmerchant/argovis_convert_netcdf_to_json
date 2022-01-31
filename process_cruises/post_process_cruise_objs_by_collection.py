@@ -1,12 +1,11 @@
 import logging
 
 from create_profiles.create_profiles_combined_type import create_profiles_combined_type
-from check_and_save.save_output import save_data_type_profiles_combined
+from create_profiles.update_profiles_single_type import update_profiles_single_type
+from check_and_save.save_output import save_data_type_profiles
 
 
 def post_process_cruise_objs_by_collection(cruise_objs_by_type):
-
-    single_data_type_cruises = []
 
     for cruise_obj in cruise_objs_by_type:
 
@@ -37,14 +36,24 @@ def post_process_cruise_objs_by_collection(cruise_objs_by_type):
             #  when combine btl and ctd profiles.
             # didn't filter btl or ctd first in case need
             # a variable from both
+
             # Each obj in all_data_types_profile_objs is a
             # dict with keys station_cast, data_type, profile_dict
-            combined_obj_profiles = create_profiles_combined_type(
+            all_profiles = create_profiles_combined_type(
                 all_data_types_profile_objs)
 
-            save_data_type_profiles_combined(combined_obj_profiles)
+            save_data_type_profiles(all_profiles)
 
         else:
-            single_data_type_cruises.append(cruise_obj)
 
-    return single_data_type_cruises
+            if is_btl:
+                data_type = 'btl'
+            elif is_ctd:
+                data_type = 'ctd'
+
+            all_profiles = update_profiles_single_type(
+                all_data_types_profile_objs, data_type)
+
+            # Inside save, if not btl_ctd data type, will filter out
+            # measurements objects with temp = NaN
+            save_data_type_profiles(all_profiles)
