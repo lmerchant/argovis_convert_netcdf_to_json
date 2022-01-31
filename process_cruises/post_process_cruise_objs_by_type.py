@@ -9,6 +9,7 @@ from variable_mapping.meta_param_mapping import get_meta_mapping
 from variable_mapping.meta_param_mapping import rename_core_profile_keys
 from variable_mapping.meta_param_mapping import rename_measurements_keys
 from variable_mapping.meta_param_mapping import get_program_argovis_mapping
+from variable_mapping.meta_param_mapping import get_source_independent_meta_names
 
 
 def rename_measurements(data_type, measurements):
@@ -203,7 +204,7 @@ def get_subset_meta(meta):
 
     meta_subset = {}
 
-    # keys are cchdo name, values are argovis names
+    # keys are names used in this program at start, values are final argovis names
     rename_mapping = get_meta_mapping()
     meta_keys = meta.keys()
 
@@ -265,7 +266,8 @@ def add_argovis_meta(meta):
     profile_time = meta['time']
     meta['date_formatted'] = pd.to_datetime(profile_time).strftime("%Y-%m-%d")
 
-    meta['date'] = pd.to_datetime(profile_time).isoformat()
+    #meta['date'] = pd.to_datetime(profile_time).isoformat()
+    meta['date'] = pd.to_datetime(profile_time).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     # Don't include cchdo meta time var
     meta.pop('time', None)
@@ -337,6 +339,7 @@ def process_data_profiles(profiles_obj):
         # ******************************
 
         meta = add_cchdo_meta(meta, cchdo_file_meta, cchdo_cruise_meta)
+
         meta = add_argovis_meta(meta)
 
         # Rename meta for argovis json format and get subset
