@@ -319,28 +319,35 @@ def save_data_type_profiles(data_type_obj_profiles):
     save_as_zip_data_type_profiles(data_type_profiles)
 
 
-def save_data_type_profiles_per_type(single_data_type_cruises):
-
-    # TODO test this part with expocode of one data type
-    for cruise_obj in single_data_type_cruises:
-
-        all_data_types_profile_objs = cruise_obj['all_data_types_profile_objs']
-
-        for data_type_obj_profiles in all_data_types_profile_objs:
-            # Remove any measurements with temp = NaN when saving
-            save_data_type_profiles(data_type_obj_profiles)
-
-
-def save_data_type_profiles_combined(combined_obj_profiles):
-
-    logging.info('Saving files combined type')
-
-    # don't know data type of profile, so this logic doesn't work
-    # of just picking first profile.
+def save_data_type_profiles_single(single_profiles):
 
     # Loop through all profiles, get all units and get unique
-    all_cchdo_units_mapping = get_unique_cchdo_units(combined_obj_profiles)
+    all_cchdo_units_mapping = get_unique_cchdo_units(single_profiles)
 
     write_all_cchdo_units(all_cchdo_units_mapping)
 
-    save_as_zip_data_type_profiles(combined_obj_profiles)
+    save_as_zip_data_type_profiles(single_profiles)
+
+
+def save_data_type_profiles_combined(combined_profiles):
+
+    logging.info('Saving files')
+
+    # Loop through all profiles, get all units and get unique
+    all_cchdo_units_mapping = get_unique_cchdo_units(combined_profiles)
+
+    write_all_cchdo_units(all_cchdo_units_mapping)
+
+    save_as_zip_data_type_profiles(combined_profiles)
+
+
+def save_data_type_profiles(all_profiles):
+
+    logging.info('Saving files')
+
+    # Loop through all profiles, get all units and get unique
+    all_cchdo_units_mapping = get_unique_cchdo_units(all_profiles)
+
+    write_all_cchdo_units(all_cchdo_units_mapping)
+
+    save_as_zip_data_type_profiles(all_profiles)
