@@ -1,7 +1,7 @@
 from variable_mapping.meta_param_mapping import get_program_argovis_mapping
 
 
-def create_combined_mappings(btl_mappings, ctd_mappings):
+def get_updated_mappings(mappings, data_type):
 
     # Add suffix if find base key name in mappings_keys_mapping
     # But only add suffix to some and for others combine the dicts
@@ -13,7 +13,7 @@ def create_combined_mappings(btl_mappings, ctd_mappings):
     # just need to change into suffix version if in the mappings dict
     mappings_keys_mapping = get_program_argovis_mapping()
 
-    # Some mapping keys won't have a btl suffix like argovis names
+    # Some mapping keys won't have a btl suffix such as argovis names key
     # but need to be combined into one dict
 
     # TODO
@@ -21,38 +21,68 @@ def create_combined_mappings(btl_mappings, ctd_mappings):
     # Like could combine all into same name
     # I think it still works though
 
-    suffixed_btl_mapping = {}
-    same_btl_mapping = {}
+    data_type_mappings = {}
+    independent_mappings = {}
 
-    for key, value in btl_mappings.items():
+    for key, value in mappings.items():
 
-        suffixed_key = f"{key}_btl"
+        suffixed_key = f"{key}_{data_type}"
 
         if suffixed_key in mappings_keys_mapping.values():
-            suffixed_btl_mapping[suffixed_key] = value
+            data_type_mappings[suffixed_key] = value
 
         else:
 
-            same_btl_mapping[key] = value
+            independent_mappings[key] = value
 
-    suffixed_ctd_mapping = {}
-    same_ctd_mapping = {}
+    return independent_mappings, data_type_mappings
 
-    for key, value in ctd_mappings.items():
 
-        suffixed_key = f"{key}_ctd"
+def create_combined_mappings(btl_mappings, ctd_mappings, data_type):
 
-        if suffixed_key in mappings_keys_mapping.values():
-            suffixed_ctd_mapping[suffixed_key] = value
-        else:
-            same_ctd_mapping[key] = value
+    # Add suffix if find base key name in mappings_keys_mapping
+    # But only add suffix to some and for others combine the dicts
 
-    combined_same_mapping = {**same_btl_mapping, **same_ctd_mapping}
+    # then combine this suffixed names together into one mappings var
+
+    # keys are cchdo names and values are argovis names
+    # for btl and ctd mapping, already using argovis names
+    # just need to change into suffix version if in the mappings dict
+    mappings_keys_mapping = get_program_argovis_mapping()
+
+    # Some mapping keys won't have a btl suffix such as argovis names key
+    # but need to be combined into one dict
+
+    # TODO
+    # Create better search if change name and don't use suffix
+    # Like could combine all into same name
+    # I think it still works though
+
+    independent_btl_mapping, suffixed_btl_mapping = get_updated_mappings(
+        btl_mappings, 'btl')
+
+    independent_ctd_mapping, suffixed_ctd_mapping = get_updated_mappings(
+        ctd_mappings, 'ctd')
+
+    combined_independent_mapping = {
+        **independent_btl_mapping, **independent_ctd_mapping}
 
     combined_suffixed_mapping = {
         **suffixed_btl_mapping, **suffixed_ctd_mapping}
 
-    new_mappings = {**combined_same_mapping, **combined_suffixed_mapping}
+    new_mappings = {**combined_independent_mapping,
+                    **combined_suffixed_mapping}
+
+    # And keep original mappings, too with ctd mapping a priority if have both
+
+    if data_type == 'btl_ctd' or data_type == 'ctd':
+        new_mappings = {**ctd_mappings, **new_mappings}
+    elif data_type == 'btl':
+        new_mappings = {**btl_mappings, **new_mappings}
+
+    # Also keep mappings of ctd as priority
+
+    # TODO, What if no ctd station cast and only btl. What metadata to use? Maybe just bottle
 
     return new_mappings
 
@@ -155,6 +185,8 @@ def get_combined_mappings(btl_dict, ctd_dict):
 
         ctd_mappings = {key: value for key,
                         value in ctd_dict.items() if key in argovis_mapping_keys}
+
+    # duplicate keys so always have set with and without suffix of data type
 
     if btl_dict and not ctd_dict:
         combined_mappings = btl_mappings
