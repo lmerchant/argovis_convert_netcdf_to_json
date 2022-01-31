@@ -187,14 +187,16 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
         # test_cruise_expocode = '77DN20010717'
 
         # meas source qc not unique. [3.0 2.0]
-        # test_cruise_expocode = '29HE06_1'
+        # here
+        test_cruise_expocode = '29HE06_1'
 
         # Has Oxy in ml/l and bottle salinity
         # but no ctd_salinity
         #test_cruise_expocode = '32OC258_3'
 
         # This cruise is BTL_CTD
-        # test_cruise_expocode = '64TR90_3'
+        # here
+        #test_cruise_expocode = '64TR90_3'
 
         # has both btl and ctd and want to filter
         # out meas objs without a temp var
@@ -203,7 +205,7 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
         #test_cruise_expocode = '09AR9391_2'
 
         # Look at btl and ctd profiles that have nan values
-        test_cruise_expocode = '32MW893_3'
+        #test_cruise_expocode = '32MW893_3'
 
         # btl and ctd files
         # has some profiles with btl_ctd meas sources
@@ -217,8 +219,8 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
         # when combining. Want to exclude ctd in this case
         # test_cruise_expocode = '09AR9601_1'
 
-        # missing ctd vars
-        # test_cruise_expocode = '33RO20070710'
+        # has no ctd vars
+        #test_cruise_expocode = '33RO20070710'
 
         # has btl and ctd
         # test_cruise_expocode = '325020210316'
@@ -362,7 +364,11 @@ def get_cchdo_cruise_meta(cruise_json):
 
     # Modify program names
     # Want lowercase and prefixed with 'cchdo_'
+    # And if no program, program is cchdo_other
     programs = [f"cchdo_{program}" for program in programs_lowercase]
+    if not programs:
+        programs = ['cchdo_other']
+
     cruise_meta['programs'] = programs
 
     cruise_meta['groups'] = groups
@@ -370,6 +376,12 @@ def get_cchdo_cruise_meta(cruise_json):
     cruise_meta['woce_lines'] = woce_lines
 
     expocode = cruise_meta['expocode']
+
+    # Get country code and use ICES code value
+    # This is first two numbers in expocode
+    country = expocode[0:2]
+
+    cruise_meta['country'] = country
 
     if '/' in expocode:
         expocode = expocode.replace('/', '_')
