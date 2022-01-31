@@ -72,8 +72,8 @@ def get_measurements_mapping():
 
 def get_meta_mapping():
 
-    # keys are argovis names
-    # values are meta names
+    # keys are names used in this program
+    # values are argovis names
     return {
         'btm_depth': 'btm_depth',
         'latitude': 'latitude',
@@ -131,6 +131,28 @@ def get_program_argovis_mapping():
         'cchdoStandardNames': 'data_source_standard_names',
         'cchdoStandardNamesBtl': 'data_source_standard_names_btl',
         'cchdoStandardNamesCtd': 'data_source_standard_names_ctd'
+    }
+
+
+def get_cchdo_argovis_name_mapping_per_type(data_type):
+
+    return {
+        'pressure': 'pres',
+        'pressure_qc': 'pres_woceqc',
+        'ctd_salinity': f'psal_{data_type}',
+        'ctd_salinity_qc': f'psal_{data_type}_woceqc',
+        'ctd_temperature': f'temp_{data_type}',
+        'ctd_temperature_qc': f'temp_{data_type}_woceqc',
+        'ctd_temperature_68': f'temp_{data_type}',
+        'ctd_temperature_68_qc': f'temp_{data_type}_woceqc',
+        'ctd_oxygen': f'doxy_{data_type}',
+        'ctd_oxygen_qc': f'doxy_{data_type}_woceqc',
+        'ctd_oxygen_ml_l': f'doxy_{data_type}',
+        'ctd_oxygen_ml_l_qc': f'doxy_{data_type}_woceqc',
+        'bottle_salinity': f'salinity_{data_type}',
+        'bottle_salinity_qc': f'salinity_{data_type}_woceqc',
+        'latitude': 'latitude',
+        'longitude': 'longitude'
     }
 
 
