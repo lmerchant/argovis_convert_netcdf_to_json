@@ -1,4 +1,5 @@
 from variable_mapping.meta_param_mapping import get_cchdo_argovis_name_mapping_per_type
+from variable_mapping.meta_param_mapping import get_cchdo_argovis_name_mapping
 
 
 def has_both_temperatures(names):
@@ -25,32 +26,12 @@ def has_both_oxygen(names):
         return False
 
 
-# def get_cchdo_argovis_name_mapping_per_type(data_type):
-
-#     return {
-#         'pressure': 'pres',
-#         'pressure_qc': 'pres_woceqc',
-#         'ctd_salinity': f'psal_{data_type}',
-#         'ctd_salinity_qc': f'psal_{data_type}_woceqc',
-#         'ctd_temperature': f'temp_{data_type}',
-#         'ctd_temperature_qc': f'temp_{data_type}_woceqc',
-#         'ctd_temperature_68': f'temp_{data_type}',
-#         'ctd_temperature_68_qc': f'temp_{data_type}_woceqc',
-#         'ctd_oxygen': f'doxy_{data_type}',
-#         'ctd_oxygen_qc': f'doxy_{data_type}_woceqc',
-#         'ctd_oxygen_ml_l': f'doxy_{data_type}',
-#         'ctd_oxygen_ml_l_qc': f'doxy_{data_type}_woceqc',
-#         'bottle_salinity': f'salinity_{data_type}',
-#         'bottle_salinity_qc': f'salinity_{data_type}_woceqc',
-#         'latitude': 'latitude',
-#         'longitude': 'longitude'
-#     }
-
-
 def rename_to_argovis(cchdo_names, data_type):
 
-    cchdo_argovis_name_mapping = get_cchdo_argovis_name_mapping_per_type(
-        data_type)
+    # cchdo_argovis_name_mapping = get_cchdo_argovis_name_mapping_per_type(
+    #     data_type)
+
+    cchdo_argovis_name_mapping = get_cchdo_argovis_name_mapping()
 
     core_cchdo_names = list(cchdo_argovis_name_mapping.keys())
 
@@ -61,6 +42,8 @@ def rename_to_argovis(cchdo_names, data_type):
 
     # hierarchy if both oxygen names found
     # Choose ctd_oxygen
+
+    # print(cchdo_names)
 
     has_both_temp = has_both_temperatures(cchdo_names)
     has_both_oxy = has_both_oxygen(cchdo_names)
@@ -75,6 +58,8 @@ def rename_to_argovis(cchdo_names, data_type):
         core_cchdo_names = list(cchdo_argovis_name_mapping.keys())
 
     if has_both_oxy:
+
+        print('has both oxy')
 
         cchdo_argovis_name_mapping.pop('ctd_oxygen_ml_l')
 
@@ -92,8 +77,10 @@ def rename_to_argovis(cchdo_names, data_type):
             name_mapping[var] = cchdo_argovis_name_mapping[var]
         elif '_qc' in var:
             non_qc_name = var.replace('_qc', '')
-            name_mapping[var] = f"{non_qc_name}_{data_type}_woceqc"
+            #name_mapping[var] = f"{non_qc_name}_{data_type}_woceqc"
+            name_mapping[var] = f"{non_qc_name}_woceqc"
         else:
-            name_mapping[var] = f"{var}_{data_type}"
+            #name_mapping[var] = f"{var}_{data_type}"
+            name_mapping[var] = var
 
     return name_mapping

@@ -25,6 +25,21 @@ def process_batch_of_cruises(cruise_objs):
 
     cruise_objs_by_type = process_cruise_objs_by_type(cruise_objs)
 
+    # one_cruise = cruise_objs_by_type[0]
+    # type_objs = one_cruise['all_data_types_profile_objs']
+
+    # one_type = type_objs[0]
+
+    # profiles = one_type['data_type_profiles_list']
+
+    # one_profile = profiles[0]
+
+    # print(one_profile['profile_dict']['cchdoParamNames'])
+
+    # print(f"\n")
+
+    # print(one_profile)
+
     # **********************************
     # Rename variables to ArgoVis names
     # (add suffix and rename core)
@@ -39,6 +54,14 @@ def process_batch_of_cruises(cruise_objs):
     # from the c_format
 
     # Rename variables and add argovis mappings
+
+    # TODO
+    # Should be throwing out variables with all NaN values before
+    # deciding how to name things.
+    # For example, a btl file dataset can have both oxygen and
+    # ctd oxygen, but if ctd oxygen is all Nan, it's not renaming
+    # oxygen to doxy like it should be.
+
     cruise_objs_by_type = post_process_cruise_objs_by_type(
         cruise_objs_by_type)
 
@@ -49,11 +72,13 @@ def process_batch_of_cruises(cruise_objs):
 
     # profiles = one_type['data_type_profiles_list']
 
-    # one_profile = profiles[0]
+    # one_profile = profiles[15]
+
+    # print(one_profile['profile_dict']['data_keys'])
+
+    # print(f"\n")
 
     # print(one_profile)
-
-    # exit(1)
 
     # ***********************************
     # Write included/excluded cchdo vars
@@ -65,6 +90,17 @@ def process_batch_of_cruises(cruise_objs):
 
     cruises_all_included, cruises_all_excluded = gather_included_excluded_vars(
         cruise_objs_by_type)
+
+    # one_cruise = cruise_objs_by_type[0]
+    # type_objs = one_cruise['all_data_types_profile_objs']
+
+    # one_type = type_objs[0]
+
+    # profiles = one_type['data_type_profiles_list']
+
+    # one_profile = profiles[15]
+
+    # print(one_profile['profile_dict']['data_keys'])
 
     # Rename included and excluded vars and save
     save_included_excluded_cchdo_vars(

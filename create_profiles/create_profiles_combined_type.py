@@ -585,11 +585,6 @@ def combine_btl_ctd_per_profile(btl_profile, ctd_profile):
     # For a combined dict, station_cast same for btl and ctd
     station_cast = btl_profile['station_cast']
 
-    # TODO
-    # remove stationCast
-    combined_btl_ctd_dict = {}
-    #combined_btl_ctd_dict['stationCast'] = station_cast
-
     # May have case where bot dict or ctd dict doesn't exist for same profile
     # But they have the same station_cast
 
@@ -627,6 +622,9 @@ def combine_btl_ctd_per_profile(btl_profile, ctd_profile):
 
         ctd_data = ctd_dict['data']
 
+    # print('ctd data keys')
+    # print(ctd_dict['data_keys'])
+
     if btl_dict and ctd_dict:
         meta = ctd_meta
         data_type = 'btl_ctd'
@@ -652,8 +650,11 @@ def combine_btl_ctd_per_profile(btl_profile, ctd_profile):
 
     combined_data = [*ctd_data, *btl_data]
 
+    # Returns a dictionary which includes sources information along with measurements
     combined_measurements = combine_btl_ctd_measurements(
         btl_dict, ctd_dict)
+
+    combined_btl_ctd_dict = {}
 
     combined_btl_ctd_dict['meta'] = combined_meta
     combined_btl_ctd_dict['data'] = combined_data
@@ -661,7 +662,15 @@ def combine_btl_ctd_per_profile(btl_profile, ctd_profile):
     combined_btl_ctd_dict = {
         **combined_btl_ctd_dict, **combined_measurements}
 
-    combined_mappings = get_combined_mappings(btl_dict, ctd_dict, data_type)
+    # Combine the mappings where will be combining names that are the same
+    # for both btl and ctd used for argovis and also combining key names
+    # that are included because they are dependent on their source file, btl or ctd
+
+    # TODO
+    # oxygen was added to btl dict that shouldn't be there. Mainly if there is
+    # an oxygen var but no doxy one.
+
+    combined_mappings = get_combined_mappings(btl_dict, ctd_dict)
 
     combined_btl_ctd_dict = {**combined_btl_ctd_dict, **combined_mappings}
 
@@ -747,6 +756,13 @@ def balance_profiles_by_station_cast(profiles_objs):
     # may have case where there is only a btl profile
     # since no ctd profile at that station cast
 
+    # TODO
+    # work on what I was doing here
+
+    # profiles_objs stands for either a btl or ctd.
+    # Just loop till you locate them
+    # They always exist, it's just that one may be empty dict
+
     for profiles_obj in profiles_objs:
 
         if profiles_obj['data_type'] == 'btl':
@@ -755,6 +771,30 @@ def balance_profiles_by_station_cast(profiles_objs):
         elif profiles_obj['data_type'] == 'ctd':
             #cchdo_meta = profiles_objs['cchdo_meta']
             ctd_profiles = profiles_obj['data_type_profiles_list']
+
+    # this profile has both doxy and oxygen vars
+    # selected_profile_dict = btl_profiles[15]['profile_dict']
+    # data_keys = selected_profile_dict['data_keys']
+
+    # if 'oxygen' in data_keys:
+    #     print('data_keys')
+    #     print(data_keys)
+
+    for btl_profile in btl_profiles:
+        # for bottle number 1, data doesn't have doxy var but has oxygen var
+        selected_profile_dict = btl_profile['profile_dict']
+        data_keys = selected_profile_dict['data_keys']
+
+        # if 'oxygen' in data_keys:
+
+        #     print('station cast')
+        #     print(btl_profile['station_cast'])
+        #     print(f"\n\n")
+        #     print('data_keys')
+        #     print(data_keys)
+
+        #     print(f"\n\n")
+        #     print(selected_profile_dict['data'])
 
     # Get profile dicts so have the same number of profiles
     # one may be blank while the other exists at a cast
@@ -816,9 +856,16 @@ def create_profiles_combined_type(profiles_objs):
 
     profiles_list_btl_ctd = []
 
+    count = 0
+
     for profile in all_profiles:
         profile_btl = profile['btl']
         profile_ctd = profile['ctd']
+
+        # count = count + 1
+
+        # if count == 15:
+        #     exit(1)
 
         # returned dict has keys: station_cast, data_type, profile_dict
         combined_profile_btl_ctd = combine_btl_ctd_per_profile(

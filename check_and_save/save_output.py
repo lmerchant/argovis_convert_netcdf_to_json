@@ -185,78 +185,77 @@ def write_profile_cchdo_units(checked_profiles_info):
         pass
 
 
-def prepare_profile_json(profile_dict):
-
-    # TODO
-    # If want to remove cchdoNames list, do it here
-    # profile_dict.pop('cchdoNames', None)
-
-    # Remove station cast var used to group data
-    #profile_dict.pop('stationCast', None)
-
-    profile_dict.pop('station_cast', None)
-
-    profile_dict.pop('data_type', None)
-
-    # Remove station_cast var used to group data
-    # profile_dict['meta'].pop('station_cast', None)
-
-    # TODO
-    # already did this?
-
-    # Remove  time from meta since it was just used to create date variable
-    #profile_dict['meta'].pop('time', None)
-
-    # Pop off meta key and use as start of data_dict
-    meta_dict = profile_dict.pop('meta', None)
-
-    # Now combine with left over profile_dict
-    data_dict = {**meta_dict, **profile_dict}
-
-    return data_dict
+# def get_data_dict(profile_dict):
 
 
-def write_profile_json(profile_dict):
+#     # TODO
+#     # If want to remove cchdoNames list, do it here
+#     # profile_dict.pop('cchdoNames', None)
 
-    data_dict = prepare_profile_json(profile_dict)
+#     # Remove station cast var used to group data
+#     profile_dict.pop('station_cast', None)
 
-    # TODO
-    # ask
-    # probably use cruise expocode instead of that in file
+#     profile_dict.pop('data_type', None)
 
-    id = data_dict['_id']
+#     # Remove station_cast var used to group data
+#     # profile_dict['meta'].pop('station_cast', None)
 
-    # TODO
-    # When create file id, ask if use cruise expocode instead
-    filename = f"{id}.json"
+#     # TODO
+#     # already did this?
 
-    expocode = data_dict['expocode']
+#     # Remove  time from meta since it was just used to create date variable
+#     #profile_dict['meta'].pop('time', None)
 
-    if '/' in filename:
-        filename = filename.replace('/', '_')
+#     # Pop off meta key and use as start of data_dict
+#     meta_dict = profile_dict.pop('meta', None)
 
-    if '/' in expocode:
-        folder = expocode.replace('/', '_')
-    else:
-        folder = expocode
+#     # Now combine with left over profile_dict
+#     data_dict = {**meta_dict, **profile_dict}
 
-    path = os.path.join(GlobalVars.JSON_DIR, folder)
+#     return data_dict
 
-    if not os.path.exists(path):
-        os.makedirs(path, exist_ok=True)
 
-    file = os.path.join(GlobalVars.JSON_DIR, folder, filename)
+# def write_profile_json(profile_dict):
 
-    # TESTING
-    # TODO Remove formatting when final
+#     data_dict = get_data_dict(profile_dict)
 
-    # use convert function to change numpy int values into python int
-    # Otherwise, not serializable
+#     # TODO
+#     # ask
+#     # probably use cruise expocode instead of that in file
 
-    # Sort keys or not?
-    with open(file, 'w') as f:
-        json.dump(data_dict, f, indent=4,
-                  sort_keys=False, default=convert)
+#     id = data_dict['_id']
+
+#     # TODO
+#     # When create file id, ask if use cruise expocode instead
+#     filename = f"{id}.json"
+
+#     expocode = data_dict['expocode']
+
+#     if '/' in filename:
+#         filename = filename.replace('/', '_')
+
+#     if '/' in expocode:
+#         folder = expocode.replace('/', '_')
+#     else:
+#         folder = expocode
+
+#     path = os.path.join(GlobalVars.JSON_DIR, folder)
+
+#     if not os.path.exists(path):
+#         os.makedirs(path, exist_ok=True)
+
+#     file = os.path.join(GlobalVars.JSON_DIR, folder, filename)
+
+#     # TESTING
+#     # TODO Remove formatting when final
+
+#     # use convert function to change numpy int values into python int
+#     # Otherwise, not serializable
+
+#     # Sort keys or not?
+#     with open(file, 'w') as f:
+#         json.dump(data_dict, f, indent=4,
+#                   sort_keys=False, default=convert)
 
 
 def save_included_excluded_cchdo_vars(included, excluded):

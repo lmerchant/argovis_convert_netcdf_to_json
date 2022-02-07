@@ -1,4 +1,9 @@
+import itertools
+from collections import defaultdict
+
+
 from variable_mapping.meta_param_mapping import get_program_argovis_mapping
+from variable_mapping.meta_param_mapping import get_combined_mappings_keys
 
 
 def get_updated_mappings(mappings, data_type):
@@ -11,7 +16,10 @@ def get_updated_mappings(mappings, data_type):
     # keys are cchdo names and values are argovis names
     # for btl and ctd mapping, already using argovis names
     # just need to change into suffix version if in the mappings dict
-    mappings_keys_mapping = get_program_argovis_mapping()
+    all_mapping_keys = get_program_argovis_mapping()
+
+    # Get the keys which will be combined independent of data type
+    combined_mapping_keys = get_combined_mappings_keys()
 
     # Some mapping keys won't have a btl suffix such as argovis names key
     # but need to be combined into one dict
@@ -22,20 +30,18 @@ def get_updated_mappings(mappings, data_type):
     # I think it still works though
 
     data_type_mappings = {}
-    independent_mappings = {}
+    combined_mappings = {}
 
     for key, value in mappings.items():
 
         suffixed_key = f"{key}_{data_type}"
 
-        if suffixed_key in mappings_keys_mapping.values():
+        if (suffixed_key in all_mapping_keys.values()) and (key not in combined_mapping_keys):
             data_type_mappings[suffixed_key] = value
-
         else:
+            combined_mappings[key] = value
 
-            independent_mappings[key] = value
-
-    return independent_mappings, data_type_mappings
+    return combined_mappings, data_type_mappings
 
 
 def create_combined_mappings(btl_mappings, ctd_mappings, data_type):
@@ -48,101 +54,81 @@ def create_combined_mappings(btl_mappings, ctd_mappings, data_type):
     # keys are cchdo names and values are argovis names
     # for btl and ctd mapping, already using argovis names
     # just need to change into suffix version if in the mappings dict
-    mappings_keys_mapping = get_program_argovis_mapping()
+    #mappings_keys_mapping = get_program_argovis_mapping()
 
     # Some mapping keys won't have a btl suffix such as argovis names key
     # but need to be combined into one dict
 
-    # TODO
-    # Create better search if change name and don't use suffix
-    # Like could combine all into same name
-    # I think it still works though
+    if btl_mappings:
+        combined_btl_mapping, suffixed_btl_mapping = get_updated_mappings(
+            btl_mappings, 'btl')
+    else:
+        combined_btl_mapping = {}
+        suffixed_btl_mapping = {}
 
-    independent_btl_mapping, suffixed_btl_mapping = get_updated_mappings(
-        btl_mappings, 'btl')
+    if ctd_mappings:
 
-    independent_ctd_mapping, suffixed_ctd_mapping = get_updated_mappings(
-        ctd_mappings, 'ctd')
+        combined_ctd_mapping, suffixed_ctd_mapping = get_updated_mappings(
+            ctd_mappings, 'ctd')
+    else:
+        combined_ctd_mapping = {}
+        suffixed_ctd_mapping = {}
 
-    combined_independent_mapping = {
-        **independent_btl_mapping, **independent_ctd_mapping}
+    # print(f"\n\n")
+    # print('btl mappings')
+    # print(btl_mappings)
 
-    combined_suffixed_mapping = {
+    # print(f"\n\n")
+    # print('ctd mappings')
+    # print(ctd_mappings)
+    # print(f"\n\n")
+
+    # print(f"\n\n")
+
+    # print('combined btl mappings')
+    # print(combined_btl_mapping)
+    # print(f"\n\n")
+    # print('suffixed btl mapping')
+    # print(suffixed_btl_mapping)
+
+    # print('combined ctd mappings')
+    # print(combined_ctd_mapping)
+    # print(f"\n\n")
+    # print('suffixed ctd mapping')
+    # print(suffixed_ctd_mapping)
+
+    # print(f"\n\n")
+
+    if combined_btl_mapping and combined_ctd_mapping:
+
+        def merge_dict(dict1, dict2):
+            dict3 = {**dict1, **dict2}
+            for key, value in dict3.items():
+                if key in dict1 and key in dict2:
+                    if isinstance(value, list):
+                        result = [*value, *dict1[key]]
+                        dict3[key] = list(set(result))
+                    elif isinstance(value, dict):
+                        dict3[key] = {**value, **dict1[key]}
+                    else:
+                        dict3[key] = value
+
+            return dict3
+
+        combined_mapping = merge_dict(
+            combined_btl_mapping, combined_ctd_mapping)
+
+    elif combined_btl_mapping and not combined_ctd_mapping:
+        combined_mapping = combined_btl_mapping
+    elif combined_ctd_mapping and not combined_btl_mapping:
+        combined_mapping = combined_ctd_mapping
+
+    suffixed_mapping = {
         **suffixed_btl_mapping, **suffixed_ctd_mapping}
 
-    new_mappings = {**combined_independent_mapping,
-                    **combined_suffixed_mapping}
-
-    # And keep original mappings, too with ctd mapping a priority if have both
-
-    if data_type == 'btl_ctd' or data_type == 'ctd':
-        new_mappings = {**ctd_mappings, **new_mappings}
-    elif data_type == 'btl':
-        new_mappings = {**btl_mappings, **new_mappings}
-
-    # Also keep mappings of ctd as priority
-
-    # TODO, What if no ctd station cast and only btl. What metadata to use? Maybe just bottle
+    new_mappings = {**combined_mapping, **suffixed_mapping}
 
     return new_mappings
-
-
-# def create_combined_mappings_orig(btl_dict, ctd_dict):
-
-#     print('inside get_combined_mappings')
-
-#     mapping = {}
-
-#     meta_param_mapping_keys = get_meta_mapping_keys()
-
-#     mappings_keys_mapping = get_program_argovis_mapping()
-
-#     for key in meta_param_mapping_keys:
-
-#         print(f"key {key}")
-
-#         btl_key_name = f"{key}Btl"
-#         mapping[btl_key_name] = btl_dict[key]
-
-#         ctd_key_name = f"{key}Ctd"
-#         mapping[ctd_key_name] = ctd_dict[key]
-
-#     cchdo_var_attributes_mapping_keys = get_cchdo_var_attributes_keys()
-
-#     for key in cchdo_var_attributes_mapping_keys:
-#         btl_key_name = f"{key}Btl"
-#         mapping[btl_key_name] = btl_dict[key]
-
-#         ctd_key_name = f"{key}Ctd"
-#         mapping[ctd_key_name] = ctd_dict[key]
-
-#     argovis_var_attributes_keys = get_argovis_var_attributes_keys()
-
-#     for key in argovis_var_attributes_keys:
-#         mapping[key] = {**ctd_dict[key], **btl_dict[key]}
-
-#     return mapping
-
-
-# def get_data_type_mapping(data_dict):
-
-#     mapping = {}
-
-#     meta_param_mapping_keys = get_meta_mapping_keys()
-
-#     cchdo_var_attributes_mapping_keys = get_cchdo_var_attributes_keys()
-#     argovis_var_attributes_keys = get_argovis_var_attributes_keys()
-
-#     for key in meta_param_mapping_keys:
-#         mapping[key] = data_dict[key]
-
-#     for key in cchdo_var_attributes_mapping_keys:
-#         mapping[key] = data_dict[key]
-
-#     for key in argovis_var_attributes_keys:
-#         mapping[key] = data_dict[key]
-
-#     return mapping
 
 
 def get_combined_mappings(btl_dict, ctd_dict):
@@ -156,13 +142,13 @@ def get_combined_mappings(btl_dict, ctd_dict):
     # But they have the same station_cast
 
     # All profiles have a profile and station_cast key but
-    # profile_dict may be empty
+    # profile_dict may be empty. If empty, then there are no mappings for it
 
     btl_mappings = {}
     ctd_mappings = {}
     combined_mappings = {}
 
-    # If decide to use mapping of meta names, use source_independent_meta_names
+    # If decide to use mapping of meta names, use source_combined_meta_names
     # to take into account if have both btl and ctd, don't
     # include _btl suffix on meta not dependent on data source
 
@@ -173,6 +159,8 @@ def get_combined_mappings(btl_dict, ctd_dict):
         # btl_dict already renamed
         # so use mapped key names from mapping_keys_mapping
         argovis_mapping_keys = list(mapping_keys_mapping.values())
+
+        # print(btl_dict.items())
 
         btl_mappings = {key: value for key,
                         value in btl_dict.items() if key in argovis_mapping_keys}
@@ -189,14 +177,22 @@ def get_combined_mappings(btl_dict, ctd_dict):
     # duplicate keys so always have set with and without suffix of data type
 
     if btl_dict and not ctd_dict:
-        combined_mappings = btl_mappings
+
+        data_type = 'btl'
+
+        #combined_mappings = btl_mappings
 
     if not btl_dict and ctd_dict:
-        combined_mappings = ctd_mappings
+
+        data_type = 'ctd'
+
+        #combined_mappings = ctd_mappings
 
     if btl_dict and ctd_dict:
 
-        combined_mappings = create_combined_mappings(
-            btl_mappings, ctd_mappings)
+        data_type = 'btl_ctd'
+
+    combined_mappings = create_combined_mappings(
+        btl_mappings, ctd_mappings, data_type)
 
     return combined_mappings

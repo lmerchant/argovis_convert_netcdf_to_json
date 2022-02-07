@@ -187,16 +187,17 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
         # test_cruise_expocode = '77DN20010717'
 
         # meas source qc not unique. [3.0 2.0]
-        # here
-        test_cruise_expocode = '29HE06_1'
+        #test_cruise_expocode = '29HE06_1'
 
         # Has Oxy in ml/l and bottle salinity
         # but no ctd_salinity
         #test_cruise_expocode = '32OC258_3'
 
         # This cruise is BTL_CTD
-        # here
-        #test_cruise_expocode = '64TR90_3'
+        # has both oxygen and ctd_oxygen for bottle file
+        # But not renaming to doxy when ctd_oxygen is Nan and
+        # oxygen has value?
+        test_cruise_expocode = '64TR90_3'
 
         # has both btl and ctd and want to filter
         # out meas objs without a temp var

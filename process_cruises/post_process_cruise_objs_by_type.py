@@ -31,8 +31,9 @@ def rename_measurements(data_type, measurements):
 
     new_meas_name_mapping = {}
     for cchdo_name, argovis_name in meas_name_mapping.items():
-        new_meas_name_mapping[cchdo_name] = argovis_name.replace(
-            f"_{data_type}", '')
+        # new_meas_name_mapping[cchdo_name] = argovis_name.replace(
+        #     f"_{data_type}", '')
+        new_meas_name_mapping[cchdo_name] = argovis_name
 
     df_measurements = df_measurements.set_axis(
         list(new_meas_name_mapping.values()), axis='columns', inplace=False)
@@ -83,7 +84,7 @@ def rename_measurements_sources(data_type, measurements_sources):
 
         new_key = f"{key_name_mapping[key]}"
 
-        new_key = new_key.replace(f"_{data_type}", '')
+        #new_key = new_key.replace(f"_{data_type}", '')
 
         if key == 'ctd_temperature_68':
             new_key = new_key + '_68'
@@ -120,6 +121,7 @@ def create_mappings(profile_dict, data_type, meta, argovis_col_names_mapping):
     #cchdo_meta_names = profile_dict['cchdoMetaNames']
     cchdo_units = profile_dict['cchdoUnits']
     cchdo_ref_scale = profile_dict['cchdoReferenceScale']
+    cchdo_param_names = profile_dict['cchdoParamNames']
     cchdo_standard_names = profile_dict['cchdoStandardNames']
 
     # vars with attributes changed
@@ -145,6 +147,9 @@ def create_mappings(profile_dict, data_type, meta, argovis_col_names_mapping):
     # key cchdoStandardNames
     mappings['cchdoStandardNames'] = cchdo_standard_names
 
+    # key cchdo param names
+    mappings['cchdoParamNames'] = cchdo_param_names
+
     # # key cchdoReferenceScale
     # # starting reference scales before any conversions
     # mappings['cchdoReferenceScale'] = cchdo_ref_scale
@@ -160,6 +165,8 @@ def create_mappings(profile_dict, data_type, meta, argovis_col_names_mapping):
         **cchdo_ref_scale, **cchdo_converted_ref_scale}
 
     # Get mapping and then swap out keys with argovis names
+    # TODO
+    # no longer using data_type in renaming since do this later in program
     argovis_name_mapping = rename_to_argovis(
         list(argovis_ref_scale_mapping.keys()), data_type)
 
@@ -198,6 +205,59 @@ def rename_data(data, data_type):
     data = df_data.to_dict('records')
 
     return data, argovis_col_names_mapping
+
+
+def remove_deleted_vars_from_mappings(
+        profile_dict, variables_deleted):
+
+    cchdo_key_mapping = get_program_argovis_mapping()
+
+    for key, value in profile_dict.items():
+
+        if key in cchdo_key_mapping.keys():
+
+            # remove variables_deleted from value
+            if isinstance(value, list):
+                # Remove deleted var name from list
+                new_value = [
+                    val for val in value if val not in variables_deleted]
+
+            elif isinstance(value, dict):
+                # Remove deleted var name from dict
+                new_value = {}
+                for k, v in value.items():
+                    if k not in variables_deleted:
+                        new_value[k] = v
+            else:
+                new_value = value
+
+            profile_dict[key] = new_value
+
+    return profile_dict
+
+
+def remove_nan_variables(data):
+
+    # Read data into a pandas dataframe
+    df_data = pd.DataFrame.from_dict(data)
+
+    # column names before delete
+    column_names_start = df_data.columns
+
+    # Check if all values for column are nan,
+    # and if they are, drop them
+    df_data = df_data.dropna(axis=1, how='all')
+
+    # Keep track of dropped vars to remove them from mappings
+    column_names_end = df_data.columns
+
+    variables_deleted = [
+        x for x in column_names_start if x not in column_names_end]
+
+    # Turn data back into dict
+    data = df_data.to_dict('records')
+
+    return data, variables_deleted
 
 
 def get_subset_meta(meta):
@@ -328,11 +388,21 @@ def process_data_profiles(profiles_obj):
         new_profile['station_cast'] = station_cast
 
         # TODO
-        # probably remove var stationCast
+        # remove var stationCast ?
 
         meta = profile_dict['meta']
         data = profile_dict['data']
         measurements = profile_dict['measurements']
+
+        # *****************************
+        # Delete variables from profile
+        # if values are all NaN
+        # *****************************
+
+        data, variables_deleted = remove_nan_variables(data)
+
+        profile_dict = remove_deleted_vars_from_mappings(
+            profile_dict, variables_deleted)
 
         # ******************************
         # Add metadata to cchdo metadata
@@ -350,7 +420,8 @@ def process_data_profiles(profiles_obj):
         # *************************
 
         # TODO
-        # Why have bottle_number_qc?
+        # Why have bottle_number_qc? Saw it in one of the cruises btl/ctd files
+        # Don't remember which right now
 
         # TODO
         # When rename all_data, ctd_salinity becomes psal unless there is none,
@@ -449,8 +520,6 @@ def post_process_cruise_objs_by_type(cruises_profile_objs):
     updated_cruises_profile_objs = []
 
     for cruise_profiles_obj in cruises_profile_objs:
-
-        expocode = cruise_profiles_obj['cruise_expocode']
 
         all_data_types_profile_objs = cruise_profiles_obj['all_data_types_profile_objs']
 

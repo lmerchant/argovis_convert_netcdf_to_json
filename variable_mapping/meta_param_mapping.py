@@ -1,9 +1,9 @@
 
-# TODO
-# Is this before or after rename?
-# For combining, it would be after, so need to use argovis meta names
 
 def get_source_independent_meta_names():
+
+    # This is used when combining btl and ctd profiles which have already been renamed
+    # So use the argovis names here
 
     names = ['expocode', 'station', 'cast', 'cchdo_cruise_id', 'woce_lines',
              'source', 'data_center', 'positioning_system',  '_id', 'country',
@@ -106,9 +106,6 @@ def get_meta_mapping():
 
 def get_program_argovis_mapping():
 
-    # TODO
-    # could have the case where always apply the suffix?
-
     return {
         # 'cchdoMetaNames': 'cchdo_meta_names',
         'cchdoParamNames': 'data_keys_source',
@@ -134,6 +131,18 @@ def get_program_argovis_mapping():
     }
 
 
+def get_combined_mappings_keys():
+    # Get mapping keys that can be combined
+    # such as names. Even though the btl file and ctd file may have same names,
+    # want to just have one set of names
+    # But for the data units, keep separate since no guarantee the units will be the same
+    # use argovis names
+
+    return [
+        'data_keys_source', 'data_keys', 'data_keys_mapping', 'data_reference_scale', 'data_units', 'data_source_standard_names'
+    ]
+
+
 def get_cchdo_argovis_name_mapping_per_type(data_type):
 
     return {
@@ -151,6 +160,28 @@ def get_cchdo_argovis_name_mapping_per_type(data_type):
         'ctd_oxygen_ml_l_qc': f'doxy_{data_type}_woceqc',
         'bottle_salinity': f'salinity_{data_type}',
         'bottle_salinity_qc': f'salinity_{data_type}_woceqc',
+        'latitude': 'latitude',
+        'longitude': 'longitude'
+    }
+
+
+def get_cchdo_argovis_name_mapping():
+
+    return {
+        'pressure': 'pres',
+        'pressure_qc': 'pres_woceqc',
+        'ctd_salinity': f'psal',
+        'ctd_salinity_qc': f'psal_woceqc',
+        'ctd_temperature': f'temp',
+        'ctd_temperature_qc': f'temp_woceqc',
+        'ctd_temperature_68': f'temp',
+        'ctd_temperature_68_qc': f'temp_woceqc',
+        'ctd_oxygen': f'doxy',
+        'ctd_oxygen_qc': f'doxy_woceqc',
+        'ctd_oxygen_ml_l': f'doxy',
+        'ctd_oxygen_ml_l_qc': f'doxy_woceqc',
+        'bottle_salinity': f'salinity',
+        'bottle_salinity_qc': f'salinity_woceqc',
         'latitude': 'latitude',
         'longitude': 'longitude'
     }

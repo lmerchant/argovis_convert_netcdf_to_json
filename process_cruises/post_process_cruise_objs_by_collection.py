@@ -7,6 +7,17 @@ from check_and_save.save_output import save_data_type_profiles
 
 def post_process_cruise_objs_by_collection(cruise_objs_by_type):
 
+    # All variables have been renamed prior to combining as a collection
+
+    # TODO
+    # check that I fixed this
+    # Mapping is wrong. Points to oxygen when it should point to doxy
+    # doxy data points occure in the data array toward the end for
+    # station 1, cast 1
+    # logging.info(cruise_objs_by_type)
+    # logging.info(f"\n\n\n")
+    # exit(1)
+
     for cruise_obj in cruise_objs_by_type:
 
         expocode = cruise_obj['cruise_expocode']
