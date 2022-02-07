@@ -197,7 +197,11 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
         # has both oxygen and ctd_oxygen for bottle file
         # But not renaming to doxy when ctd_oxygen is Nan and
         # oxygen has value?
-        test_cruise_expocode = '64TR90_3'
+        #test_cruise_expocode = '64TR90_3'
+
+        # btl and ctd but key error for data source units
+        # has data_source_units_btl instead of data_source_units
+        test_cruise_expocode = '06GA316_1'
 
         # has both btl and ctd and want to filter
         # out meas objs without a temp var

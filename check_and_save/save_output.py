@@ -45,16 +45,21 @@ def get_unique_cchdo_units(data_type_profiles):
 
     for profile in data_type_profiles:
 
-        # TODO
-        # Did I keep or use 'data_type' as a key for profile
-        #  when processing things?
-        # Did I set data_type to 'btl_ctd'?
-        #data_type = profile['data_type']
         profile_dict = profile['profile_dict']
         data_type = profile_dict['data_type']
 
         if data_type == 'btl' or data_type == 'ctd':
-            cchdo_units_mapping = profile_dict[renamed_cchdo_units_key]
+            print(f"data type {data_type}")
+            print(f"renamed_cchdo_units_key {renamed_cchdo_units_key}")
+            print(f"profile dict keys")
+            print(profile_dict.keys())
+            try:
+                cchdo_units_mapping = profile_dict[renamed_cchdo_units_key]
+            except:
+                if data_type == 'btl':
+                    cchdo_units_mapping = profile_dict[renamed_cchdo_units_key_btl]
+                elif data_type == 'ctd':
+                    cchdo_units_mapping = profile_dict[renamed_cchdo_units_key_ctd]
 
         if data_type == 'btl_ctd':
 
