@@ -153,7 +153,13 @@ The unique identifier is a combination of <expocode>_<station>_<cast>
 
 ## To Run it
 
+To process all years
+    Program assumes start year is 1900 and end year is Dec of current year
     python convert_netcdf_to_json.py
+
+To process a range of years use -s and -e flags
+    python convert_netcdf_to_json.py -s 1998 -e 2001
+
 
 ## Folder for converted data
 
