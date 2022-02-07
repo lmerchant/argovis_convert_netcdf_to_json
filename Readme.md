@@ -143,13 +143,16 @@ The unique identifier is a combination of <expocode>_<station>_<cast>
 
 ## To create conda environment
 
-    In a conda environment to copy and create yml file:
+    In a conda environment to copy and create yaml file:
     conda env export --from-history > conda_environment.yml
 
     To create that environment from the yml file:
     conda env create -f conda_environment.yml
 
     Then activate the Conda environment
+
+the yaml file has the Conda environment name "argovis_cchdo". This can
+be changed in the yaml file.
 
 ## To Run it
 
@@ -158,6 +161,8 @@ To process all years
     python convert_netcdf_to_json.py
 
 To process a range of years use -s and -e flags
+The start date is the Jan 1 of the start year and
+The end date is Dec 31 of the end year
     python convert_netcdf_to_json.py -s 1998 -e 2001
 
 
