@@ -158,11 +158,13 @@ be changed in the yaml file.
 
 To process all years
     Program assumes start year is 1900 and end year is Dec of current year
+
     python convert_netcdf_to_json.py
 
 To process a range of years use -s and -e flags
 The start date is the Jan 1 of the start year and
 The end date is Dec 31 of the end year
+
     python convert_netcdf_to_json.py -s 1998 -e 2001
 
 
