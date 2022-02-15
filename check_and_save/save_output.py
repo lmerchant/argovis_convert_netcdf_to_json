@@ -49,10 +49,10 @@ def get_unique_cchdo_units(data_type_profiles):
         data_type = profile_dict['data_type']
 
         if data_type == 'btl' or data_type == 'ctd':
-            print(f"data type {data_type}")
-            print(f"renamed_cchdo_units_key {renamed_cchdo_units_key}")
-            print(f"profile dict keys")
-            print(profile_dict.keys())
+            # print(f"data type {data_type}")
+            # print(f"renamed_cchdo_units_key {renamed_cchdo_units_key}")
+            # print(f"profile dict keys")
+            # print(profile_dict.keys())
             try:
                 cchdo_units_mapping = profile_dict[renamed_cchdo_units_key]
             except:
