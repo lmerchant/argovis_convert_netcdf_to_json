@@ -143,16 +143,17 @@ The unique identifier is a combination of <expocode>_<station>_<cast>
 
 ## To create conda environment
 
-    In a conda environment to copy and create yaml file:
-    conda env export --from-history > conda_environment.yml
+    Requirement: conda installed
 
-    To create that environment from the yml file:
-    conda env create -f conda_environment.yml
+    Modify conda_environment.yaml to modify conda environment name
+    you want to use
+    name: <conda environment name>
+
+    Within the repo created, run the command
+    conda env create --file conda_environment.yaml
 
     Then activate the Conda environment
-
-the yaml file has the Conda environment name "argovis_cchdo". This can
-be changed in the yaml file.
+    conda activate <conda environment name>
 
 ## To Run it
 
