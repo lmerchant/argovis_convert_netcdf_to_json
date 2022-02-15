@@ -145,11 +145,12 @@ The unique identifier is a combination of <expocode>_<station>_<cast>
 
     Requirement: conda installed
 
-    Modify conda_environment.yaml to modify conda environment name
+    Modify conda_environment.yaml to set the conda environment name
     you want to use
     name: <conda environment name>
 
-    Within the repo created, run the command
+    Within the repo created, run the following command to
+    create the conda environment needed
     conda env create --file conda_environment.yaml
 
     Then activate the Conda environment
@@ -173,3 +174,12 @@ The end date is Dec 31 of the end year
 
 The data output is saved to converted_data. Each cruise dataset is saved as a
 zip archive named with the cruise expocode.
+
+## Notes about creation of the Conda environemnt
+
+ This xarray page explains the IO requirements to use the xarray command "open_dataset".
+ https://xarray.pydata.org/en/stable/getting-started-guide/installing.html
+
+ This page explains the IO error that can occur without the following installed.
+ https://stackoverflow.com/questions/67725531/io-backend-error-in-the-axarray-for-netcdf-file
+
