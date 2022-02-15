@@ -48,7 +48,7 @@ def unzip_file(zip_folder, zip_file):
 
 def get_data_dict(profile_dict, station_cast):
 
-    logging.info(f'Creating data dict for station cast {station_cast}')
+    #logging.info(f'Creating data dict for station cast {station_cast}')
 
     # TODO
     # is this only called for single cruise?
