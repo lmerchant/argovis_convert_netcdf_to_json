@@ -3,13 +3,46 @@ import logging
 import pandas as pd
 import numpy as np
 
-from variable_mapping.rename_to_argovis import rename_to_argovis
-from variable_mapping.meta_param_mapping import rename_mappings_keys
-from variable_mapping.meta_param_mapping import get_meta_mapping
-from variable_mapping.meta_param_mapping import rename_core_profile_keys
-from variable_mapping.meta_param_mapping import rename_measurements_keys
-from variable_mapping.meta_param_mapping import get_program_argovis_mapping
-from variable_mapping.meta_param_mapping import get_source_independent_meta_names
+from variable_naming.filter_parameters import get_parameters_to_filter_out
+from variable_naming.rename_parameters import rename_to_argovis_mapping
+from variable_naming.rename_parameters import rename_with_data_type
+from variable_naming.rename_parameters import rename_mapping_w_data_type
+from variable_naming.meta_param_mapping import rename_mappings_source_info_keys
+from variable_naming.meta_param_mapping import get_meta_mapping
+from variable_naming.meta_param_mapping import rename_core_profile_keys
+from variable_naming.meta_param_mapping import rename_measurements_keys
+from variable_naming.meta_param_mapping import get_program_argovis_source_info_mapping
+from variable_naming.meta_param_mapping import get_source_independent_meta_names
+
+
+def reorganize_meta_and_mappings(meta, mappings, data_type):
+
+    # put all mappings into one dictionary called source_info
+
+    source_info = {}
+
+    for key, val in mappings.items():
+        source_info[key] = val
+
+    if f'source' in meta.keys():
+        source_info[f'source'] = meta[f'source']
+        meta.pop(f'source', None)
+
+    if f'cruise_url_{data_type}' in meta.keys():
+        source_info[f'cruise_url_{data_type}'] = meta[f'cruise_url_{data_type}']
+        meta.pop(f'cruise_url_{data_type}', None)
+
+    if f'source_url_{data_type}' in meta.keys():
+        source_info['source_url'] = meta[f'source_url_{data_type}']
+        meta.pop(f'source_url_{data_type}', None)
+
+    # Do this later in post process combination
+    # source_url_key = f"source_url_{data_type}"
+    # source_info['source_url'] = source_url_key
+
+    meta[f'source_info_{data_type}'] = source_info
+
+    return meta
 
 
 def rename_measurements(data_type, measurements):
@@ -19,20 +52,12 @@ def rename_measurements(data_type, measurements):
     # key is current name and value is argovis name
     # TODO
     # rename function to cchdo_to_argovis_mapping
-    meas_name_mapping = rename_to_argovis(
-        df_measurements.columns, data_type)
+    meas_name_mapping = rename_to_argovis_mapping(df_measurements.columns)
 
-    # Remove suffix _{data_type}
-    # TODO
-    # Or keep since seem to be using it in when doing combined types
-    # Can keep renaming.
-    # Don't use suffix on measurementsSourceQC and then
-    # use it in combined meas
+    # Don't use suffix on measurementsSourceQC
 
     new_meas_name_mapping = {}
     for cchdo_name, argovis_name in meas_name_mapping.items():
-        # new_meas_name_mapping[cchdo_name] = argovis_name.replace(
-        #     f"_{data_type}", '')
         new_meas_name_mapping[cchdo_name] = argovis_name
 
     df_measurements = df_measurements.set_axis(
@@ -80,7 +105,7 @@ def rename_measurements_sources(data_type, measurements_sources):
         #var_in_key = key.replace('using_', '')
         # get map of cchdo name to argovis name
         # rename_to_argovis expects a list of names to map
-        key_name_mapping = rename_to_argovis([key], data_type)
+        key_name_mapping = rename_to_argovis_mapping([key])
 
         new_key = f"{key_name_mapping[key]}"
 
@@ -165,10 +190,13 @@ def create_mappings(profile_dict, data_type, meta, argovis_col_names_mapping):
         **cchdo_ref_scale, **cchdo_converted_ref_scale}
 
     # Get mapping and then swap out keys with argovis names
-    # TODO
-    # no longer using data_type in renaming since do this later in program
-    argovis_name_mapping = rename_to_argovis(
-        list(argovis_ref_scale_mapping.keys()), data_type)
+    argovis_name_mapping = rename_to_argovis_mapping(
+        list(argovis_ref_scale_mapping.keys()))
+
+    argovis_name_mapping = rename_mapping_w_data_type(
+        argovis_name_mapping, data_type)
+
+    # Add data_type suffix
 
     mappings['argovis_reference_scale'] = {argovis_name_mapping[key]: value for key,
                                            value in argovis_ref_scale_mapping.items()}
@@ -180,27 +208,63 @@ def create_mappings(profile_dict, data_type, meta, argovis_col_names_mapping):
         **cchdo_units, **cchdo_converted_units}
 
     # Get mapping and then swap out keys with argovis names
-    argovis_name_mapping = rename_to_argovis(
-        list(argovis_units_mapping.keys()), data_type)
+    argovis_names_mapping = rename_to_argovis_mapping(
+        list(argovis_units_mapping.keys()))
 
-    mappings['argovis_units'] = {argovis_name_mapping[key]: value for key,
+    argovis_names_mapping = rename_mapping_w_data_type(
+        argovis_names_mapping, data_type)
+
+    mappings['argovis_units'] = {argovis_names_mapping[key]: value for key,
                                  value in argovis_units_mapping.items()}
 
     return mappings
 
 
+def filter_out_params(parameter_names):
+
+    params_to_filter_out = get_parameters_to_filter_out()
+
+    params_to_filter = [
+        param for param in parameter_names if param in params_to_filter_out]
+
+    return params_to_filter
+
+
 def rename_data(data, data_type):
-    # For all_dataMeas, rename by loading dict into pandas dataframe,
+    # Rename by loading dict into pandas dataframe,
     # rename cols then output back to dict
     df_data = pd.DataFrame.from_dict(data)
 
-    argovis_col_names_mapping = rename_to_argovis(
-        list(df_data.columns), data_type)
+    data_columns = list(df_data.columns)
 
-    argovis_col_names = list(argovis_col_names_mapping.values())
+    # First rename to any ArgoVis names
+    argovis_col_names_mapping_wo_data_type = rename_to_argovis_mapping(
+        data_columns)
+
+    argovis_col_names = []
+    for col_name in data_columns:
+        argovis_name = argovis_col_names_mapping_wo_data_type[col_name]
+
+        argovis_col_names.append(argovis_name)
 
     df_data = df_data.set_axis(
         argovis_col_names, axis='columns', inplace=False)
+
+    # Now add suffix of data type to both data
+    data_columns = list(df_data.columns)
+
+    data_type_col_names = rename_with_data_type(data_columns, data_type)
+
+    argovis_col_names_mapping = rename_mapping_w_data_type(
+        argovis_col_names_mapping_wo_data_type, data_type)
+
+    df_data = df_data.set_axis(
+        data_type_col_names, axis='columns', inplace=False)
+
+    # Filter out parameters not used for ArgoVis
+    cols_to_filter_out = filter_out_params(list(df_data.columns))
+
+    df_data = df_data.drop(cols_to_filter_out, axis=1)
 
     data = df_data.to_dict('records')
 
@@ -210,7 +274,7 @@ def rename_data(data, data_type):
 def remove_deleted_vars_from_mappings(
         profile_dict, variables_deleted):
 
-    cchdo_key_mapping = get_program_argovis_mapping()
+    cchdo_key_mapping = get_program_argovis_source_info_mapping()
 
     for key, value in profile_dict.items():
 
@@ -260,12 +324,32 @@ def remove_nan_variables(data):
     return data, variables_deleted
 
 
+def add_data_type_to_meta(meta, data_type):
+
+    ignore_keys = get_source_independent_meta_names()
+
+    new_meta = {}
+
+    for key, val in meta.items():
+        if key not in ignore_keys:
+            #new_meta[key] = val
+            new_key = f"{key}_{data_type}"
+            new_meta[new_key] = val
+        else:
+            new_meta[key] = val
+
+    return new_meta
+
+
 def get_subset_meta(meta):
 
     meta_subset = {}
 
     # keys are names used in this program at start, values are final argovis names
     rename_mapping = get_meta_mapping()
+
+    # meta mapping only includes meta values want to keep
+
     meta_keys = meta.keys()
 
     for key, value in rename_mapping.items():
@@ -318,6 +402,9 @@ def add_argovis_meta(meta):
 
     meta['positioning_system'] = 'GPS'
     meta['data_center'] = 'CCHDO'
+
+    # Create a source_info dict that will hold multiple mapping keys
+    meta['source_info'] = {}
 
     # **********************************
     # Use dates instead of time variable
@@ -415,6 +502,10 @@ def process_data_profiles(profiles_obj):
         # Rename meta for argovis json format and get subset
         meta = get_subset_meta(meta)
 
+        # Also take meta data, and for items not common to a cruise,
+        # Add a data_type suffix in addition to what is there
+        meta = add_data_type_to_meta(meta, data_type)
+
         # *************************
         # Rename all_data variables
         # *************************
@@ -437,7 +528,7 @@ def process_data_profiles(profiles_obj):
         # Copy over current mappings
         current_mappings = {}
 
-        cchdo_key_mapping = get_program_argovis_mapping()
+        cchdo_key_mapping = get_program_argovis_source_info_mapping()
 
         for key, value in profile_dict.items():
 
@@ -445,7 +536,7 @@ def process_data_profiles(profiles_obj):
                 current_mappings[key] = value
 
         # **************************************
-        # Create New Mappings to include Argovis
+        # Create New Mappings to include Argovis variable names
         # **************************************
 
         new_mappings = create_mappings(
@@ -456,6 +547,14 @@ def process_data_profiles(profiles_obj):
         # ****************
 
         mappings = {**current_mappings, **new_mappings}
+
+        mappings = rename_mappings_source_info_keys(mappings)
+
+        # *********************************
+        # Reorganize mappings into one dict
+        # *********************************
+
+        new_meta = reorganize_meta_and_mappings(meta, mappings, data_type)
 
         # **************
         # measurements
@@ -470,8 +569,8 @@ def process_data_profiles(profiles_obj):
         # What are station parameters?
         # currently they are starting cchdo names
 
-        measurements_source = profile_dict['measurementsSource']
-        measurements_sources = profile_dict['measurementsSources']
+        measurements_source = profile_dict['measurements_source']
+        measurements_sources = profile_dict['measurements_sources']
         #station_parameters = profile_dict.pop('stationParameters', None)
 
         # Rename measurementsSources keys
@@ -490,23 +589,22 @@ def process_data_profiles(profiles_obj):
         new_profile_dict['station_cast'] = station_cast
         new_profile_dict['data_type'] = data_type
 
-        new_profile_dict['meta'] = meta
+        new_profile_dict['meta'] = new_meta
+
         new_profile_dict['data'] = data
 
         new_profile_dict['measurements'] = measurements
-        new_profile_dict['measurementsSource'] = measurements_source
-        new_profile_dict['measurementsSources'] = measurements_sources
+        new_profile_dict['measurements_source'] = measurements_source
+        new_profile_dict['measurements_sources'] = measurements_sources
         #profile_dict['stationParameters'] = station_parameters
 
         renamed_profile_dict = rename_core_profile_keys(new_profile_dict)
 
         renamed_profile_dict = rename_measurements_keys(renamed_profile_dict)
 
-        mappings = rename_mappings_keys(mappings)
+        # updated_profile_dict = {**renamed_profile_dict, **mappings}
 
-        updated_profile_dict = {**renamed_profile_dict, **mappings}
-
-        new_profile['profile_dict'] = updated_profile_dict
+        new_profile['profile_dict'] = renamed_profile_dict
 
         updated_data_profiles.append(new_profile)
 

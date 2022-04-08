@@ -1,7 +1,7 @@
 import logging
 import pandas as pd
 
-from variable_mapping.meta_param_mapping import get_measurements_mapping
+from variable_naming.meta_param_mapping import get_measurements_mapping
 
 
 def convert_boolean(obj):
@@ -437,7 +437,7 @@ def get_hierarchy_single_source(source_dict):
     # Get mapped names since btl and ctd dicts had keys renamed
     measurements_mapping = get_measurements_mapping()
 
-    meas_sources_key = measurements_mapping['measurementsSources']
+    meas_sources_key = measurements_mapping['measurements_sources']
 
     source = source_dict[meas_sources_key]
 
@@ -499,8 +499,8 @@ def combine_btl_ctd_measurements(btl_dict, ctd_dict):
     measurements_mapping = get_measurements_mapping()
 
     measurements_key = measurements_mapping['measurements']
-    source_flag_key = measurements_mapping['measurementsSource']
-    meas_sources_key = measurements_mapping['measurementsSources']
+    source_flag_key = measurements_mapping['measurements_source']
+    meas_sources_key = measurements_mapping['measurements_sources']
 
     btl_meas = {}
     ctd_meas = {}

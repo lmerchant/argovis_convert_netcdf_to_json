@@ -68,7 +68,10 @@ def process_batch_of_cruises(cruise_objs):
     # one_cruise = cruise_objs_by_type[0]
     # type_objs = one_cruise['all_data_types_profile_objs']
 
-    # one_type = type_objs[0]
+    # print(f"total objs = {len(type_objs)}")
+
+    # # one_type = type_objs[0] # ('get btl if have btl_ctd type)
+    # one_type = type_objs[1]  # (get ctd if have btl_ctd type)
 
     # profiles = one_type['data_type_profiles_list']
 
@@ -103,6 +106,8 @@ def process_batch_of_cruises(cruise_objs):
     # one_profile = profiles[15]
 
     # print(one_profile['profile_dict']['data_keys'])
+
+    # exit(1)
 
     # Rename included and excluded vars and save
     save_included_excluded_cchdo_vars(

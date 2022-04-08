@@ -12,11 +12,15 @@ def get_source_independent_meta_names():
     return names
 
 
+def get_parameters_no_data_type():
+    return ['pressure', 'pres']
+
+
 def get_measurements_mapping():
     return {
         'measurements': 'measurements',
-        'measurementsSource': 'measurements_source',
-        'measurementsSources': 'measurements_sources'
+        'measurements_source': 'measurements_source',
+        'measurements_sources': 'measurements_sources'
     }
 
 
@@ -50,11 +54,12 @@ def get_meta_mapping():
         'roundLon': 'roundLon',
         'strLat': 'strLat',
         'strLon': 'strLon',
-        'geoLocation': 'geoLocation'
+        'geoLocation': 'geoLocation',
+        'source_info': 'source_info'
     }
 
 
-def get_program_argovis_mapping():
+def get_program_argovis_source_info_mapping():
 
     return {
         # 'cchdoMetaNames': 'cchdo_meta_names',
@@ -109,7 +114,11 @@ def get_cchdo_argovis_name_mapping_per_type(data_type):
         'ctd_oxygen_ml_l': f'doxy_{data_type}',
         'ctd_oxygen_ml_l_qc': f'doxy_{data_type}_woceqc',
         'bottle_salinity': f'salinity_{data_type}',
-        'bottle_salinity_qc': f'salinity_{data_type}_woceqc'
+        'bottle_salinity_qc': f'salinity_{data_type}_woceqc',
+        'potential_temperature_68': f'potential_temperature_68_{data_type}',
+        'potential_temperature_68_qc': f'potential_temperature_68_{data_type}_woceqc',
+        'potential_temperature_c': f'potential_temperature_unk_{data_type}',
+        'potential_temperature_c_qc': f'potential_temperature_unk_{data_type}_woceqc'
     }
 
 
@@ -138,10 +147,10 @@ def get_core_profile_keys_mapping():
     return {'data': 'data'}
 
 
-def rename_mappings_keys(mappings):
+def rename_mappings_source_info_keys(mappings):
 
     # keys are CCHDO and values are Argovis
-    key_mapping = get_program_argovis_mapping()
+    key_mapping = get_program_argovis_source_info_mapping()
 
     new_mappings = {}
     for key, value in mappings.items():

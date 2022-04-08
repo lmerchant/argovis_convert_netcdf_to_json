@@ -1,4 +1,4 @@
-from variable_mapping.meta_param_mapping import get_program_argovis_mapping
+from variable_naming.meta_param_mapping import get_program_argovis_source_info_mapping
 import logging
 
 
@@ -87,7 +87,7 @@ def get_argovis_param_names(profile_dict):
     # need this since already renamed individual files
 
     # cchdo names are the keys and argovis names are the value
-    key_mapping = get_program_argovis_mapping()
+    key_mapping = get_program_argovis_source_info_mapping()
 
     param_names_key = 'argovis_param_names'
     renamed_param_names_key = key_mapping(param_names_key)
@@ -110,100 +110,6 @@ def get_argovis_param_names(profile_dict):
             argovis_param_names_ctd = profile_dict[renamed_param_names_key_ctd]
 
     return argovis_param_names, argovis_param_names_btl, argovis_param_names_ctd
-
-
-# def find_meta_included(profile_dict):
-
-#     # Case for argovis names
-
-#     included_meta_btl = []
-#     included_meta_ctd = []
-#     included_meta = []
-
-#     profile_keys = profile_dict.keys()
-
-#     # For meta data
-#     try:
-#         name_mapping = profile_dict['cchdoArgovisMetaMapping']
-#         included_meta = name_mapping.values()
-
-#     except KeyError:
-#         if 'cchdoArgovisMetaMappingBtl' in profile_keys:
-#             name_mapping_btl = profile_dict['cchdoArgovisMetaMappingBtl']
-#             included_meta_btl = name_mapping_btl.values()
-
-#         if 'cchdoArgovisMetaMappingCtd' in profile_keys:
-#             name_mapping_ctd = profile_dict['cchdoArgovisMetaMappingCtd']
-#             included_meta_ctd = name_mapping_ctd.values()
-
-#     return included_meta, included_meta_btl, included_meta_ctd
-
-
-# def find_meta_excluded(profile_dict, included_meta_btl, included_meta_ctd, included_meta):
-
-#     # Case for argovis names
-
-#     excluded_meta_names_btl = []
-#     excluded_meta_names_ctd = []
-#     excluded_meta_names = []
-
-#     # cchdo_meta_names, cchdo_meta_names_btl, cchdo_meta_names_ctd = get_cchdo_meta_names(
-#     #     profile_dict)
-
-#     meta_names, meta_names_btl, meta_names_ctd = get_argovis_meta_names(
-#         profile_dict)
-
-#     # For meta names
-#     if included_meta_btl and meta_names_btl:
-#         included_meta_names_set = set(included_meta_btl)
-#         meta_names_set = set(meta_names_btl)
-#         excluded_meta_names_btl = meta_names_set.difference(
-#             included_meta_names_set)
-
-#     if included_meta_ctd and meta_names_ctd:
-#         included_meta_names_set = set(included_meta_ctd)
-#         meta_names_set = set(meta_names_ctd)
-#         excluded_meta_names_ctd = meta_names_set.difference(
-#             included_meta_names_set)
-
-#     if included_meta and meta_names:
-#         included_meta_names_set = set(included_meta)
-#         meta_names_set = set(meta_names)
-#         excluded_meta_names = meta_names_set.difference(
-#             included_meta_names_set)
-
-#     return excluded_meta_names_btl, excluded_meta_names_ctd, excluded_meta_names
-
-
-# def find_param_included(profile_dict):
-
-#     # Case for argovis names
-
-#     # TODO
-#     # Not  using this routiine with combined for batch, but called
-#     #  for after profiles are combined. But for regular
-#     # program
-
-#     included_param_btl = []
-#     included_param_ctd = []
-#     included_param_names = []
-
-#     profile_keys = profile_dict.keys()
-
-#     try:
-#         name_mapping = profile_dict['cchdo_argovis_param_mapping']
-#         included_param_names = list(name_mapping.values())
-
-#     except KeyError:
-#         if 'cchdo_argovis_param_mapping_btl' in profile_keys:
-#             name_mapping_btl = profile_dict['cchdo_argovis_param_mapping_btl']
-#             included_param_btl = list(name_mapping_btl.values())
-
-#         if 'cchdo_argovis_param_mapping_ctd' in profile_keys:
-#             name_mapping_ctd = profile_dict['cchdo_argovis_param_mapping_ctd']
-#             included_param_ctd = list(name_mapping_ctd.values())
-
-#     return included_param_names, included_param_btl, included_param_ctd
 
 
 def find_param_excluded(profile_dict, included_param_btl, included_param_ctd, included_param_names):
@@ -241,78 +147,6 @@ def find_param_excluded(profile_dict, included_param_btl, included_param_ctd, in
     return excluded_param_names_btl, excluded_param_names_ctd, excluded_param_names
 
 
-# def add_cchdo_vars_one_profile(profile_dict):
-
-#     # Don't save qc or meta vars
-
-#     profile_id = profile_dict['meta']['id']
-
-#     # argovis_meta_keys = profile_dict['meta'].keys()
-
-#     # # Map back to cchdo names
-#     # cchdo_meta_keys = rn.convert_argovis_meta_to_cchdo_names(
-#     #     argovis_meta_keys)
-
-#     included = []
-#     excluded = []
-
-#     # Get Included Goship Meta and Param names after filtering empty cols
-
-#     # TODO
-#     # Skipping this since not relevant
-#     # name_mapping = profile_dict['cchdoArgovisMetaMapping']
-#     # included_meta_cchdo = [
-#     #     name for name in name_mapping.keys() if '_qc' not in name]
-
-#     name_mapping = profile_dict['cchdo_argovis_param_mapping']
-#     included_param_cchdo_names = [
-#         name for name in name_mapping.keys() if '_qc' not in name]
-
-#     # Get Goship Meta and Param names before filtering out empty cols
-
-#     cchdo_meta_names = profile_dict['cchdoMetaNames']
-#     cchdo_meta_names = [
-#         name for name in cchdo_meta_names if '_qc' not in name]
-
-#     cchdo_param_names = profile_dict['cchdo_param_names']
-#     cchdo_param_names = [
-#         name for name in cchdo_param_names if '_qc' not in name]
-
-#     # Get Excluded Goship Meta  and Param names
-
-#     # TODO
-#     # would this be necessary? Doesn't seem like there would be duplicates
-#     # included_cchdo_meta_names_set = set(included_meta_cchdo)
-#     # cchdo_meta_names_set = set(cchdo_meta_names)
-#     # excluded_cchdo_meta_names = cchdo_meta_names_set.difference(
-#     #     included_cchdo_meta_names_set)
-
-#     included_cchdo_param_names_set = set(included_param_cchdo_names)
-#     cchdo_param_names_set = set(cchdo_param_names)
-
-#     excluded_cchdo_param_names = cchdo_param_names_set.difference(
-#         included_cchdo_param_names_set)
-
-#     # *******************************
-#     # Save included and excluded vars
-#     # *******************************
-
-#     # **********************************
-#     # for included and excluded cchdo names
-#     # Add tuple (cchdo_name, profile_id, data_type)
-#     # ***********************************
-
-#     data_type = profile_dict['data_type']
-
-#     for name in included_param_cchdo_names:
-#         included.append((name, profile_id, data_type))
-
-#     for name in excluded_cchdo_param_names:
-#         excluded.append((name, profile_id, data_type))
-
-#     return included, excluded, included_param_cchdo_names, excluded_cchdo_param_names
-
-
 def add_argovis_vars_one_profile(profile_dict):
 
     # TODO
@@ -320,6 +154,8 @@ def add_argovis_vars_one_profile(profile_dict):
     # So since renamed single types already, need to use the argovis names
 
     profile_id = profile_dict['meta']['_id']
+
+    data_type = profile_dict['data_type']
 
     # argovis_meta_keys = profile_dict['meta'].keys()
 
@@ -338,12 +174,21 @@ def add_argovis_vars_one_profile(profile_dict):
     # included_meta_argovis = name_mapping.values()
 
     # cchdo names are the keys and argovis names are the value
+    # Find what the new key name is
     cchdo_key = 'cchdo_argovis_param_mapping'
-    key_mapping = get_program_argovis_mapping()
+
+    key_mapping = get_program_argovis_source_info_mapping()
+
     renamed_key = key_mapping[cchdo_key]
 
-    name_mapping = profile_dict[renamed_key]
+    # Mapping of all the CCHDO names to argovis names with data_type suffix
+    # TODO
+    # Check these mappings include the data type suffix
+    source_info = profile_dict['meta'][f"source_info_{data_type}"]
+    name_mapping = source_info[renamed_key]
 
+    # Any names found in the name mapping have been included in the profile data
+    # because any that were all empty were dropped before here
     included_param_argovis_names = list(name_mapping.values())
 
     # Get Goship Meta and Param names before filtering out empty cols
@@ -353,11 +198,14 @@ def add_argovis_vars_one_profile(profile_dict):
 
     #argovis_meta_names = profile_dict['argovisMetaNames']
 
-    key_mapping = get_program_argovis_mapping()
     cchdo_key = 'argovis_param_names'
+
+    key_mapping = get_program_argovis_source_info_mapping()
+
     renamed_argovis_param_names_key = key_mapping[cchdo_key]
 
-    argovis_param_names = profile_dict[renamed_argovis_param_names_key]
+    source_info = profile_dict['meta'][f"source_info_{data_type}"]
+    argovis_param_names = source_info[renamed_argovis_param_names_key]
 
     # Get Excluded Goship Meta  and Param names
 

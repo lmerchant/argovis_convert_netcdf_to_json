@@ -3,8 +3,36 @@ import logging
 
 from create_profiles.create_meas_combined_profiles import combine_btl_ctd_measurements
 #from create_profiles.create_meas_combined_profiles import get_combined_meas_source
-from variable_mapping.combined_mapping import get_combined_mappings
-from variable_mapping.meta_param_mapping import get_source_independent_meta_names
+from variable_naming.combined_mapping import get_combined_mappings
+from variable_naming.meta_param_mapping import get_source_independent_meta_names
+
+
+def add_meta_wo_data_type(meta, data_type):
+
+    # Already have meta with the source independent meta names
+
+    # Just want to remove data_type off the other meta and save it
+
+    source_independent_meta_names = get_source_independent_meta_names()
+
+    meta_wo_data_type = {}
+
+    for key, val in meta.items():
+
+        if key not in source_independent_meta_names:
+            new_key = key.replace(f"_{data_type}", '')
+
+            if new_key == 'source_info':
+                # Remove the data type suffix from all the keys of
+                # the source_info obj
+                meta_wo_data_type[new_key] = {}
+                for sub_key, sub_val in val.items():
+                    new_sub_key = sub_key.replace(f"_{data_type}", '')
+                    meta_wo_data_type[new_key][new_sub_key] = sub_val
+            else:
+                meta_wo_data_type[new_key] = val
+
+    return meta_wo_data_type
 
 
 def add_meta_w_data_type(meta, data_type):
@@ -61,7 +89,8 @@ def combine_btl_ctd_per_profile(btl_profile, ctd_profile):
     if btl_dict:
         file_data_type = 'btl'
         btl_meta = btl_dict['meta']
-        btl_meta_w_data_type, btl_meta_wo_data_type = add_meta_w_data_type(
+
+        btl_meta_wo_data_type = add_meta_wo_data_type(
             btl_meta, file_data_type)
 
         btl_data = btl_dict['data']
@@ -69,7 +98,8 @@ def combine_btl_ctd_per_profile(btl_profile, ctd_profile):
     if ctd_dict:
         file_data_type = 'ctd'
         ctd_meta = ctd_dict['meta']
-        ctd_meta_w_data_type, ctd_meta_wo_data_type = add_meta_w_data_type(
+
+        ctd_meta_wo_data_type = add_meta_wo_data_type(
             ctd_meta, file_data_type)
 
         ctd_data = ctd_dict['data']
@@ -78,23 +108,24 @@ def combine_btl_ctd_per_profile(btl_profile, ctd_profile):
     # print(ctd_dict['data_keys'])
 
     if btl_dict and ctd_dict:
-        meta = ctd_meta
         data_type = 'btl_ctd'
+        combined_meta = {**ctd_meta_wo_data_type, **ctd_meta, **btl_meta}
+
     elif btl_dict and not ctd_dict:
         # TODO
         # Check if this is true
         # keep only meta without a _btl suffix since no ctd meta
         #meta = btl_meta_wo_data_type
-        meta = btl_meta
         data_type = 'btl'
+        combined_meta = {**btl_meta_wo_data_type, **btl_meta}
 
     elif ctd_dict and not btl_dict:
-        meta = ctd_meta
         data_type = 'ctd'
+        combined_meta = {**ctd_meta_wo_data_type, **ctd_meta}
 
-    meta_w_data_type = {**ctd_meta_w_data_type, **btl_meta_w_data_type}
+    # meta_w_data_type = {**ctd_meta_w_data_type, **btl_meta_w_data_type}
 
-    combined_meta = {**meta, **meta_w_data_type}
+    # combined_meta = {**meta, **meta_w_data_type}
 
     # Add instrument key to indicate profile data type
     # It's ship_btl_ctd because cruise has both a bottle and ctd file
@@ -122,9 +153,9 @@ def combine_btl_ctd_per_profile(btl_profile, ctd_profile):
     # oxygen was added to btl dict that shouldn't be there. Mainly if there is
     # an oxygen var but no doxy one.
 
-    combined_mappings = get_combined_mappings(btl_dict, ctd_dict)
+    # combined_mappings = get_combined_mappings(btl_dict, ctd_dict)
 
-    combined_btl_ctd_dict = {**combined_btl_ctd_dict, **combined_mappings}
+    # combined_btl_ctd_dict = {**combined_btl_ctd_dict, **combined_mappings}
 
     combined_btl_ctd_dict['data_type'] = data_type
 
@@ -235,7 +266,9 @@ def balance_profiles_by_station_cast(profiles_objs):
     for btl_profile in btl_profiles:
         # for bottle number 1, data doesn't have doxy var but has oxygen var
         selected_profile_dict = btl_profile['profile_dict']
-        data_keys = selected_profile_dict['data_keys']
+
+        source_info = selected_profile_dict['meta'][f'source_info_btl']
+        data_keys = source_info['data_keys']
 
         # if 'oxygen' in data_keys:
 

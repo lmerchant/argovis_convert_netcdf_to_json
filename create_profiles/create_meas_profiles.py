@@ -58,7 +58,7 @@ def filter_measurements(data_type_profiles):
         station_cast = profile['station_cast']
 
         measurements = profile_dict['measurements']
-        meas_sources = profile_dict['measurementsSources']
+        meas_sources = profile_dict['measurements_sources']
 
         # For json_str need to convert True, False to 'true','false'
         #meas_sources = convert_boolean(meas_sources)
@@ -86,7 +86,7 @@ def filter_measurements(data_type_profiles):
             measurements = []
 
         profile_dict['measurements'] = measurements
-        profile_dict['measurementsSources'] = meas_sources
+        profile_dict['measurements_sources'] = meas_sources
 
         output_profile = {}
         output_profile['profile_dict'] = profile_dict
@@ -410,12 +410,12 @@ def create_meas_profiles(df_param, data_type):
 
         meas_source_profile = {}
         meas_source_profile['station_cast'] = station_cast
-        meas_source_profile['measurementsSource'] = meas_source_flag
+        meas_source_profile['measurements_source'] = meas_source_flag
         all_meas_source_profiles.append(meas_source_profile)
 
         meas_sources_profile = {}
         meas_sources_profile['station_cast'] = station_cast
-        meas_sources_profile['measurementsSources'] = meas_sources
+        meas_sources_profile['measurements_sources'] = meas_sources
         all_meas_source_profiles.append(meas_sources_profile)
 
     return all_meas_profiles, all_meas_source_profiles, all_meas_names

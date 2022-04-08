@@ -99,7 +99,7 @@ def apply_argovis_names_and_conversions(cruises_profiles_objs):
     # **************************'
 
     # Do this last
-    nc = rename_to_argovis(nc, data_type)
+    nc = rename_to_argovis_mapping(nc, data_type)
 
     # **********************
     # Create ArgoVis Mapping

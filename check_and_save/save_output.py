@@ -8,7 +8,7 @@ import logging
 
 from global_vars import GlobalVars
 
-from variable_mapping.meta_param_mapping import get_program_argovis_mapping
+from variable_naming.meta_param_mapping import get_program_argovis_source_info_mapping
 from check_and_save.save_as_zip import save_as_zip_data_type_profiles
 
 
@@ -30,7 +30,7 @@ def get_unique_cchdo_units(data_type_profiles):
     # need this since already renamed individual files
 
     # cchdo names are the keys and argovis names are the value
-    key_mapping = get_program_argovis_mapping()
+    key_mapping = get_program_argovis_source_info_mapping()
 
     cchdo_units_key = 'cchdo_units'
     renamed_cchdo_units_key = key_mapping[cchdo_units_key]
@@ -54,21 +54,30 @@ def get_unique_cchdo_units(data_type_profiles):
             # print(f"profile dict keys")
             # print(profile_dict.keys())
             try:
-                cchdo_units_mapping = profile_dict[renamed_cchdo_units_key]
+                source_info = profile_dict['meta']['source_info']
+                cchdo_units_mapping = source_info[renamed_cchdo_units_key]
             except:
                 if data_type == 'btl':
-                    cchdo_units_mapping = profile_dict[renamed_cchdo_units_key_btl]
+                    source_info = profile_dict['meta']['source_info_btl']
+                    cchdo_units_mapping = source_info[renamed_cchdo_units_key_btl]
                 elif data_type == 'ctd':
-                    cchdo_units_mapping = profile_dict[renamed_cchdo_units_key_ctd]
+                    source_info = profile_dict['meta']['source_info_ctd']
+                    cchdo_units_mapping = source_info[renamed_cchdo_units_key_ctd]
 
         if data_type == 'btl_ctd':
 
             try:
-                cchdo_units_btl = profile_dict[renamed_cchdo_units_key_btl]
-                cchdo_units_ctd = profile_dict[renamed_cchdo_units_key_ctd]
+
+                source_info = profile_dict['meta']['source_info_btl']
+                cchdo_units_btl = source_info[renamed_cchdo_units_key_btl]
+
+                source_info = profile_dict['meta']['source_info_ctd']
+                cchdo_units_ctd = source_info[renamed_cchdo_units_key_ctd]
+
                 cchdo_units_mapping = {**cchdo_units_btl, **cchdo_units_ctd}
             except:
-                cchdo_units_mapping = profile_dict[renamed_cchdo_units_key]
+                source_info = profile_dict['meta']['source_info']
+                cchdo_units_mapping = source_info[renamed_cchdo_units_key]
 
         # TODO
         # overwrite key if it already exists
@@ -108,7 +117,7 @@ def write_profile_cchdo_units_one_profile(data_type, profile):
     # keep a record of what units need to be converted
 
     # cchdo names are the keys and argovis names are the value
-    key_mapping = get_program_argovis_mapping()
+    key_mapping = get_program_argovis_source_info_mapping()
 
     cchdo_units_key = 'cchdo_units'
     renamed_cchdo_units_key = key_mapping[cchdo_units_key]
@@ -145,7 +154,7 @@ def write_profile_cchdo_units(checked_profiles_info):
     # need this since already renamed individual files
 
     # cchdo names are the keys and argovis names are the value
-    key_mapping = get_program_argovis_mapping()
+    key_mapping = get_program_argovis_source_info_mapping()
 
     cchdo_units_key = 'cchdo_units'
     renamed_cchdo_units_key = key_mapping[cchdo_units_key]

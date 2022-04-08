@@ -2,8 +2,8 @@ import itertools
 from collections import defaultdict
 
 
-from variable_mapping.meta_param_mapping import get_program_argovis_mapping
-from variable_mapping.meta_param_mapping import get_combined_mappings_keys
+from variable_naming.meta_param_mapping import get_program_argovis_source_info_mapping
+from variable_naming.meta_param_mapping import get_combined_mappings_keys
 
 
 def get_updated_mappings(mappings, data_type):
@@ -16,7 +16,7 @@ def get_updated_mappings(mappings, data_type):
     # keys are cchdo names and values are argovis names
     # for btl and ctd mapping, already using argovis names
     # just need to change into suffix version if in the mappings dict
-    all_mapping_keys = get_program_argovis_mapping()
+    all_mapping_keys = get_program_argovis_source_info_mapping()
 
     # Get the keys which will be combined independent of data type
     combined_mapping_keys = get_combined_mappings_keys()
@@ -54,7 +54,7 @@ def create_combined_mappings(btl_mappings, ctd_mappings, data_type):
     # keys are cchdo names and values are argovis names
     # for btl and ctd mapping, already using argovis names
     # just need to change into suffix version if in the mappings dict
-    #mappings_keys_mapping = get_program_argovis_mapping()
+    #mappings_keys_mapping = get_program_argovis_source_info_mapping()
 
     # Some mapping keys won't have a btl suffix such as argovis names key
     # but need to be combined into one dict
@@ -152,7 +152,7 @@ def get_combined_mappings(btl_dict, ctd_dict):
     # to take into account if have both btl and ctd, don't
     # include _btl suffix on meta not dependent on data source
 
-    mapping_keys_mapping = get_program_argovis_mapping()
+    mapping_keys_mapping = get_program_argovis_source_info_mapping()
 
     if btl_dict:
 
