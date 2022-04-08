@@ -22,6 +22,7 @@ def add_meta_wo_data_type(meta, data_type):
             if new_key == 'source_info':
                 # Remove the data type suffix from all the keys of
                 # the source_info obj
+                meta_wo_data_type[new_key] = {}
                 for sub_key, sub_val in val.items():
                     new_sub_key = sub_key.replace(f"_{data_type}", '')
                     meta_wo_data_type[new_key][new_sub_key] = sub_val

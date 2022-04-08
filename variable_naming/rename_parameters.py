@@ -1,3 +1,5 @@
+import logging
+
 from variable_naming.meta_param_mapping import get_cchdo_argovis_name_mapping_per_type
 from variable_naming.meta_param_mapping import get_cchdo_argovis_name_mapping
 from variable_naming.meta_param_mapping import get_parameters_no_data_type
@@ -6,10 +8,16 @@ from variable_naming.meta_param_mapping import get_parameters_no_data_type
 def rename_mapping_w_data_type(argovis_col_names_mapping_wo_data_type, data_type):
     # Add a suffix of the data_type
 
+    params_with_no_data_type = get_parameters_no_data_type()
+
     # put suffix before _woceqc
 
     argovis_col_names_mapping = {}
     for key, val in argovis_col_names_mapping_wo_data_type.items():
+
+        if key in params_with_no_data_type:
+            argovis_col_names_mapping[key] = val
+            continue
 
         if '_woceqc' in val:
             non_qc = val.replace('_woceqc', '')
@@ -51,11 +59,12 @@ def rename_with_data_type(params, data_type):
 
 def has_both_temperatures(names):
 
-    core_temperature_names = set(['ctd_temperature', 'ctd_temperature_68'])
-    temperature_names = set(names).intersection(
-        core_temperature_names)
+    has_ctd_temperature = any(
+        [True for name in names if name == 'ctd_temperature'])
+    has_ctd_temperature_68 = any(
+        [True for name in names if name == 'ctd_temperature_68'])
 
-    if len(temperature_names) == 2:
+    if has_ctd_temperature and has_ctd_temperature_68:
         return True
     else:
         return False
@@ -63,11 +72,12 @@ def has_both_temperatures(names):
 
 def has_both_oxygen(names):
 
-    core_oxygen_names = set(['ctd_oxygen', 'ctd_oxygen_ml_l'])
-    oxygen_names = set(names).intersection(
-        core_oxygen_names)
+    has_ctd_oxygen = any(
+        [True for name in names if name == 'ctd_oxygen'])
+    has_ctd_oxygen_ml_l = any(
+        [True for name in names if name == 'ctd_oxygen_ml_l'])
 
-    if len(oxygen_names) == 2:
+    if has_ctd_oxygen and has_ctd_oxygen_ml_l:
         return True
     else:
         return False
@@ -95,35 +105,22 @@ def rename_to_argovis_mapping(cchdo_names):
     if has_both_temp:
 
         # Only want to rename one
+        logging.info('has two ctd temperatures, param names are')
+        logging.info(cchdo_names)
 
-        print('has two ctd temperatures')
-
-        exit(1)
-
-        # TODO,
-        # Find better way so not dependent on these name conversions
-
-        cchdo_argovis_name_mapping['ctd_temperature_68'] = 'ctd_temperature_68'
-
-        if 'ctd_temperature_68_qc' in cchdo_argovis_name_mapping.keys():
+        if 'ctd_temperature_68' in cchdo_argovis_name_mapping.keys():
+            cchdo_argovis_name_mapping['ctd_temperature_68'] = 'ctd_temperature_68'
             cchdo_argovis_name_mapping['ctd_temperature_68_qc'] = 'ctd_temperature_68_qc'
-
-        core_cchdo_names.pop('ctd_temperature_68')
 
     if has_both_oxy:
 
-        print('has two ctd oxygens')
-
-        exit(1)
+        logging.info('has two ctd oxygens, param names are')
+        logging.info(cchdo_names)
 
         # Only want to rename one
-
-        cchdo_argovis_name_mapping['ctd_oxygen_ml_l'] = 'ctd_oxygen_ml_l'
-
-        if 'ctd_oxygen_ml_l_qc' in cchdo_argovis_name_mapping.keys():
+        if 'ctd_oxygen_ml_l' in cchdo_argovis_name_mapping.keys():
+            cchdo_argovis_name_mapping['ctd_oxygen_ml_l'] = 'ctd_oxygen_ml_l'
             cchdo_argovis_name_mapping['ctd_oxygen_ml_l_qc'] = 'ctd_oxygen_ml_l_qc'
-
-        core_cchdo_names.pop('ctd_oxygen_ml_l')
 
     # Now rename variables to ArgoVis names
 

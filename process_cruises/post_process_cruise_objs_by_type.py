@@ -13,6 +13,7 @@ from variable_naming.meta_param_mapping import rename_core_profile_keys
 from variable_naming.meta_param_mapping import rename_measurements_keys
 from variable_naming.meta_param_mapping import get_program_argovis_source_info_mapping
 from variable_naming.meta_param_mapping import get_source_independent_meta_names
+from variable_naming.meta_param_mapping import get_parameters_no_data_type
 
 
 def reorganize_meta_and_mappings(meta, mappings, data_type):
@@ -52,7 +53,8 @@ def rename_measurements(data_type, measurements):
     # key is current name and value is argovis name
     # TODO
     # rename function to cchdo_to_argovis_mapping
-    meas_name_mapping = rename_to_argovis_mapping(df_measurements.columns)
+    meas_name_mapping = rename_to_argovis_mapping(
+        list(df_measurements.columns))
 
     # Don't use suffix on measurementsSourceQC
 

@@ -203,4 +203,4 @@ def save_as_zip_data_type_profiles(data_type_profiles):
 
     # TODO
     # For development (comment out later)
-    unzip_file(zip_folder, zip_file)
+    #unzip_file(zip_folder, zip_file)

@@ -204,7 +204,7 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
 
         # btl and ctd but key error for data source units
         # has data_source_units_btl instead of data_source_units
-        test_cruise_expocode = '06GA316_1'
+        #test_cruise_expocode = '06GA316_1'
 
         # has both btl and ctd and want to filter
         # out meas objs without a temp var
@@ -236,6 +236,20 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
 
         # btl and ctd have diff # of N_PROF
         # test_cruise_expocode = '096U20160426'
+
+        # Has two temperatures. check it out if one is empty
+        # looks like only 1 with panopoly
+        # but print out cchdo_names and
+        # ['ctd_temperature', 'ctd_salinity', 'ctd_temperature_68']
+        test_cruise_expocode = '32MW058_1'
+
+        # btl & ctd. check if two temps
+        #test_cruise_expocode = '06GA316_1'
+
+        # check if two ctd oxys
+        # Checking panapoly, only see one,
+        # why is it flagging two?
+        #test_cruise_expocode = 'BIOS19891019'
 
         netcdf_cruises_objs = [
             cruise_obj for cruise_obj in netcdf_cruises_objs if cruise_obj['cruise_expocode'] == test_cruise_expocode]
