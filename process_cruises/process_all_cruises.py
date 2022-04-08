@@ -98,6 +98,7 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
         # Testing key existence ('data_type')
         # BTL and CTD
         # check profile_dict['data_type'] keyerror
+        # large files
         #test_cruise_expocode = '325020210420'
 
         # -----------------------
@@ -165,6 +166,8 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
         # for ctd_oxy qc = 3
         # for oxygen, qc = 2 and 9
         # And CTD converts
+        # TODO
+        # remove test print statements
         #test_cruise_expocode = '316N154_2'
 
         # oxygen conversion

@@ -122,7 +122,7 @@ def modify_xarray_obj(file_obj):
         nc, orig_param_names)
 
     # Now check so see if there is a 'temp_{data_type}'  column and a corresponding
-    # qc col. 'temp_{data_type}_qc'. If not, add a 'temp' qc col. with 0.
+    # qc col. 'temp_{data_type}_qc'. If not, add a temp qc col. with 0.
     # Add qc col here so it appears in var mappings of cchdo to argovis
 
     # TODO

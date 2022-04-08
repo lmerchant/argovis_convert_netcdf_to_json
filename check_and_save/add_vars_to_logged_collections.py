@@ -59,16 +59,16 @@ import logging
 
 #     # For param data
 #     try:
-#         cchdo_param_names = profile_dict['cchdoParamNames']
+#         cchdo_param_names = profile_dict['cchdo_param_names']
 #         cchdo_param_names = [
 #             name for name in cchdo_param_names if '_qc' not in name]
 #     except KeyError:
-#         if 'cchdoParamNamesBtl' in profile_keys:
-#             cchdo_param_names_btl = profile_dict['cchdoParamNamesBtl']
+#         if 'cchdo_param_names_btl' in profile_keys:
+#             cchdo_param_names_btl = profile_dict['cchdo_param_names_btl']
 #             cchdo_param_names_btl = [
 #                 name for name in cchdo_param_names_btl if '_qc' not in name]
-#         elif 'cchdoParamNamesCtd' in profile_keys:
-#             cchdo_param_names_ctd = profile_dict['cchdoParamNamesCtd']
+#         elif 'cchdo_param_names_ctd' in profile_keys:
+#             cchdo_param_names_ctd = profile_dict['cchdo_param_names_ctd']
 #             cchdo_param_names_ctd = [
 #                 name for name in cchdo_param_names_ctd if '_qc' not in name]
 
@@ -89,13 +89,13 @@ def get_argovis_param_names(profile_dict):
     # cchdo names are the keys and argovis names are the value
     key_mapping = get_program_argovis_mapping()
 
-    param_names_key = 'argovisParamNames'
+    param_names_key = 'argovis_param_names'
     renamed_param_names_key = key_mapping(param_names_key)
 
-    param_names_key_btl = 'argovisParamNamesBtl'
+    param_names_key_btl = 'argovis_param_names_btl'
     renamed_param_names_key_btl = key_mapping(param_names_key_btl)
 
-    param_names_key_ctd = 'argovisParamNamesCtd'
+    param_names_key_ctd = 'argovis_param_names_ctd'
     renamed_param_names_key_ctd = key_mapping(param_names_key_ctd)
 
     # For param data
@@ -191,16 +191,16 @@ def get_argovis_param_names(profile_dict):
 #     profile_keys = profile_dict.keys()
 
 #     try:
-#         name_mapping = profile_dict['cchdoArgovisParamMapping']
+#         name_mapping = profile_dict['cchdo_argovis_param_mapping']
 #         included_param_names = list(name_mapping.values())
 
 #     except KeyError:
-#         if 'cchdoArgovisParamMappingBtl' in profile_keys:
-#             name_mapping_btl = profile_dict['cchdoArgovisParamMappingBtl']
+#         if 'cchdo_argovis_param_mapping_btl' in profile_keys:
+#             name_mapping_btl = profile_dict['cchdo_argovis_param_mapping_btl']
 #             included_param_btl = list(name_mapping_btl.values())
 
-#         if 'cchdoArgovisParamMappingCtd' in profile_keys:
-#             name_mapping_ctd = profile_dict['cchdoArgovisParamMappingCtd']
+#         if 'cchdo_argovis_param_mapping_ctd' in profile_keys:
+#             name_mapping_ctd = profile_dict['cchdo_argovis_param_mapping_ctd']
 #             included_param_ctd = list(name_mapping_ctd.values())
 
 #     return included_param_names, included_param_btl, included_param_ctd
@@ -264,7 +264,7 @@ def find_param_excluded(profile_dict, included_param_btl, included_param_ctd, in
 #     # included_meta_cchdo = [
 #     #     name for name in name_mapping.keys() if '_qc' not in name]
 
-#     name_mapping = profile_dict['cchdoArgovisParamMapping']
+#     name_mapping = profile_dict['cchdo_argovis_param_mapping']
 #     included_param_cchdo_names = [
 #         name for name in name_mapping.keys() if '_qc' not in name]
 
@@ -274,7 +274,7 @@ def find_param_excluded(profile_dict, included_param_btl, included_param_ctd, in
 #     cchdo_meta_names = [
 #         name for name in cchdo_meta_names if '_qc' not in name]
 
-#     cchdo_param_names = profile_dict['cchdoParamNames']
+#     cchdo_param_names = profile_dict['cchdo_param_names']
 #     cchdo_param_names = [
 #         name for name in cchdo_param_names if '_qc' not in name]
 
@@ -338,7 +338,7 @@ def add_argovis_vars_one_profile(profile_dict):
     # included_meta_argovis = name_mapping.values()
 
     # cchdo names are the keys and argovis names are the value
-    cchdo_key = 'cchdoArgovisParamMapping'
+    cchdo_key = 'cchdo_argovis_param_mapping'
     key_mapping = get_program_argovis_mapping()
     renamed_key = key_mapping[cchdo_key]
 
@@ -354,7 +354,7 @@ def add_argovis_vars_one_profile(profile_dict):
     #argovis_meta_names = profile_dict['argovisMetaNames']
 
     key_mapping = get_program_argovis_mapping()
-    cchdo_key = 'argovisParamNames'
+    cchdo_key = 'argovis_param_names'
     renamed_argovis_param_names_key = key_mapping[cchdo_key]
 
     argovis_param_names = profile_dict[renamed_argovis_param_names_key]

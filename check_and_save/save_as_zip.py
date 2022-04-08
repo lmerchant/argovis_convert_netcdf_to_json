@@ -70,29 +70,6 @@ def get_data_dict(profile_dict, station_cast):
 
     measurements = df_meas.to_dict('records')
 
-    #measurement_sources = profile_dict['measurements_sources']
-
-    # for key, val in measurement_sources.items():
-
-    #     if 'temp' in key:
-
-    #         temp_null = df_meas['temp'].isnull().values.any()
-
-    #         if temp_null:
-
-    #             logging.info(f'{key} has some null values')
-
-    #             logging.info(
-    #                 'so remove these objects from measurements if not btl_ctd')
-
-    #             logging.info(f"\n\ndata type is {data_type}")
-
-    #             logging.info('measurements_source')
-    #             logging.info(profile_dict['measurements_source'])
-
-    #             logging.info('measurements_sources')
-    #             logging.info(profile_dict['measurements_sources'])
-
     # If data_type is 'btl_ctd', can have case of temp=nan but keep data_point
     # So don't filter out temp = nan values.
 
@@ -101,10 +78,10 @@ def get_data_dict(profile_dict, station_cast):
         filtered_measurements = []
 
         for obj in measurements:
-            has_temp = 'temp' in obj.keys()
+            has_temp = 'temperature' in obj.keys()
 
             if has_temp:
-                not_null_temp = pd.notnull(obj['temp'])
+                not_null_temp = pd.notnull(obj['temperature'])
             else:
                 not_null_temp = False
 

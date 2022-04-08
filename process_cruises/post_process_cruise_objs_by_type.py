@@ -63,11 +63,11 @@ def rename_measurements(data_type, measurements):
 
 def rename_measurements_sources(data_type, measurements_sources):
     # Rename measurementsSourceQC
-    # If have two 'temp' var names, means had both
+    # If have two 'temperature' var names, means had both
     # ctd_temerature and ctd_temperature_68
     # Check before rename, and remove one not being used
     # if both not being used, remove one so don't end
-    # up with two 'temp' keys and should
+    # up with two 'temperature' keys and should
     # be saying using_temp False
 
     renamed_meas_sources = {}
@@ -76,7 +76,7 @@ def rename_measurements_sources(data_type, measurements_sources):
 
     for key, val in measurements_sources.items():
         # change key to argovis name
-        # e.g. 'using_ctd_temperature' to 'temp'
+        # e.g. 'using_ctd_temperature' to 'temperature'
         #var_in_key = key.replace('using_', '')
         # get map of cchdo name to argovis name
         # rename_to_argovis expects a list of names to map
@@ -91,23 +91,23 @@ def rename_measurements_sources(data_type, measurements_sources):
 
         renamed_meas_sources[new_key] = val
 
-    if ('temp' in renamed_meas_sources) and ('temp_68' in renamed_meas_sources):
-        using_temp = renamed_meas_sources['temp']
-        using_temp_68 = renamed_meas_sources['temp_68']
+    if ('temperature' in renamed_meas_sources) and ('temperature_68' in renamed_meas_sources):
+        using_temp = renamed_meas_sources['temperature']
+        using_temp_68 = renamed_meas_sources['temperature_68']
 
         if using_temp:
-            renamed_meas_sources.pop('temp_68', None)
+            renamed_meas_sources.pop('temperature_68', None)
         elif using_temp_68:
-            renamed_meas_sources.pop('temp', None)
-            renamed_meas_sources['temp'] = renamed_meas_sources['temp_68']
-            renamed_meas_sources.pop('temp_68', None)
+            renamed_meas_sources.pop('temperature', None)
+            renamed_meas_sources['temperature'] = renamed_meas_sources['temperature_68']
+            renamed_meas_sources.pop('temperature_68', None)
         else:
-            renamed_meas_sources['temp'] = False
-            renamed_meas_sources.pop('temp_68', None)
+            renamed_meas_sources['temperature'] = False
+            renamed_meas_sources.pop('temperature_68', None)
 
-    elif ('temp' not in renamed_meas_sources) and ('temp_68' in renamed_meas_sources):
-        renamed_meas_sources['temp'] = renamed_meas_sources['temp_68']
-        renamed_meas_sources.pop('temp_68', None)
+    elif ('temperature' not in renamed_meas_sources) and ('temperature_68' in renamed_meas_sources):
+        renamed_meas_sources['temperature'] = renamed_meas_sources['temperature_68']
+        renamed_meas_sources.pop('temperature_68', None)
 
     return renamed_meas_sources
 
@@ -119,10 +119,10 @@ def create_mappings(profile_dict, data_type, meta, argovis_col_names_mapping):
     # Want before and after conversions
     # before
     #cchdo_meta_names = profile_dict['cchdoMetaNames']
-    cchdo_units = profile_dict['cchdoUnits']
-    cchdo_ref_scale = profile_dict['cchdoReferenceScale']
-    cchdo_param_names = profile_dict['cchdoParamNames']
-    cchdo_standard_names = profile_dict['cchdoStandardNames']
+    cchdo_units = profile_dict['cchdo_units']
+    cchdo_ref_scale = profile_dict['cchdo_reference_scale']
+    cchdo_param_names = profile_dict['cchdo_param_names']
+    cchdo_standard_names = profile_dict['cchdo_standard_names']
 
     # vars with attributes changed
     cchdo_converted_units = profile_dict['cchdoConvertedUnits']
@@ -138,25 +138,25 @@ def create_mappings(profile_dict, data_type, meta, argovis_col_names_mapping):
 
     # key argovisParamNames
     # (listing of all the var names in data)
-    mappings['argovisParamNames'] = list(argovis_col_names_mapping.values())
+    mappings['argovis_param_names'] = list(argovis_col_names_mapping.values())
 
     # key cchdoArgovisParamMapping
     # from above, this is argovis_col_names_mapping
-    mappings['cchdoArgovisParamMapping'] = argovis_col_names_mapping
+    mappings['cchdo_argovis_param_mapping'] = argovis_col_names_mapping
 
     # key cchdoStandardNames
-    mappings['cchdoStandardNames'] = cchdo_standard_names
+    mappings['cchdo_standard_names'] = cchdo_standard_names
 
     # key cchdo param names
-    mappings['cchdoParamNames'] = cchdo_param_names
+    mappings['cchdo_param_names'] = cchdo_param_names
 
     # # key cchdoReferenceScale
     # # starting reference scales before any conversions
-    # mappings['cchdoReferenceScale'] = cchdo_ref_scale
+    # mappings['cchdo_reference_scale'] = cchdo_ref_scale
 
     # # key cchdoUnits
     # # starting units before any conversions
-    # mappings['cchdoUnits'] = cchdo_units
+    # mappings['cchdo_units'] = cchdo_units
 
     # key argovisReferenceScale
     # Values are the same as cchdo except those converted
@@ -170,8 +170,8 @@ def create_mappings(profile_dict, data_type, meta, argovis_col_names_mapping):
     argovis_name_mapping = rename_to_argovis(
         list(argovis_ref_scale_mapping.keys()), data_type)
 
-    mappings['argovisReferenceScale'] = {argovis_name_mapping[key]: value for key,
-                                         value in argovis_ref_scale_mapping.items()}
+    mappings['argovis_reference_scale'] = {argovis_name_mapping[key]: value for key,
+                                           value in argovis_ref_scale_mapping.items()}
 
     # key argovisUnits
     # Values are the same as cchdo except those converted
@@ -183,8 +183,8 @@ def create_mappings(profile_dict, data_type, meta, argovis_col_names_mapping):
     argovis_name_mapping = rename_to_argovis(
         list(argovis_units_mapping.keys()), data_type)
 
-    mappings['argovisUnits'] = {argovis_name_mapping[key]: value for key,
-                                value in argovis_units_mapping.items()}
+    mappings['argovis_units'] = {argovis_name_mapping[key]: value for key,
+                                 value in argovis_units_mapping.items()}
 
     return mappings
 

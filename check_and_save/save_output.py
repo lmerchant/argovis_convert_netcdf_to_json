@@ -32,13 +32,13 @@ def get_unique_cchdo_units(data_type_profiles):
     # cchdo names are the keys and argovis names are the value
     key_mapping = get_program_argovis_mapping()
 
-    cchdo_units_key = 'cchdoUnits'
+    cchdo_units_key = 'cchdo_units'
     renamed_cchdo_units_key = key_mapping[cchdo_units_key]
 
-    cchdo_units_key_btl = 'cchdoUnitsBtl'
+    cchdo_units_key_btl = 'cchdo_units_btl'
     renamed_cchdo_units_key_btl = key_mapping[cchdo_units_key_btl]
 
-    cchdo_units_key_ctd = 'cchdoUnitsCtd'
+    cchdo_units_key_ctd = 'cchdo_units_ctd'
     renamed_cchdo_units_key_ctd = key_mapping[cchdo_units_key_ctd]
 
     all_cchdo_units_mapping = {}
@@ -110,13 +110,13 @@ def write_profile_cchdo_units_one_profile(data_type, profile):
     # cchdo names are the keys and argovis names are the value
     key_mapping = get_program_argovis_mapping()
 
-    cchdo_units_key = 'cchdoUnits'
+    cchdo_units_key = 'cchdo_units'
     renamed_cchdo_units_key = key_mapping[cchdo_units_key]
 
-    cchdo_units_key_btl = 'cchdoUnitsBtl'
+    cchdo_units_key_btl = 'cchdo_units_btl'
     renamed_cchdo_units_key_btl = key_mapping[cchdo_units_key_btl]
 
-    cchdo_units_key_ctd = 'cchdoUnitsCtd'
+    cchdo_units_key_ctd = 'cchdo_units_ctd'
     renamed_cchdo_units_key_ctd = key_mapping[cchdo_units_key_ctd]
 
     if data_type == 'btl':
@@ -147,13 +147,13 @@ def write_profile_cchdo_units(checked_profiles_info):
     # cchdo names are the keys and argovis names are the value
     key_mapping = get_program_argovis_mapping()
 
-    cchdo_units_key = 'cchdoUnits'
+    cchdo_units_key = 'cchdo_units'
     renamed_cchdo_units_key = key_mapping[cchdo_units_key]
 
-    cchdo_units_key_btl = 'cchdoUnitsBtl'
+    cchdo_units_key_btl = 'cchdo_units_btl'
     renamed_cchdo_units_key_btl = key_mapping[cchdo_units_key_btl]
 
-    cchdo_units_key_ctd = 'cchdoUnitsCtd'
+    cchdo_units_key_ctd = 'cchdo_units_ctd'
     renamed_cchdo_units_key_ctd = key_mapping[cchdo_units_key_ctd]
 
     # Write one profile cchdo units to

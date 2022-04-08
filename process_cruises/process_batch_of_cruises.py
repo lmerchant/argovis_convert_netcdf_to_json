@@ -34,7 +34,7 @@ def process_batch_of_cruises(cruise_objs):
 
     # one_profile = profiles[0]
 
-    # print(one_profile['profile_dict']['cchdoParamNames'])
+    # print(one_profile['profile_dict']['cchdo_param_names'])
 
     # print(f"\n")
 
@@ -80,6 +80,8 @@ def process_batch_of_cruises(cruise_objs):
 
     # print(one_profile)
 
+    # exit(1)
+
     # ***********************************
     # Write included/excluded cchdo vars
     # ***********************************
@@ -112,6 +114,8 @@ def process_batch_of_cruises(cruise_objs):
     # If cruise only has btl or ctd, save that.
     # It can happen that one station_cast only exists
     # for one data type, so save that uncombined
+    #
+    # Add a suffix of _btl or _ctd
     # ************************************************
 
     logging.info('-----------------------------------------')
@@ -120,7 +124,3 @@ def process_batch_of_cruises(cruise_objs):
     logging.info('-----------------------------------------')
 
     post_process_cruise_objs_by_collection(cruise_objs_by_type)
-
-    # Remove any measurements with temp = NaN when saving
-
-    # save_data_type_profiles_per_type(single_data_type_cruises)

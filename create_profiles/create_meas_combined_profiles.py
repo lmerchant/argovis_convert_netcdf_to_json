@@ -57,10 +57,12 @@ def get_combined_measurements(btl_meas, ctd_meas, hierarchy_meas_cols, hierarchy
 
     if hierarchy_source_flag != 'BTL_CTD':
         if btl_meas:
-            btl_meas = [obj for obj in btl_meas if pd.notna(obj['temp'])]
+            btl_meas = [obj for obj in btl_meas if pd.notna(
+                obj['temperature'])]
 
         if ctd_meas:
-            ctd_meas = [obj for obj in ctd_meas if pd.notna(obj['temp'])]
+            ctd_meas = [obj for obj in ctd_meas if pd.notna(
+                obj['temperature'])]
 
         # num_pts_after_btl = len(btl_meas)
         # num_pts_after_ctd = len(ctd_meas)
@@ -118,14 +120,14 @@ def find_btl_ctd_combinations(hierarchy_btl, hierarchy_ctd):
     if btl_condition and ctd_condition:
         hierarchy_meas_cols = {
             'btl': [],
-            'ctd': ['pres', 'temp']
+            'ctd': ['pres', 'temperature']
         }
 
         source_flag = 'CTD'
 
         meas_sources = {
             'pres_ctd': True,
-            'temp_ctd': True
+            'temperature_ctd': True
         }
 
         if has_psal_ctd:
@@ -150,17 +152,17 @@ def find_btl_ctd_combinations(hierarchy_btl, hierarchy_ctd):
     if btl_condition and ctd_condition:
         hierarchy_meas_cols = {
             'btl': ['pres', 'salinity'],
-            'ctd': ['pres', 'temp']
+            'ctd': ['pres', 'temperature']
         }
 
         source_flag = 'BTL_CTD'
 
         meas_sources = {
             'pres_btl': True,
-            'temp_btl': False,
+            'temperature_btl': False,
             'salinity_btl': True,
             'pres_ctd': True,
-            'temp_ctd': True
+            'temperature_ctd': True
         }
 
         if has_psal_btl:
@@ -187,17 +189,17 @@ def find_btl_ctd_combinations(hierarchy_btl, hierarchy_ctd):
     if btl_condition and ctd_condition:
         hierarchy_meas_cols = {
             'btl': ['pres', 'psal'],
-            'ctd': ['pres', 'temp']
+            'ctd': ['pres', 'temperature']
         }
 
         source_flag = 'BTL_CTD'
 
         meas_sources = {
             'pres_btl': True,
-            'temp_btl': False,
+            'temperature_btl': False,
             'psal_btl': True,
             'pres_ctd': True,
-            'temp_ctd': True
+            'temperature_ctd': True
         }
 
         if has_psal_ctd:
@@ -221,12 +223,12 @@ def find_btl_ctd_combinations(hierarchy_btl, hierarchy_ctd):
     if ctd_condition:
         hierarchy_meas_cols = {
             'btl': [],
-            'ctd': ['pres', 'temp', 'psal']
+            'ctd': ['pres', 'temperature', 'psal']
         }
 
         meas_sources = {
             'pres_ctd': True,
-            'temp_ctd': True,
+            'temperature_ctd': True,
             'psal_ctd': True
         }
 
@@ -249,7 +251,7 @@ def find_btl_ctd_combinations(hierarchy_btl, hierarchy_ctd):
 
     if btl_condition and ctd_condition:
         hierarchy_meas_cols = {
-            'btl': ['pres', 'temp'],
+            'btl': ['pres', 'temperature'],
             'ctd': []
         }
 
@@ -257,7 +259,7 @@ def find_btl_ctd_combinations(hierarchy_btl, hierarchy_ctd):
 
         meas_sources = {
             'pres_btl': True,
-            'temp_btl': True
+            'temperature_btl': True
         }
 
         if has_psal_btl:
@@ -282,7 +284,7 @@ def find_btl_ctd_combinations(hierarchy_btl, hierarchy_ctd):
 
     if btl_condition and ctd_condition:
         hierarchy_meas_cols = {
-            'btl': ['pres', 'temp', 'psal'],
+            'btl': ['pres', 'temperature', 'psal'],
             'ctd': []
         }
 
@@ -290,7 +292,7 @@ def find_btl_ctd_combinations(hierarchy_btl, hierarchy_ctd):
 
         meas_sources = {
             'pres_btl': True,
-            'temp_btl': True,
+            'temperature_btl': True,
             'psal_btl': True
         }
 
@@ -314,7 +316,7 @@ def find_btl_ctd_combinations(hierarchy_btl, hierarchy_ctd):
 
     if btl_condition and ctd_condition:
         hierarchy_meas_cols = {
-            'btl': ['pres', 'temp', 'salinity'],
+            'btl': ['pres', 'temperature', 'salinity'],
             'ctd': []
         }
 
@@ -322,7 +324,7 @@ def find_btl_ctd_combinations(hierarchy_btl, hierarchy_ctd):
 
         meas_sources = {
             'pres_btl': True,
-            'temp_btl': True,
+            'temperature_btl': True,
             'salinity_btl': True
         }
 
@@ -347,14 +349,14 @@ def find_btl_ctd_combinations(hierarchy_btl, hierarchy_ctd):
     if btl_condition and ctd_condition:
         hierarchy_meas_cols = {
             'btl': [],
-            'ctd': ['pres', 'temp']
+            'ctd': ['pres', 'temperature']
         }
 
         source_flag = 'CTD'
 
         meas_sources = {
             'pres_ctd': True,
-            'temp_ctd': True
+            'temperature_ctd': True
         }
 
         if has_psal_ctd:
@@ -384,9 +386,9 @@ def find_btl_ctd_combinations(hierarchy_btl, hierarchy_ctd):
 
         meas_sources = {
             'pres_btl': False,
-            'temp_btl': False,
+            'temperature_btl': False,
             'pres_ctd': False,
-            'temp_ctd': False
+            'temperature_ctd': False
         }
 
         if has_psal_btl:
@@ -442,10 +444,10 @@ def get_hierarchy_single_source(source_dict):
     hierarchy = {}
 
     # check ctd_temperature
-    has_key = "temp" in source
+    has_key = 'temperature' in source
 
     if has_key:
-        hierarchy['good_temp'] = source['temp']
+        hierarchy['good_temp'] = source['temperature']
     else:
         hierarchy['good_temp'] = False
 

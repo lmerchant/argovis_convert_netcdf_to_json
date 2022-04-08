@@ -62,6 +62,7 @@ def post_process_cruise_objs_by_collection(cruise_objs_by_type):
             elif is_ctd:
                 data_type = 'ctd'
 
+            # Add suffix of _btl and _ctd
             all_profiles = update_profiles_single_type(
                 all_data_types_profile_objs, data_type)
 

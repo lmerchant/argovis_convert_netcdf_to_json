@@ -182,9 +182,9 @@ def create_cchdo_argovis_mappings(
         all_argovis_param_names = argovis_param_mapping['names']
 
         #new_mapping['cchdoMetaNames'] = all_cchdo_meta_names
-        new_mapping['cchdoParamNames'] = all_cchdo_param_names
+        new_mapping['cchdo_param_names'] = all_cchdo_param_names
         #new_mapping['argovisMetaNames'] = all_argovis_meta_names
-        new_mapping['argovisParamNames'] = all_argovis_param_names
+        new_mapping['argovis_param_names'] = all_argovis_param_names
 
         # TODO
         # List of non qc parameter names (or all keys?)
@@ -223,18 +223,18 @@ def create_cchdo_argovis_mappings(
                               val in name_mapping.items() if key in all_cchdo_param_names}
 
         #new_mapping['cchdoArgovisMetaMapping'] = meta_name_mapping
-        new_mapping['cchdoArgovisParamMapping'] = param_name_mapping
+        new_mapping['cchdo_argovis_param_mapping'] = param_name_mapping
 
-        new_mapping['cchdoReferenceScale'] = {
+        new_mapping['cchdo_reference_scale'] = {
             **cchdo_meta_mapping['ref_scale'], **cchdo_param_mapping['ref_scale']}
 
-        new_mapping['argovisReferenceScale'] = {
+        new_mapping['argovis_reference_scale'] = {
             **argovis_meta_mapping['ref_scale'], **argovis_param_mapping['ref_scale']}
 
-        new_mapping['cchdoUnits'] = {
+        new_mapping['cchdo_units'] = {
             **cchdo_meta_mapping['units'], **cchdo_param_mapping['units']}
 
-        new_mapping['argovisUnits'] = {
+        new_mapping['argovis_units'] = {
             **argovis_meta_mapping['units'], **argovis_param_mapping['units']}
 
         all_mapping_profiles.append(new_mapping)
@@ -277,28 +277,28 @@ def create_cchdo_mappings(nc_mappings, all_name_mapping):
         # meta names don't change
         #new_mapping['cchdoMetaNames'] = all_cchdo_meta_names
 
-        new_mapping['cchdoParamNames'] = [
+        new_mapping['cchdo_param_names'] = [
             col for col in all_cchdo_param_names if col in non_empty_cols]
 
         cur_param_standard_names_mapping = cchdo_param_mapping['netcdf_name']
         new_param_standard_names_mapping = {
             key: val for key, val in cur_param_standard_names_mapping.items() if key in non_empty_cols}
 
-        new_mapping['cchdoStandardNames'] = {
+        new_mapping['cchdo_standard_names'] = {
             **cchdo_meta_mapping['netcdf_name'], **new_param_standard_names_mapping}
 
         cur_param_ref_scale_mapping = cchdo_param_mapping['ref_scale']
         new_param_ref_scale_mapping = {
             key: val for key, val in cur_param_ref_scale_mapping.items() if key in non_empty_cols}
 
-        new_mapping['cchdoReferenceScale'] = {
+        new_mapping['cchdo_reference_scale'] = {
             **cchdo_meta_mapping['ref_scale'], **new_param_ref_scale_mapping}
 
         cur_param_units_mapping = cchdo_param_mapping['units']
         new_param_units_mapping = {
             key: val for key, val in cur_param_units_mapping.items() if key in non_empty_cols}
 
-        new_mapping['cchdoUnits'] = {
+        new_mapping['cchdo_units'] = {
             **cchdo_meta_mapping['units'], **new_param_units_mapping}
 
         # Update station_casts with unconverted oxygen

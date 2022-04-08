@@ -12,62 +12,12 @@ def get_source_independent_meta_names():
     return names
 
 
-# def get_source_independent_meta_names():
-
-#     names = ['expocode', 'cruise_url', 'section_id', 'station', 'cast', 'cruise_id',
-#              'woce_lines', 'data_center', 'positioning_system',  '_id', 'country']
-
-#     return names
-
-# def get_cchdo_var_attributes_keys():
-#     return ['cchdoReferenceScale', 'cchdoUnits']
-
-
-# def get_argovis_var_attributes_keys():
-#     return ['argovisReferenceScale', 'argovisUnits']
-
-
-# TODO
-# Why use this when could use get_program_argovis_mapping
-
-# def get_meta_mapping_keys():
-
-#     # TODO
-#     # don't want to map to new names yet
-#     # where else do I call this
-
-#     return ['cchdoParamNames',
-#             'argovisParamNames', 'cchdoArgovisParamMapping']
-
-
-# def get_meta_mapping_keys_orig():
-
-#     # TODO
-#     # don't want to map to new names yet
-#     # where else do I call this
-
-#     cchdo_mapping_keys = ['cchdoParamNames',
-#                           'argovisParamNames', 'cchdoArgovisParamMapping']
-
-#     key_mapping = get_program_argovis_mapping()
-
-#     new_mappings_keys = {}
-#     for key in cchdo_mapping_keys:
-#         new_key = key_mapping[key]
-#         new_mappings_keys[new_key] = key_mapping[key]
-
-#     return new_mappings_keys
-
-
 def get_measurements_mapping():
     return {
         'measurements': 'measurements',
         'measurementsSource': 'measurements_source',
         'measurementsSources': 'measurements_sources'
     }
-
- # TODO
- # really just call get_meta_mappping()
 
 
 def get_meta_mapping():
@@ -108,26 +58,26 @@ def get_program_argovis_mapping():
 
     return {
         # 'cchdoMetaNames': 'cchdo_meta_names',
-        'cchdoParamNames': 'data_keys_source',
-        'cchdoParamNamesBtl': 'data_keys_source_btl',
-        'cchdoParamNamesCtd': 'data_keys_source_ctd',
-        'argovisParamNames': 'data_keys',
-        'argovisParamNamesBtl': 'data_keys_btl',
-        'argovisParamNamesCtd': 'data_keys_ctd',
-        'cchdoArgovisParamMapping': 'data_keys_mapping',
-        'cchdoArgovisParamMappingBtl': 'data_keys_mapping_btl',
-        'cchdoArgovisParamMappingCtd': 'data_keys_mapping_ctd',
-        'cchdoReferenceScale': 'data_source_reference_scale',
-        'cchdoReferenceScaleBtl': 'data_source_reference_scale_btl',
-        'cchdoReferenceScaleCtd': 'data_source_reference_scale_ctd',
-        'cchdoUnits': 'data_source_units',
-        'cchdoUnitsBtl': 'data_source_units_btl',
-        'cchdoUnitsCtd': 'data_source_units_ctd',
-        'argovisReferenceScale': 'data_reference_scale',
-        'argovisUnits': 'data_units',
-        'cchdoStandardNames': 'data_source_standard_names',
-        'cchdoStandardNamesBtl': 'data_source_standard_names_btl',
-        'cchdoStandardNamesCtd': 'data_source_standard_names_ctd'
+        'cchdo_param_names': 'data_keys_source',
+        'cchdo_param_names_btl': 'data_keys_source_btl',
+        'cchdo_param_names_ctd': 'data_keys_source_ctd',
+        'argovis_param_names': 'data_keys',
+        'argovis_param_names_btl': 'data_keys_btl',
+        'argovis_param_names_ctd': 'data_keys_ctd',
+        'cchdo_argovis_param_mapping': 'data_keys_mapping',
+        'cchdo_argovis_param_mapping_btl': 'data_keys_mapping_btl',
+        'cchdo_argovis_param_mapping_ctd': 'data_keys_mapping_ctd',
+        'cchdo_reference_scale': 'data_source_reference_scale',
+        'cchdo_reference_scale_btl': 'data_source_reference_scale_btl',
+        'cchdo_reference_scale_ctd': 'data_source_reference_scale_ctd',
+        'cchdo_units': 'data_source_units',
+        'cchdo_units_btl': 'data_source_units_btl',
+        'cchdo_units_ctd': 'data_source_units_ctd',
+        'argovis_reference_scale': 'data_reference_scale',
+        'argovis_units': 'data_units',
+        'cchdo_standard_names': 'data_source_standard_names',
+        'cchdo_standard_names_btl': 'data_source_standard_names_btl',
+        'cchdo_standard_names_ctd': 'data_source_standard_names_ctd'
     }
 
 
@@ -150,18 +100,16 @@ def get_cchdo_argovis_name_mapping_per_type(data_type):
         'pressure_qc': 'pres_woceqc',
         'ctd_salinity': f'psal_{data_type}',
         'ctd_salinity_qc': f'psal_{data_type}_woceqc',
-        'ctd_temperature': f'temp_{data_type}',
-        'ctd_temperature_qc': f'temp_{data_type}_woceqc',
-        'ctd_temperature_68': f'temp_{data_type}',
-        'ctd_temperature_68_qc': f'temp_{data_type}_woceqc',
+        'ctd_temperature': f'temperature_{data_type}',
+        'ctd_temperature_qc': f'temperature_{data_type}_woceqc',
+        'ctd_temperature_68': f'temperature_{data_type}',
+        'ctd_temperature_68_qc': f'temperature_{data_type}_woceqc',
         'ctd_oxygen': f'doxy_{data_type}',
         'ctd_oxygen_qc': f'doxy_{data_type}_woceqc',
         'ctd_oxygen_ml_l': f'doxy_{data_type}',
         'ctd_oxygen_ml_l_qc': f'doxy_{data_type}_woceqc',
         'bottle_salinity': f'salinity_{data_type}',
-        'bottle_salinity_qc': f'salinity_{data_type}_woceqc',
-        'latitude': 'latitude',
-        'longitude': 'longitude'
+        'bottle_salinity_qc': f'salinity_{data_type}_woceqc'
     }
 
 
@@ -172,18 +120,16 @@ def get_cchdo_argovis_name_mapping():
         'pressure_qc': 'pres_woceqc',
         'ctd_salinity': f'psal',
         'ctd_salinity_qc': f'psal_woceqc',
-        'ctd_temperature': f'temp',
-        'ctd_temperature_qc': f'temp_woceqc',
-        'ctd_temperature_68': f'temp',
-        'ctd_temperature_68_qc': f'temp_woceqc',
+        'ctd_temperature': f'temperature',
+        'ctd_temperature_qc': f'temperature_woceqc',
+        'ctd_temperature_68': f'temperature',
+        'ctd_temperature_68_qc': f'temperature_woceqc',
         'ctd_oxygen': f'doxy',
         'ctd_oxygen_qc': f'doxy_woceqc',
         'ctd_oxygen_ml_l': f'doxy',
         'ctd_oxygen_ml_l_qc': f'doxy_woceqc',
         'bottle_salinity': f'salinity',
-        'bottle_salinity_qc': f'salinity_woceqc',
-        'latitude': 'latitude',
-        'longitude': 'longitude'
+        'bottle_salinity_qc': f'salinity_woceqc'
     }
 
 
