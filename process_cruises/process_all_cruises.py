@@ -235,21 +235,16 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
         # test_cruise_expocode = '325020210420'
 
         # btl and ctd have diff # of N_PROF
-        # test_cruise_expocode = '096U20160426'
+        #test_cruise_expocode = '096U20160426'
 
-        # Has two temperatures. check it out if one is empty
-        # looks like only 1 with panopoly
-        # but print out cchdo_names and
-        # ['ctd_temperature', 'ctd_salinity', 'ctd_temperature_68']
-        test_cruise_expocode = '32MW058_1'
-
-        # btl & ctd. check if two temps
-        #test_cruise_expocode = '06GA316_1'
-
-        # check if two ctd oxys
-        # Checking panapoly, only see one,
-        # why is it flagging two?
-        #test_cruise_expocode = 'BIOS19891019'
+        # This cruise has btl and ctd, but when
+        # combine on station cast, some have only
+        # one data type
+        # So want instrument key to reflect this
+        # that it is not ship_ctd_btl but ship_ctd
+        # Look at station 535, cast 1, only ctd
+        # station 536, has btl and ctd
+        test_cruise_expocode = '06AQANTX_4'
 
         netcdf_cruises_objs = [
             cruise_obj for cruise_obj in netcdf_cruises_objs if cruise_obj['cruise_expocode'] == test_cruise_expocode]
@@ -552,6 +547,25 @@ def get_active_cruises_json():
     return cruises_json
 
 
+def check_if_us_goship(cruise_json):
+
+    collections = cruise_json['collections']
+    programs = collections['programs']
+
+    goship_programs = [
+        program for program in programs if program.lower() == 'go-ship']
+
+    country = cruise_json['country']
+
+    is_us = country == 'US'
+
+    if len(goship_programs) >= 1 and is_us:
+        print('found us goship')
+        return True
+    else:
+        return False
+
+
 def process_all_cruises(time_range):
 
     # Get active cruises and active NetCDF CF files
@@ -577,12 +591,23 @@ def process_all_cruises(time_range):
 
     # Now find cruises with the NetCDF CF active files attached
     netcdf_cruises_objs = []
+
+    goship_cruises = []
     for cruise_json in active_cruises_json:
 
         in_time_range = check_if_in_time_range(cruise_json, time_range)
 
         if not in_time_range:
             continue
+
+        # TODO
+        # remove in production
+
+        # Temporary function to filter us goship cruises
+        # is_us_goship = check_if_us_goship(cruise_json)
+
+        # if not is_us_goship:
+        #     continue
 
         # Get files attached to the cruise which
         # could be inactive ones so check if file exists in all_files
@@ -594,8 +619,6 @@ def process_all_cruises(time_range):
 
         if not cruise_netcdf_file_ids:
             continue
-
-        # cruise_netcdf_file_ids = [id for id in cruise_netcdf_file_ids if id]
 
         # create file objects which will contain file and cruise meta
         # for each file

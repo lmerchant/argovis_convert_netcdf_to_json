@@ -3,51 +3,43 @@ import pandas as pd
 import numpy as np
 import logging
 
+
 from global_vars import GlobalVars
 
 
-def get_cchdo_argovis_unit_name_mapping():
+# def change_units_to_argovis(nc, cchdo_param_mapping):
 
-    return {
-        'dbar': 'decibar',
-        'degC': 'Celsius',
-        'umol/kg': 'micromole/kg'
-    }
+#     # Rename units (no conversion)
 
+#     param_names = cchdo_param_mapping['names']
+#     unit_name_mapping = get_cchdo_argovis_unit_name_mapping()
+#     cchdo_unit_names = list(unit_name_mapping.keys())
 
-def change_units_to_argovis(nc, cchdo_param_mapping):
+#     # Get reference scale to determine if salinity because there
+#     # can be a cchdo unit of '1' that is not salinity
+#     salinity_ref_scale = 'PSS-78'
 
-    # Rename units (no conversion)
+#     for var in param_names:
 
-    param_names = cchdo_param_mapping['names']
-    unit_name_mapping = get_cchdo_argovis_unit_name_mapping()
-    cchdo_unit_names = list(unit_name_mapping.keys())
+#         # Change salinity  unit
+#         try:
+#             var_ref_scale = nc[var].attrs['reference_scale']
+#             var_units = nc[var].attrs['units']
 
-    # Get reference scale to determine if salinity because there
-    # can be a cchdo unit of '1' that is not salinity
-    salinity_ref_scale = 'PSS-78'
+#             if var_ref_scale == salinity_ref_scale and var_units == '1':
+#                 nc[var].attrs['units'] = 'psu'
+#         except KeyError:
+#             pass
 
-    for var in param_names:
+#         # Change other units
+#         try:
+#             var_units = nc[var].attrs['units']
+#             if var_units in cchdo_unit_names and var_units != 1:
+#                 nc[var].attrs['units'] = unit_name_mapping[var_units]
+#         except KeyError:
+#             pass
 
-        # Change salinity  unit
-        try:
-            var_ref_scale = nc[var].attrs['reference_scale']
-            var_units = nc[var].attrs['units']
-
-            if var_ref_scale == salinity_ref_scale and var_units == '1':
-                nc[var].attrs['units'] = 'psu'
-        except KeyError:
-            pass
-
-        # Change other units
-        try:
-            var_units = nc[var].attrs['units']
-            if var_units in cchdo_unit_names and var_units != 1:
-                nc[var].attrs['units'] = unit_name_mapping[var_units]
-        except KeyError:
-            pass
-
-    return nc
+#     return nc
 
 
 class FormatFloat(float):
@@ -135,22 +127,22 @@ def drop_vars(nc):
     return nc
 
 
-def add_pres_qc(nc):
+# def add_pres_qc(nc):
 
-    # Donata wants to add pres_qc = 1
-    qc_name = f"pressure_qc"
+#     # Donata wants to add pres_qc = 1
+#     qc_name = f"pressure_qc"
 
-    # Add a qc column with values np.nan first
-    # and later set = 1. Do np.nan first to make it easier to remove rows
-    # with all nan values including np.nan
+#     # Add a qc column with values np.nan first
+#     # and later set = 1. Do np.nan first to make it easier to remove rows
+#     # with all nan values including np.nan
 
-    pres_shape = np.shape(nc['pressure'])
-    shape = np.transpose(pres_shape)
-    pres_qc = np.empty(shape)
-    pres_qc[:] = 0
-    nc[qc_name] = (['N_PROF', 'N_LEVELS'], pres_qc)
+#     pres_shape = np.shape(nc['pressure'])
+#     shape = np.transpose(pres_shape)
+#     pres_qc = np.empty(shape)
+#     pres_qc[:] = 0
+#     nc[qc_name] = (['N_PROF', 'N_LEVELS'], pres_qc)
 
-    return nc
+#     return nc
 
 
 def add_qc_if_no_temp_qc(nc):

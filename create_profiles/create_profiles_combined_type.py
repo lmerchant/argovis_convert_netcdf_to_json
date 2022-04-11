@@ -111,6 +111,10 @@ def combine_btl_ctd_per_profile(btl_profile, ctd_profile):
         data_type = 'btl_ctd'
         combined_meta = {**ctd_meta_wo_data_type, **ctd_meta, **btl_meta}
 
+        # Add instrument key to indicate profile data type
+        # It's ship_btl_ctd because cruise has both a bottle and ctd file
+        combined_meta['instrument'] = 'ship_ctd_btl'
+
     elif btl_dict and not ctd_dict:
         # TODO
         # Check if this is true
@@ -119,17 +123,17 @@ def combine_btl_ctd_per_profile(btl_profile, ctd_profile):
         data_type = 'btl'
         combined_meta = {**btl_meta_wo_data_type, **btl_meta}
 
+        combined_meta['instrument'] = 'ship_btl'
+
     elif ctd_dict and not btl_dict:
         data_type = 'ctd'
         combined_meta = {**ctd_meta_wo_data_type, **ctd_meta}
 
+        combined_meta['instrument'] = 'ship_ctd'
+
     # meta_w_data_type = {**ctd_meta_w_data_type, **btl_meta_w_data_type}
 
     # combined_meta = {**meta, **meta_w_data_type}
-
-    # Add instrument key to indicate profile data type
-    # It's ship_btl_ctd because cruise has both a bottle and ctd file
-    combined_meta['instrument'] = 'ship_ctd_btl'
 
     combined_data = [*ctd_data, *btl_data]
 
@@ -344,6 +348,7 @@ def create_profiles_combined_type(profiles_objs):
     count = 0
 
     for profile in all_profiles:
+
         profile_btl = profile['btl']
         profile_ctd = profile['ctd']
 

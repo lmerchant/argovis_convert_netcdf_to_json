@@ -14,6 +14,7 @@ from variable_naming.meta_param_mapping import rename_measurements_keys
 from variable_naming.meta_param_mapping import get_program_argovis_source_info_mapping
 from variable_naming.meta_param_mapping import get_source_independent_meta_names
 from variable_naming.meta_param_mapping import get_parameters_no_data_type
+from variable_naming.rename_units import change_units_to_argovis
 
 
 def reorganize_meta_and_mappings(meta, mappings, data_type):
@@ -36,6 +37,10 @@ def reorganize_meta_and_mappings(meta, mappings, data_type):
     if f'source_url_{data_type}' in meta.keys():
         source_info['source_url'] = meta[f'source_url_{data_type}']
         meta.pop(f'source_url_{data_type}', None)
+
+    if f'file_name_{data_type}' in meta.keys():
+        source_info['file_name'] = meta[f'file_name_{data_type}']
+        meta.pop(f'file_name_{data_type}', None)
 
     # Do this later in post process combination
     # source_url_key = f"source_url_{data_type}"
@@ -188,36 +193,47 @@ def create_mappings(profile_dict, data_type, meta, argovis_col_names_mapping):
     # key argovisReferenceScale
     # Values are the same as cchdo except those converted
     # And rename
-    argovis_ref_scale_mapping = {
+    cchdo_name_ref_scale_mapping = {
         **cchdo_ref_scale, **cchdo_converted_ref_scale}
 
     # Get mapping and then swap out keys with argovis names
-    argovis_name_mapping = rename_to_argovis_mapping(
-        list(argovis_ref_scale_mapping.keys()))
-
-    argovis_name_mapping = rename_mapping_w_data_type(
-        argovis_name_mapping, data_type)
+    # Takes in ref_scale_mapping.keys(), cchdo names, and
+    # gives back the mapping from these cchdo names to argovis names
+    cchdo_to_argovis_name_mapping = rename_to_argovis_mapping(
+        list(cchdo_name_ref_scale_mapping.keys()))
 
     # Add data_type suffix
+    cchdo_to_argovis_name_mapping_w_data_type = rename_mapping_w_data_type(
+        cchdo_to_argovis_name_mapping, data_type)
 
-    mappings['argovis_reference_scale'] = {argovis_name_mapping[key]: value for key,
-                                           value in argovis_ref_scale_mapping.items()}
+    mappings['argovis_reference_scale'] = {
+        cchdo_to_argovis_name_mapping_w_data_type[key]: value for key, value in cchdo_name_ref_scale_mapping.items()}
 
     # key argovisUnits
     # Values are the same as cchdo except those converted
     # And rename
-    argovis_units_mapping = {
+    cchdo_units_mapping = {
         **cchdo_units, **cchdo_converted_units}
 
+    # Convert unit names to argovis names
+    # Take in cchdo name to units (included those converted)
+    # and return a mapping of cchdo name to argovis unit names
+    # Need reference scale so can match up if variable is salinity
+    # since salinity units are currently 1 which can be a unit
+    # of many variables
+    cchdo_name_to_argovis_unit_mapping = change_units_to_argovis(
+        cchdo_units_mapping, cchdo_name_ref_scale_mapping)
+
+    # Convert cchdo names to argovis names
     # Get mapping and then swap out keys with argovis names
-    argovis_names_mapping = rename_to_argovis_mapping(
-        list(argovis_units_mapping.keys()))
+    cchdo_to_argovis_name_mapping = rename_to_argovis_mapping(
+        list(cchdo_name_to_argovis_unit_mapping.keys()))
 
-    argovis_names_mapping = rename_mapping_w_data_type(
-        argovis_names_mapping, data_type)
+    cchdo_to_argovis_name_mapping_w_data_type = rename_mapping_w_data_type(
+        cchdo_to_argovis_name_mapping, data_type)
 
-    mappings['argovis_units'] = {argovis_names_mapping[key]: value for key,
-                                 value in argovis_units_mapping.items()}
+    mappings['argovis_units'] = {
+        cchdo_to_argovis_name_mapping_w_data_type[key]: value for key, value in cchdo_name_to_argovis_unit_mapping.items()}
 
     return mappings
 

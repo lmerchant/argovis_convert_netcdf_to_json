@@ -1,6 +1,6 @@
 import logging
 
-from variable_naming.meta_param_mapping import get_cchdo_argovis_name_mapping_per_type
+#from variable_naming.meta_param_mapping import get_cchdo_argovis_name_mapping_per_type
 from variable_naming.meta_param_mapping import get_cchdo_argovis_name_mapping
 from variable_naming.meta_param_mapping import get_parameters_no_data_type
 

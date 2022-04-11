@@ -43,6 +43,11 @@ def post_process_cruise_objs_by_collection(cruise_objs_by_type):
 
             logging.info("Combining btl and ctd")
 
+            # But for key source_info['instrument'], shouldn't
+            # just be a global value of 'ship_ctd_btl' because
+            # sometimes it's a combined cruise, but a data type profile may
+            # not be at that station cast
+
             # filter measurements by hierarchy
             #  when combine btl and ctd profiles.
             # didn't filter btl or ctd first in case need

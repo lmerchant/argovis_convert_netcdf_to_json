@@ -9,37 +9,28 @@ import logging
 from global_vars import GlobalVars
 
 
-def get_cchdo_argovis_unit_name_mapping():
+# def change_units_to_argovis(nc, cchdo_meta_mapping):
 
-    return {
-        'dbar': 'decibar',
-        'degC': 'Celsius',
-        'umol/kg': 'micromole/kg'
-    }
+#     # Rename units (no conversion)
 
+#     names = cchdo_meta_mapping['names']
+#     unit_name_mapping = get_cchdo_argovis_unit_name_mapping()
+#     cchdo_unit_names = list(unit_name_mapping.keys())
 
-def change_units_to_argovis(nc, cchdo_meta_mapping):
+#     # No saliniity in coordinates so don't have to
+#     # worry about units = 1 being salinity
 
-    # Rename units (no conversion)
+#     for var in names:
 
-    names = cchdo_meta_mapping['names']
-    unit_name_mapping = get_cchdo_argovis_unit_name_mapping()
-    cchdo_unit_names = list(unit_name_mapping.keys())
+#         # Change units if needed
+#         try:
+#             var_units = nc[var].attrs['units']
+#             if var_units in cchdo_unit_names and var_units != 1:
+#                 nc[var].attrs['units'] = unit_name_mapping[var_units]
+#         except KeyError:
+#             pass
 
-    # No saliniity in coordinates so don't have to
-    # worry about units = 1 being salinity
-
-    for var in names:
-
-        # Change units if needed
-        try:
-            var_units = nc[var].attrs['units']
-            if var_units in cchdo_unit_names and var_units != 1:
-                nc[var].attrs['units'] = unit_name_mapping[var_units]
-        except KeyError:
-            pass
-
-    return nc
+#     return nc
 
 
 def add_coord(nc, coord_length, coord_name, var):
