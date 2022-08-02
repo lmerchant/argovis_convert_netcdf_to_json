@@ -246,7 +246,8 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
         # station 536, has btl and ctd
         #test_cruise_expocode = '06AQANTX_4'
 
-        # has CDOM dimension
+        # has CDOM_WAVELENGTHS dimension
+        # skip files like this till write code to handle it
         test_cruise_expocode = '33RR20160208'
 
         netcdf_cruises_objs = [

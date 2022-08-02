@@ -13,6 +13,8 @@ from create_profiles.create_meas_profiles import create_meas_profiles
 from create_profiles.create_data_profiles import create_data_profiles
 from create_profiles.create_cchdo_argovis_mappings import create_cchdo_mappings
 
+from xarray_and_dask.check_has_cdom_vars import check_has_cdom_vars
+
 
 def combine_profiles(meta_profiles, all_data_profiles, all_meas_profiles, meas_source_profiles, meas_names, cchdo_mapping_profiles, data_type):
 
@@ -192,6 +194,18 @@ def create_xr_obj(cruise_obj):
 
         if not has_ctd_vars:
             logging.info("No ctd vars")
+            continue
+
+        # *********************
+        # Temporary till write code for condition
+        #
+        # Skip files with CDOM_WAVELENGTHS dimension
+        # ********************
+
+        has_extra_dim = check_has_cdom_vars(file_obj)
+
+        if not has_extra_dim:
+            logging.info("Skipping file with CDOM_WAVELENGTHS dimension")
             continue
 
         # ********************************
