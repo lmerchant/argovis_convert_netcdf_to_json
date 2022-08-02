@@ -204,7 +204,7 @@ def create_xr_obj(cruise_obj):
 
         has_extra_dim = check_has_cdom_vars(file_obj)
 
-        if not has_extra_dim:
+        if has_extra_dim:
             logging.info("Skipping file with CDOM_WAVELENGTHS dimension")
             continue
 
