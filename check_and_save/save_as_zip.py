@@ -63,10 +63,10 @@ def get_data_dict(profile_dict, station_cast):
     # If has psal and all null, don't save in masurement data obj
     df_meas = pd.DataFrame.from_dict(measurements)
 
-    if 'psal' in df_meas.columns:
-        all_psal_null = df_meas['psal'].isnull().values.all()
+    if 'salinity' in df_meas.columns:
+        all_psal_null = df_meas['salinity'].isnull().values.all()
         if all_psal_null:
-            df_meas = df_meas.drop(['psal'], axis=1)
+            df_meas = df_meas.drop(['salinity'], axis=1)
 
     measurements = df_meas.to_dict('records')
 
@@ -90,7 +90,7 @@ def get_data_dict(profile_dict, station_cast):
             elif not has_temp:
                 logging.info(f'data type is {data_type}')
                 logging.info('measurement has null temp and not included')
-                pressure = obj['pres']
+                pressure = obj['pressure']
                 logging.info(f'pressure is {pressure}')
                 logging.info(obj)
 

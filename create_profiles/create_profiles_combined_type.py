@@ -7,7 +7,7 @@ from variable_naming.combined_mapping import get_combined_mappings
 from variable_naming.meta_param_mapping import get_source_independent_meta_names
 
 
-def add_meta_wo_data_type(meta, data_type):
+def get_meta_wo_data_type_combined_profiles(meta, data_type):
 
     # Already have meta with the source independent meta names
 
@@ -35,7 +35,7 @@ def add_meta_wo_data_type(meta, data_type):
     return meta_wo_data_type
 
 
-def add_meta_w_data_type(meta, data_type):
+def get_meta_w_data_type_combined_profiles(meta, data_type):
 
     # Also add meta with suffix of the data_type
     # Will have duplicate information in file
@@ -47,17 +47,27 @@ def add_meta_w_data_type(meta, data_type):
     source_independent_meta_names = get_source_independent_meta_names()
 
     meta_w_data_type = {}
-    meta_wo_data_type = {}
+    meta_source_independent = {}
 
     for key, val in meta.items():
 
         if key not in source_independent_meta_names:
+
+            if key == 'source_info':
+                # Add the data type suffix to all the keys of
+                # the source_info obj
+                meta_w_data_type[new_key] = {}
+                for sub_key, sub_val in val.items():
+                    new_sub_key = f"{sub_key}_{data_type}"
+                    meta_w_data_type[new_key][new_sub_key] = sub_val
+
             new_key = f"{key}_{data_type}"
             meta_w_data_type[new_key] = val
-        else:
-            meta_wo_data_type[key] = val
 
-    return meta_w_data_type, meta_wo_data_type
+        else:
+            meta_source_independent[key] = val
+
+    return meta_w_data_type, meta_source_independent
 
 
 def combine_btl_ctd_per_profile(btl_profile, ctd_profile):
@@ -88,19 +98,34 @@ def combine_btl_ctd_per_profile(btl_profile, ctd_profile):
 
     if btl_dict:
         file_data_type = 'btl'
-        btl_meta = btl_dict['meta']
 
-        btl_meta_wo_data_type = add_meta_wo_data_type(
-            btl_meta, file_data_type)
+        # Single profile meta has source independent values and values with
+        # data type suffix
+
+        # meta_w_data_type, meta_source_independent = get_meta_w_data_type_combined_profiles(
+        #     btl_dict['meta'], file_data_type)
+
+        # btl_meta = {**meta_source_independent, **meta_w_data_type}
+
+        btl_meta_wo_data_type = get_meta_wo_data_type_combined_profiles(
+            btl_dict['meta'], file_data_type)
+
+        btl_meta = btl_dict['meta']
 
         btl_data = btl_dict['data']
 
     if ctd_dict:
         file_data_type = 'ctd'
-        ctd_meta = ctd_dict['meta']
 
-        ctd_meta_wo_data_type = add_meta_wo_data_type(
-            ctd_meta, file_data_type)
+        # meta_w_data_type, meta_source_independent = get_meta_w_data_type_combined_profiles(
+        #     ctd_dict['meta'], file_data_type)
+
+        # ctd_meta = {**meta_source_independent, **meta_w_data_type}
+
+        ctd_meta_wo_data_type = get_meta_wo_data_type_combined_profiles(
+            ctd_dict['meta'], file_data_type)
+
+        ctd_meta = ctd_dict['meta']
 
         ctd_data = ctd_dict['data']
 

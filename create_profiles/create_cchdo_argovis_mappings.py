@@ -119,28 +119,45 @@ def get_argovis_core_meas_values_per_type(data_type):
     # which means multiple temperature and oxygen names for ctd vars
     # standing for different ref scales
 
-    return ['pres', f"temp_{data_type}", f"temp_{data_type}_qc", f"psal_{data_type}",  f"psal_{data_type}_qc", 'salinity_btl', 'salinity_btl_qc']
+    # return ['pres', f"temp_{data_type}", f"temp_{data_type}_qc", f"psal_{data_type}",  f"psal_{data_type}_qc", 'salinity_btl', 'salinity_btl_qc']
+
+    return ['pressure', f"temperature_{data_type}", f"temperature_{data_type}_qc", f"salinity_{data_type}",  f"salinity_{data_type}_qc", 'bottle_salinity_btl', 'bottle_salinity_btl_qc']
 
 
 def get_cchdo_argovis_name_mapping_per_type(data_type):
 
     return {
-        'pressure': 'pres',
-        'pressure_qc': 'pres_qc',
-        'ctd_salinity': f'psal_{data_type}',
-        'ctd_salinity_qc': f'psal_{data_type}_qc',
-        'ctd_temperature': f'temp_{data_type}',
-        'ctd_temperature_qc': f'temp_{data_type}_qc',
-        'ctd_temperature_68': f'temp_{data_type}',
-        'ctd_temperature_68_qc': f'temp_{data_type}_qc',
-        'ctd_oxygen': f'doxy_{data_type}',
-        'ctd_oxygen_qc': f'doxy_{data_type}_qc',
-        'ctd_oxygen_ml_l': f'doxy_{data_type}',
-        'ctd_oxygen_ml_l_qc': f'doxy_{data_type}_qc',
-        'bottle_salinity': f'salinity_{data_type}',
-        'bottle_salinity_qc': f'salinity_{data_type}_qc',
-        'latitude': 'lat',
-        'longitude': 'lon'
+        # 'pressure': 'pres',
+        # 'pressure_qc': 'pres_qc',
+        'pressure': 'pressure',
+        # 'ctd_salinity': f'psal_{data_type}',
+        # 'ctd_salinity_qc': f'psal_{data_type}_qc',
+        # 'ctd_temperature': f'temp_{data_type}',
+        # 'ctd_temperature_qc': f'temp_{data_type}_qc',
+        # 'ctd_temperature_68': f'temp_{data_type}',
+        # 'ctd_temperature_68_qc': f'temp_{data_type}_qc',
+        # 'ctd_oxygen': f'doxy_{data_type}',
+        # 'ctd_oxygen_qc': f'doxy_{data_type}_qc',
+        # 'ctd_oxygen_ml_l': f'doxy_{data_type}',
+        # 'ctd_oxygen_ml_l_qc': f'doxy_{data_type}_qc',
+        # 'bottle_salinity': f'salinity_{data_type}',
+        # 'bottle_salinity_qc': f'salinity_{data_type}_qc',
+        # 'latitude': 'lat',
+        # 'longitude': 'lon'
+        'ctd_salinity': f'salinity_{data_type}',
+        'ctd_salinity_qc': f'salinity_{data_type}_qc',
+        'ctd_temperature': f'temperature_{data_type}',
+        'ctd_temperature_qc': f'temperature_{data_type}_qc',
+        'ctd_temperature_68': f'temperature_{data_type}',
+        'ctd_temperature_68_qc': f'temperature_{data_type}_qc',
+        'ctd_oxygen': f'oxygen_{data_type}',
+        'ctd_oxygen_qc': f'oxygen_{data_type}_qc',
+        'ctd_oxygen_ml_l': f'oxygen_{data_type}',
+        'ctd_oxygen_ml_l_qc': f'oxygen_{data_type}_qc',
+        'bottle_salinity': f'bottle_salinity_{data_type}',
+        'bottle_salinity_qc': f'bottle_salinity_{data_type}_qc',
+        'latitude': 'latitude',
+        'longitude': 'longitude'
     }
 
 

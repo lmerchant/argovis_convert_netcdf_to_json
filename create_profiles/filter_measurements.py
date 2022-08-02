@@ -33,7 +33,7 @@ def filter_measurements(data_type_profiles):
         all_vals = []
         for obj in measurements:
             vals = [val for key, val in obj.items() if pd.notnull(val)
-                    and key != 'pres']
+                    and key != 'pressure']
             all_vals.extend(vals)
 
         if not len(all_vals):

@@ -244,7 +244,10 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
         # that it is not ship_ctd_btl but ship_ctd
         # Look at station 535, cast 1, only ctd
         # station 536, has btl and ctd
-        test_cruise_expocode = '06AQANTX_4'
+        #test_cruise_expocode = '06AQANTX_4'
+
+        # has CDOM dimension
+        test_cruise_expocode = '33RR20160208'
 
         netcdf_cruises_objs = [
             cruise_obj for cruise_obj in netcdf_cruises_objs if cruise_obj['cruise_expocode'] == test_cruise_expocode]

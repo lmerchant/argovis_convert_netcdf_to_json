@@ -97,8 +97,6 @@ def rename_to_argovis_mapping(cchdo_names):
     # hierarchy if both oxygen names found
     # Choose ctd_oxygen
 
-    # print(cchdo_names)
-
     has_both_temp = has_both_temperatures(cchdo_names)
     has_both_oxy = has_both_oxygen(cchdo_names)
 

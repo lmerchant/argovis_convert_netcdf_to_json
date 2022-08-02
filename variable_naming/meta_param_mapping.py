@@ -13,7 +13,7 @@ def get_source_independent_meta_names():
 
 
 def get_parameters_no_data_type():
-    return ['pressure', 'pres']
+    return ['pressure', 'pressure_qc']
 
 
 def get_measurements_mapping():
@@ -101,20 +101,29 @@ def get_combined_mappings_keys():
 def get_cchdo_argovis_name_mapping_per_type(data_type):
 
     return {
-        'pressure': 'pres',
-        'pressure_qc': 'pres_woceqc',
-        'ctd_salinity': f'psal_{data_type}',
-        'ctd_salinity_qc': f'psal_{data_type}_woceqc',
+        # 'pressure': 'pres',
+        # 'pressure_qc': 'pres_woceqc',
+        'pressure': 'pressure',
+        # 'ctd_salinity': f'psal_{data_type}',
+        # 'ctd_salinity_qc': f'psal_{data_type}_woceqc',
+        'ctd_salinity': f'salinity_{data_type}',
+        'ctd_salinity_qc': f'salinity_{data_type}_woceqc',
         'ctd_temperature': f'temperature_{data_type}',
         'ctd_temperature_qc': f'temperature_{data_type}_woceqc',
         'ctd_temperature_68': f'temperature_{data_type}',
         'ctd_temperature_68_qc': f'temperature_{data_type}_woceqc',
-        'ctd_oxygen': f'doxy_{data_type}',
-        'ctd_oxygen_qc': f'doxy_{data_type}_woceqc',
-        'ctd_oxygen_ml_l': f'doxy_{data_type}',
-        'ctd_oxygen_ml_l_qc': f'doxy_{data_type}_woceqc',
-        'bottle_salinity': f'salinity_{data_type}',
-        'bottle_salinity_qc': f'salinity_{data_type}_woceqc',
+        # 'ctd_oxygen': f'doxy_{data_type}',
+        # 'ctd_oxygen_qc': f'doxy_{data_type}_woceqc',
+        # 'ctd_oxygen_ml_l': f'doxy_{data_type}',
+        # 'ctd_oxygen_ml_l_qc': f'doxy_{data_type}_woceqc',
+        'ctd_oxygen': f'oxygen_{data_type}',
+        'ctd_oxygen_qc': f'oxygen_{data_type}_woceqc',
+        'ctd_oxygen_ml_l': f'oxygen{data_type}',
+        'ctd_oxygen_ml_l_qc': f'oxygen_{data_type}_woceqc',
+        # 'bottle_salinity': f'salinity_{data_type}',
+        # 'bottle_salinity_qc': f'salinity_{data_type}_woceqc',
+        'bottle_salinity': f'bottle_salinity_{data_type}',
+        'bottle_salinity_qc': f'bottle_salinity_{data_type}_woceqc',
         'potential_temperature_68': f'potential_temperature_68_{data_type}',
         'potential_temperature_68_qc': f'potential_temperature_68_{data_type}_woceqc',
         'potential_temperature_c': f'potential_temperature_unk_{data_type}',
@@ -125,20 +134,29 @@ def get_cchdo_argovis_name_mapping_per_type(data_type):
 def get_cchdo_argovis_name_mapping():
 
     return {
-        'pressure': 'pres',
-        'pressure_qc': 'pres_woceqc',
-        'ctd_salinity': f'psal',
-        'ctd_salinity_qc': f'psal_woceqc',
+        # 'pressure': 'pres',
+        # 'pressure_qc': 'pres_woceqc',
+        'pressure': 'pressure',
+        # 'ctd_salinity': f'psal',
+        # 'ctd_salinity_qc': f'psal_woceqc',
+        'ctd_salinity': f'salinity',
+        'ctd_salinity_qc': f'salinity_woceqc',
         'ctd_temperature': f'temperature',
         'ctd_temperature_qc': f'temperature_woceqc',
         'ctd_temperature_68': f'temperature',
         'ctd_temperature_68_qc': f'temperature_woceqc',
-        'ctd_oxygen': f'doxy',
-        'ctd_oxygen_qc': f'doxy_woceqc',
-        'ctd_oxygen_ml_l': f'doxy',
-        'ctd_oxygen_ml_l_qc': f'doxy_woceqc',
-        'bottle_salinity': f'salinity',
-        'bottle_salinity_qc': f'salinity_woceqc'
+        # 'ctd_oxygen': f'doxy',
+        # 'ctd_oxygen_qc': f'doxy_woceqc',
+        # 'ctd_oxygen_ml_l': f'doxy',
+        # 'ctd_oxygen_ml_l_qc': f'doxy_woceqc',
+        'ctd_oxygen': f'oxygen',
+        'ctd_oxygen_qc': f'oxygen_woceqc',
+        'ctd_oxygen_ml_l': f'oxygen',
+        'ctd_oxygen_ml_l_qc': f'oxygen_woceqc',
+        # 'bottle_salinity': f'salinity',
+        # 'bottle_salinity_qc': f'salinity_woceqc',
+        'bottle_salinity': f'bottle_salinity',
+        'bottle_salinity_qc': f'bottle_salinity_woceqc'
     }
 
 
@@ -148,6 +166,11 @@ def get_core_profile_keys_mapping():
 
 
 def rename_mappings_source_info_keys(mappings):
+
+    # If key is data_source getting info, need to add suffix of data
+    # type to each item in the key
+
+    # This isn't working, maybe because when I added suffix
 
     # keys are CCHDO and values are Argovis
     key_mapping = get_program_argovis_source_info_mapping()
