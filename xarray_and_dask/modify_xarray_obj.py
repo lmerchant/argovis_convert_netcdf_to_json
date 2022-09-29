@@ -8,37 +8,6 @@ import xarray_and_dask.conversions as xr_conv
 from global_vars import GlobalVars
 
 
-# def rearrange_nc(nc):
-
-#     # Move all meta data to coords
-#     # Move all param data to vars
-
-#     # metadata is any without N_LEVELS dimension
-#     meta_names = [
-#         coord for coord in nc.coords if 'N_LEVELS' not in nc.coords[coord].dims]
-
-#     param_names = [
-#         coord for coord in nc.coords if 'N_LEVELS' in nc.coords[coord].dims]
-
-#     meta_names_from_var = [var for var in nc if 'N_LEVELS' not in nc[var].dims]
-#     param_names_from_var = [var for var in nc if 'N_LEVELS' in nc[var].dims]
-
-#     meta_names.extend(meta_names_from_var)
-#     param_names.extend(param_names_from_var)
-
-#     # move params from coords to variables
-#     # Move if not in nc.coords
-#     coords_to_move_to_vars = [
-#         name for name in param_names if name not in list(nc.keys())]
-#     vars_to_move_to_coords = [
-#         name for name in meta_names if name not in list(nc.coords)]
-
-#     nc = nc.reset_coords(names=coords_to_move_to_vars, drop=False)
-#     nc = nc.set_coords(names=vars_to_move_to_coords)
-
-#     return nc
-
-
 def get_meta_param_names(nc):
 
     # metadata is any without N_LEVELS dimension

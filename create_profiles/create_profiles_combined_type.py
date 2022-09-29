@@ -231,37 +231,6 @@ def get_same_station_cast_profile_btl_ctd(btl_profiles, ctd_profiles):
     return btl_profiles, ctd_profiles
 
 
-# def create_combined_type_all_cruise_objs(cruises_profiles_objs):
-
-#     is_btl = any([True if profiles_obj['data_type'] ==
-#                   'btl' else False for profiles_obj in cruises_profiles_objs])
-
-#     is_ctd = any([True if profiles_obj['data_type'] ==
-#                   'ctd' else False for profiles_obj in cruises_profiles_objs])
-
-#     if is_btl and is_ctd:
-
-#         logging.info("Combining btl and ctd")
-
-#         # filter measurements by hierarchy
-#         #  when combine btl and ctd profiles.
-#         # didn't filter btl or ctd first in case need
-#         # a variable from both
-
-#         all_profiles_btl_ctd_objs = []
-
-#         for curise_profiles_obj in cruises_profiles_objs:
-#             profiles_btl_ctd_objs = create_profiles_combined_type(
-#                 curise_profiles_obj)
-
-#             all_profiles_btl_ctd_objs.append(profiles_btl_ctd_objs)
-
-#         return all_profiles_btl_ctd_objs
-
-#     else:
-#         return []
-
-
 def balance_profiles_by_station_cast(profiles_objs):
 
     # When combining each station cast profiles,

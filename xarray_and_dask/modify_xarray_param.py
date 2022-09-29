@@ -7,41 +7,6 @@ import logging
 from global_vars import GlobalVars
 
 
-# def change_units_to_argovis(nc, cchdo_param_mapping):
-
-#     # Rename units (no conversion)
-
-#     param_names = cchdo_param_mapping['names']
-#     unit_name_mapping = get_cchdo_argovis_unit_name_mapping()
-#     cchdo_unit_names = list(unit_name_mapping.keys())
-
-#     # Get reference scale to determine if salinity because there
-#     # can be a cchdo unit of '1' that is not salinity
-#     salinity_ref_scale = 'PSS-78'
-
-#     for var in param_names:
-
-#         # Change salinity  unit
-#         try:
-#             var_ref_scale = nc[var].attrs['reference_scale']
-#             var_units = nc[var].attrs['units']
-
-#             if var_ref_scale == salinity_ref_scale and var_units == '1':
-#                 nc[var].attrs['units'] = 'psu'
-#         except KeyError:
-#             pass
-
-#         # Change other units
-#         try:
-#             var_units = nc[var].attrs['units']
-#             if var_units in cchdo_unit_names and var_units != 1:
-#                 nc[var].attrs['units'] = unit_name_mapping[var_units]
-#         except KeyError:
-#             pass
-
-#     return nc
-
-
 class FormatFloat(float):
     def __format__(self, format_spec):
         return 'nan' if pd.isnull(self) else float.__format__(self, format_spec)

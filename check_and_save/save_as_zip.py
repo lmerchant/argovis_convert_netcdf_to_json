@@ -31,21 +31,6 @@ def unzip_file(zip_folder, zip_file):
     os.remove(zip_file)  # delete zipped file
 
 
-# def write_one_json_dict(zf, profile_dict, zip_folder):
-
-#     filename = get_filename(profile_dict)
-#     file_path = os.path.join(zip_folder, filename)
-
-#     print(f"file path {file_path}")
-
-#     with zf.open(file_path, 'w') as json_file:
-#         print('inside zf open')
-#         data_bytes = json.dumps(profile_dict, ensure_ascii=False,
-#                                 indent=4, sort_keys=False, default=convert).encode('utf-8')
-
-#         json_file.write(data_bytes)
-
-
 def get_data_dict(profile_dict, station_cast):
 
     # TODO
@@ -138,48 +123,6 @@ def get_filename(profile_dict):
         filename = filename.replace('/', '_')
 
     return filename
-
-
-# def get_json_dicts(checked_profiles_info):
-
-#     json_dicts = []
-
-#     for checked_profile_info in checked_profiles_info:
-
-#         profile = checked_profile_info['profile_checked']
-#         station_cast = profile['station_cast']
-#         profile_dict = profile['profile_dict']
-#         expocode = profile_dict['meta']['expocode']
-
-#         data_dict = get_data_dict(profile_dict, station_cast)
-#         json_dicts.append(data_dict)
-
-#     return json_dicts, expocode
-
-
-# def save_as_zip(checked_profiles_info):
-
-#     json_dicts, expocode = get_json_dicts(checked_profiles_info)
-
-#     if '/' in expocode:
-#         folder = expocode.replace('/', '_')
-#     else:
-#         folder = expocode
-
-#     zip_folder = os.path.join(GlobalVars.JSON_DIR, folder)
-#     zip_file = f"{Path.cwd()}/{zip_folder}.zip"
-
-#     zf = zipfile.ZipFile(zip_file, mode='w',
-#                          compression=zipfile.ZIP_DEFLATED)
-
-#     with zf as f:
-#         for json_dict in json_dicts:
-#             filename = get_filename(json_dict)
-#             json_str = json.dumps(json_dict, ensure_ascii=False,
-#                                   indent=4, sort_keys=False, default=convert)
-#             f.writestr(filename, json_str)
-
-#     #unzip_file(zip_folder, zip_file)
 
 
 def save_as_zip_data_type_profiles(data_type_profiles):

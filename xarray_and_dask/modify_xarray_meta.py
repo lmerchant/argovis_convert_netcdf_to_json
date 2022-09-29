@@ -9,30 +9,6 @@ import logging
 from global_vars import GlobalVars
 
 
-# def change_units_to_argovis(nc, cchdo_meta_mapping):
-
-#     # Rename units (no conversion)
-
-#     names = cchdo_meta_mapping['names']
-#     unit_name_mapping = get_cchdo_argovis_unit_name_mapping()
-#     cchdo_unit_names = list(unit_name_mapping.keys())
-
-#     # No saliniity in coordinates so don't have to
-#     # worry about units = 1 being salinity
-
-#     for var in names:
-
-#         # Change units if needed
-#         try:
-#             var_units = nc[var].attrs['units']
-#             if var_units in cchdo_unit_names and var_units != 1:
-#                 nc[var].attrs['units'] = unit_name_mapping[var_units]
-#         except KeyError:
-#             pass
-
-#     return nc
-
-
 def add_coord(nc, coord_length, coord_name, var):
 
     new_coord_list = [var]*coord_length
@@ -316,9 +292,6 @@ class FormatFloat(float):
 #     return nc
 
 
-# TODO
-# why duplicate function?
-# which one wins? This one wins
 def apply_c_format_meta(nc, meta_mapping):
 
     # apply c_format to float values to limit
