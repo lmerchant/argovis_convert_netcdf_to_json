@@ -265,18 +265,13 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
 
         # cruise with two ctd temperatures (includes 68)
         #test_cruise_expocode = '49K6KY9606_1'
+        test_cruise_expocode = '316N145_11'
 
-        # cruise with btl and ctd profiles but when combine them
-        # get same btl only profiles
-        # INFO : Combining btl and ctd
-        # INFO : Number of btl profiles 127
-        # INFO : Number of ctd profiles 127
-        # INFO : Processed btl and ctd combined profiles
-        # INFO :   (total_cruises_processed, <class 'int'>) (total_btl_profiles, <class 'int'>) (total_ctd_profiles, <class 'int'>) (total_btl_ctd_profiles, <class 'int'>)
-        # 0 1 2 0 125
-        # This is correct, so the line about number of ctd profiles is incorrect because
-        # the ctd file opened up in panopoly says N_PROF = 125 and not 127
-        test_cruise_expocode = '33RR20220613'
+        # cruise with two ctd_oxygens (includes ml_l)
+        #test_cruise_expocode = '90VE43_1'
+
+        # cruise where renaming ctd_oxygen to oxygen clobbers original var named oxygen
+        #test_cruise_expocode = '33RR20220613'
 
         netcdf_cruises_objs = [
             cruise_obj for cruise_obj in netcdf_cruises_objs if cruise_obj['cruise_expocode'] == test_cruise_expocode]

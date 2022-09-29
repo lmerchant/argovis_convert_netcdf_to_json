@@ -55,6 +55,25 @@ def rename_measurements(data_type, measurements):
 
     df_measurements = pd.DataFrame.from_dict(measurements)
 
+    # If there is both ctd_temperature and ctd_temperature_68, remove
+    # the ctd_temperature_68 column
+    # check which temperature to use if both exist
+    col_names = list(df_measurements.columns)
+    is_ctd_temp = 'ctd_temperature' in col_names
+    is_ctd_temp_68 = 'ctd_temperature_68' in col_names
+
+    if is_ctd_temp and is_ctd_temp_68:
+        df_measurements.drop('ctd_temperature_68', axis=1, inplace=True)
+
+    # if there is both a ctd_oxygen and ctd_oxygen_ml_l, remove the
+    # oxygen_ml_l column
+    col_names = list(df_measurements.columns)
+    is_ctd_oxy = 'ctd_oxygen' in col_names
+    is_ctd_oxy_ml_l = 'ctd_oxygen_ml_l' in col_names
+
+    if is_ctd_oxy and is_ctd_oxy_ml_l:
+        df_measurements.drop('ctd_oxygen_ml_l', axis=1, inplace=True)
+
     # key is current name and value is argovis name
     # TODO
     # rename function to cchdo_to_argovis_mapping
