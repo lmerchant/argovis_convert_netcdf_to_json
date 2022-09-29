@@ -100,6 +100,10 @@ def get_combined_mappings_keys():
 
 def get_cchdo_argovis_name_mapping_per_type(data_type):
 
+    # TODO
+    # I have to be careful with ctd_temperature_68, if ctd_temperature also exists
+    # I don't want to rename it
+
     return {
         # 'pressure': 'pres',
         # 'pressure_qc': 'pressure_woceqc',

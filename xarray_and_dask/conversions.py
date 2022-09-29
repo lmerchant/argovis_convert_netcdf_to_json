@@ -27,6 +27,7 @@ def get_argovis_reference_scale_per_type():
 
 def convert_units(oxy, temp, sal_pr, pres, lon, lat):
 
+    # TODO
     # How about if temp, sal, not a qc =0 or 2, set
     # oxy value to NaN?
 

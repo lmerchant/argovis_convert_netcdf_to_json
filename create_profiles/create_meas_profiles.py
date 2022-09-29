@@ -9,10 +9,11 @@ import logging
 # https://stackoverflow.com/questions/47776936/why-is-a-computation-much-slower-within-a-dask-distributed-worker
 #pd.options.mode.chained_assignment = None
 
-from create_profiles.create_cchdo_argovis_mappings import get_argovis_core_meas_values_per_type
+#from create_profiles.create_cchdo_argovis_mappings import get_argovis_core_meas_values_per_type
 # from create_profiles.create_cchdo_argovis_mappings import get_cchdo_core_meas_var_names
 
-import create_profiles.create_cchdo_argovis_mappings as mapping
+#import create_profiles.create_cchdo_argovis_mappings as mapping
+import variable_naming.choose_names as choose_names
 
 
 def dtjson(o):
@@ -209,7 +210,8 @@ def filter_salinity(df_meas, meas_sources):
 def get_core_cols_from_hierarchy(df):
 
     # core cols includes '_qc' vars
-    core_names = mapping.get_cchdo_core_meas_var_names()
+    # core_names = mapping.get_cchdo_core_meas_var_names()
+    core_names = choose_names.get_cchdo_core_meas_var_names()
 
     # Salinity names not filtered yet
 
@@ -218,7 +220,7 @@ def get_core_cols_from_hierarchy(df):
 
     # There is a hierarchy of which variable to use in core cchdo names
     # if both ref scale and units variables exist
-    temperature_name = mapping.choose_core_temperature_from_hierarchy(
+    temperature_name = choose_names.choose_core_temperature_from_hierarchy(
         core_cols)
 
     hierarchy_temperature_names = [temperature_name, temperature_name + '_qc']
@@ -287,7 +289,7 @@ def create_measurements_df_all(df):
     # Keep all core named values and filter more when looking
     # at each profile
 
-    core_names = mapping.get_cchdo_core_meas_var_names()
+    core_names = choose_names.get_cchdo_core_meas_var_names()
 
     core_cols = [col for col in df.columns if col in core_names]
 
