@@ -43,22 +43,41 @@ def convert_units(oxy, temp, sal_pr, pres, lon, lat):
 
 def get_converted_oxy(oxy, temp, sal_pr, pres, lon, lat, oxy_dtype):
 
-    converted_oxygen = xr.apply_ufunc(
-        convert_units,
-        oxy,
-        temp,
-        sal_pr,
-        pres,
-        lon,
-        lat,
-        input_core_dims=[['N_LEVELS'],
-                         ['N_LEVELS'], ['N_LEVELS'],
-                         ['N_LEVELS'], [], []],
-        output_core_dims=[['N_LEVELS']],
-        output_dtypes=[oxy_dtype],
-        keep_attrs=True,
-        # dask="parallelized"
-    )
+    logging.info('inside get_converted_oxy')
+
+    try:
+
+        # Problem with output core dims = N_LEVELS,
+        # seems to be converting lat and lon to this dimension even if they didn't start with it
+
+        converted_oxygen = xr.apply_ufunc(
+            convert_units,
+            oxy,
+            temp,
+            sal_pr,
+            pres,
+            lon,
+            lat,
+            input_core_dims=[['N_LEVELS'],
+                             ['N_LEVELS'], ['N_LEVELS'],
+                             ['N_LEVELS'], [], []],
+            output_core_dims=[['N_LEVELS']],
+            output_dtypes=[oxy_dtype],
+            keep_attrs=True,
+            # dask="parallelized"
+        )
+
+    except:
+
+        logging.info("Oxygen variable not converted")
+
+        logging.info(
+            'Check latitude and longitude dimensions, should be a constant value')
+
+        logging.info(f'Latitude dims are {lat.dims}')
+        logging.info(f'Longitude dims are {lon.dims}')
+
+        exit(1)
 
     return converted_oxygen
 
@@ -164,6 +183,7 @@ def convert_oxygen(nc_profile, var, profiles_no_oxy_conversions):
                                              oxy_dtype)
 
         try:
+            # TODO (Why is this)
             # If the returned varible says name is temperature and not var,
             # rename it
             # Occured with oxygen all nan
@@ -177,6 +197,9 @@ def convert_oxygen(nc_profile, var, profiles_no_oxy_conversions):
     else:
         converted_oxygen = oxy
 
+    logging.info('Inside convert oxygen')
+    logging.info(f"lat dims before convert {nc_profile['latitude'].dims}")
+
     # Update with new values
     try:
         # If it's a dataset
@@ -185,6 +208,8 @@ def convert_oxygen(nc_profile, var, profiles_no_oxy_conversions):
     except:
         # If it's a data array
         nc_profile[var] = converted_oxygen
+
+    logging.info(f"lat dims after convert {nc_profile['latitude'].dims}")
 
     # If  station_casts_bad_temp_salinity, setting units as if
     # converted, but wasn't which is kept track of
@@ -687,11 +712,12 @@ def convert_oxygen_to_new_units(nc, var, profiles_no_oxy_conversions):
     # because variables in nc_profile can exist but be all null
     # for some profiles or all
 
-    converted_groups = []
-
     profile_size = nc.sizes['N_LEVELS']
 
     first_group = True
+
+    converted_groups = []
+    ds_grid = []
 
     for nc_group in nc.groupby('N_PROF'):
 
@@ -806,9 +832,13 @@ def convert_oxygen_to_new_units(nc, var, profiles_no_oxy_conversions):
 
     ds_grid = [converted_groups]
 
-    # problem with this where sometimes pressure didn't have 'N_PROF' dim
+    # TODO
+    # set coords='all' because sometimes pressure looses the dim 'N_PROF'
+    # but if do this, lat gains the dimension N_LEVELS because instead of a constant value
+    # they are all concatenated
+
     nc = xr.combine_nested(
-        ds_grid, concat_dim=["N_LEVELS", "N_PROF"], combine_attrs='identical')
+        ds_grid, concat_dim=["N_LEVELS", "N_PROF"], combine_attrs='identical', coords='different')
 
     # nc = xr.combine_nested(
     #     ds_grid, concat_dim=["N_LEVELS", "N_PROF"], combine_attrs='override', compat='broadcast_equals')

@@ -61,38 +61,81 @@ def apply_c_format_param(nc, param_mapping):
         name for name in c_format_mapping.keys() if name in float_vars]
 
     def format_float(num, f_format):
+
         return float(f"{FormatFloat(num):{f_format}}")
 
     def apply_c_format(var, f_format):
         vfunc = np.vectorize(format_float)
         return vfunc(var, f_format)
 
+    # TODO
+    # Why do I chunk vars in this function and not another place
     def apply_c_format_xr(x, f_format, dtype):
-        return xr.apply_ufunc(
-            apply_c_format,
-            x.chunk({'N_PROF': -1}),
-            f_format,
-            input_core_dims=[['N_PROF', 'N_LEVELS'], []],
-            output_core_dims=[['N_PROF', 'N_LEVELS']],
-            output_dtypes=[dtype],
-            keep_attrs=True,
-            dask="parallelized"
-        )
+
+        dims = list(x.dims)
+
+        # TODO
+        # do I need to chunk if no N_PROF?
+
+        if 'NC_PROF' not in dims:
+
+            return xr.apply_ufunc(
+                apply_c_format,
+                x.chunk({'N_LEVELS': -1}),
+                f_format,
+                input_core_dims=[['N_LEVELS'], []],
+                output_core_dims=[['N_LEVELS']],
+                output_dtypes=[dtype],
+                keep_attrs=True,
+                dask="parallelized"
+            )
+
+        else:
+            return xr.apply_ufunc(
+                apply_c_format,
+                x.chunk({'N_PROF': -1}),
+                f_format,
+                input_core_dims=[['N_PROF', 'N_LEVELS'], []],
+                output_core_dims=[['N_PROF', 'N_LEVELS']],
+                output_dtypes=[dtype],
+                keep_attrs=True,
+                dask="parallelized"
+            )
 
     for var in c_format_vars:
         c_format = c_format_mapping[var]
         f_format = c_format.lstrip('%')
         dtype = dtype_mapping[var]
 
+        dims = list(nc[var].dims)
+
         try:
             nc[var] = apply_c_format_xr(nc[var], f_format, dtype)
-            nc[var] = nc[var].chunk({'N_PROF': GlobalVars.CHUNK_SIZE})
+
+            logging.info("dimensions")
+            logging.info(nc[var].sizes)
+
         except:
             logging.info('====================')
             logging.info(f"error applying c_format for {var}")
+            logging.info(f"c_format = {c_format}")
+            logging.info(f"dtype {dtype}")
+            logging.info("dimensions")
+            logging.info(nc[var].sizes)
+
+            logging.info(nc[var])
+            logging.info('====================')
+
+        try:
+
+            if 'NC_PROF' in dims:
+                nc[var] = nc[var].chunk({'N_PROF': GlobalVars.CHUNK_SIZE})
+
+        except:
+            logging.info('====================')
+            logging.info(f"error chunking {var}")
             logging.info(
                 "xarray obj dimensions different and can't be chunked")
-            logging.info(f"c_format = {c_format}")
             logging.info(f"dtype {dtype}")
             logging.info("dimensions")
             logging.info(nc[var].sizes)

@@ -17,7 +17,7 @@ def log_ctd_var_status(file_obj, has_pres,
 
     # No pressure
     if not has_pres:
-        filename = 'cruises_no_pressure.txt'
+        filename = 'cruise_files_no_pressure.txt'
         filepath = os.path.join(logging_dir, filename)
         with open(filepath, 'a') as f:
             f.write('-----------\n')
@@ -39,14 +39,14 @@ def log_ctd_var_status(file_obj, has_pres,
         #     f.write(f"expocode {expocode}\n")
         #     f.write(f"collection type {data_type}\n")
 
-        filename = 'cruises_not_converted.txt'
+        filename = 'cruise_files_not_converted.txt'
         filepath = os.path.join(logging_dir, filename)
         with open(filepath, 'a') as f:
             f.write(f"{expocode} {data_type}\n")
 
     # Not looking at pressure next but whether an indivdual type has ctd temperature
     if not has_ctd_temp:
-        filename = 'cruises_no_ctd_temp.txt'
+        filename = 'cruise_files_no_ctd_temp.txt'
         filepath = os.path.join(logging_dir, filename)
         with open(filepath, 'a') as f:
             f.write(f"expocode {expocode} {data_type}\n")

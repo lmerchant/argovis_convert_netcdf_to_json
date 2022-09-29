@@ -268,51 +268,57 @@ class FormatFloat(float):
         return 'nan' if pd.isnull(self) else float.__format__(self, format_spec)
 
 
-def apply_c_format_meta(nc, meta_mapping):
+# TODO
+# why duplicate function?
+# which one wins?
+# def apply_c_format_meta(nc, meta_mapping):
 
-    # apply c_format to float values to limit
-    # number of decimal places in the final JSON format
+#     # apply c_format to float values to limit
+#     # number of decimal places in the final JSON format
 
-    float_types = ['float64', 'float32']
+#     float_types = ['float64', 'float32']
 
-    c_format_mapping = meta_mapping['c_format']
-    dtype_mapping = meta_mapping['dtype']
+#     c_format_mapping = meta_mapping['c_format']
+#     dtype_mapping = meta_mapping['dtype']
 
-    float_vars = [name for name,
-                  dtype in dtype_mapping.items() if dtype in float_types]
+#     float_vars = [name for name,
+#                   dtype in dtype_mapping.items() if dtype in float_types]
 
-    c_format_vars = [
-        name for name in c_format_mapping.keys() if name in float_vars]
+#     c_format_vars = [
+#         name for name in c_format_mapping.keys() if name in float_vars]
 
-    def format_float(val, f_format):
-        return float(f"{FormatFloat(val):{f_format}}")
+#     def format_float(val, f_format):
+#         return float(f"{FormatFloat(val):{f_format}}")
 
-    # TODO
-    # Do I need to vectorize?
-    def apply_c_format(var, f_format):
-        vfunc = np.vectorize(format_float)
-        return vfunc(var, f_format)
+#     # TODO
+#     # Do I need to vectorize?
+#     def apply_c_format(var, f_format):
+#         vfunc = np.vectorize(format_float)
+#         return vfunc(var, f_format)
 
-    def apply_c_format_xr(x, f_format, dtype):
-        return xr.apply_ufunc(
-            apply_c_format,
-            x,
-            f_format,
-            input_core_dims=[[], []],
-            output_core_dims=[[]],
-            output_dtypes=[dtype],
-            keep_attrs=True
-        )
+#     def apply_c_format_xr(x, f_format, dtype):
+#         return xr.apply_ufunc(
+#             apply_c_format,
+#             x,
+#             f_format,
+#             input_core_dims=[[], []],
+#             output_core_dims=[[]],
+#             output_dtypes=[dtype],
+#             keep_attrs=True
+#         )
 
-    for var in c_format_vars:
-        c_format = c_format_mapping[var]
-        f_format = c_format.lstrip('%')
-        dtype = dtype_mapping[var]
-        nc[var] = apply_c_format_xr(nc[var], f_format, dtype)
+#     for var in c_format_vars:
+#         c_format = c_format_mapping[var]
+#         f_format = c_format.lstrip('%')
+#         dtype = dtype_mapping[var]
+#         nc[var] = apply_c_format_xr(nc[var], f_format, dtype)
 
-    return nc
+#     return nc
 
 
+# TODO
+# why duplicate function?
+# which one wins? This one wins
 def apply_c_format_meta(nc, meta_mapping):
 
     # apply c_format to float values to limit

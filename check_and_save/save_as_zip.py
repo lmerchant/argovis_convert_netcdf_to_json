@@ -48,11 +48,21 @@ def unzip_file(zip_folder, zip_file):
 
 def get_data_dict(profile_dict, station_cast):
 
-    #logging.info(f'Creating data dict for station cast {station_cast}')
+    # TODO
+    # count number of cruises saved (count each time this is called)
+
+    # TODO
+    # count number of btl, ctd, and btl_ctd data types profiles and sum it
+    # count size of data_dict (# of profiles is number of keys under the data key)
+
+    # logging.info(f'Creating data dict for station cast {station_cast}')
 
     # TODO
     # is this only called for single cruise?
-    # If so,if missing temp or it's emppty, do logic
+    # If so,if missing temp or it's empty, do logic
+
+    # TODO
+    # Move this to post processing
 
     # Filter measurements by removing any points with NaN temp
     # and points with all NaN values except pressure
@@ -174,14 +184,61 @@ def get_filename(profile_dict):
 
 def save_as_zip_data_type_profiles(data_type_profiles):
 
+    # Save summary information to profiles_information.txt
+    profiles_file = Path(GlobalVars.LOGGING_DIR) / 'profiles_information.txt'
+
+    if profiles_file.is_file():
+
+        # read dataframe
+        df_profiles_info = pd.read_csv(profiles_file)
+
+        total_cruises_processed, total_btl_profiles, total_ctd_profiles, total_btl_ctd_profiles, total_profiles = df_profiles_info.loc[0, :].values.tolist(
+        )
+
+        total_cruises_processed = total_cruises_processed + 1
+
+    else:
+
+        # create dataframe
+
+        columns = [('total_cruises_processed', int),
+                   ('total_btl_profiles', int),
+                   ('total_ctd_profiles', int),
+                   ('total_btl_ctd_profiles', int),
+                   ('total_profiles', int)]
+
+        df_profiles_info = pd.DataFrame(columns=columns)
+
+        df_profiles_info.reset_index(drop=True, inplace=True)
+
+        total_cruises_processed = 1
+        total_btl_profiles = 0
+        total_ctd_profiles = 0
+        total_btl_ctd_profiles = 0
+        total_profiles = 0
+
+        df_profiles_info.loc[0] = [total_cruises_processed,
+                                   total_btl_profiles, total_ctd_profiles, total_btl_ctd_profiles, total_profiles]
+
     json_dicts = []
+
     for data_type_profile in data_type_profiles:
+
         station_cast = data_type_profile['station_cast']
         profile_dict = data_type_profile['profile_dict']
         expocode = profile_dict['meta']['expocode']
+        data_type = profile_dict['data_type']
 
         json_dict = get_data_dict(profile_dict, station_cast)
         json_dicts.append(json_dict)
+
+        # Save summary information to df_profiles_info
+        if data_type == 'btl':
+            total_btl_profiles = total_btl_profiles + 1
+        elif data_type == 'ctd':
+            total_ctd_profiles = total_ctd_profiles + 1
+        else:
+            total_btl_ctd_profiles = total_btl_ctd_profiles + 1
 
     if '/' in expocode:
         folder = expocode.replace('/', '_')
@@ -194,6 +251,8 @@ def save_as_zip_data_type_profiles(data_type_profiles):
     zf = zipfile.ZipFile(zip_file, mode='w',
                          compression=zipfile.ZIP_DEFLATED)
 
+    # TODO
+    # how much space saved if remove the indent?
     with zf as f:
         for json_dict in json_dicts:
             filename = get_filename(json_dict)
@@ -203,4 +262,15 @@ def save_as_zip_data_type_profiles(data_type_profiles):
 
     # TODO
     # For development (comment out later)
-    #unzip_file(zip_folder, zip_file)
+    # unzip_file(zip_folder, zip_file)
+
+    # Save profile information to first row
+
+    total_profiles = total_btl_profiles + total_ctd_profiles + total_btl_ctd_profiles
+
+    df_profiles_info.loc[0] = [total_cruises_processed,
+                               total_btl_profiles, total_ctd_profiles, total_btl_ctd_profiles, total_profiles]
+
+    logging.info(df_profiles_info)
+
+    df_profiles_info.to_csv(profiles_file, index=False)

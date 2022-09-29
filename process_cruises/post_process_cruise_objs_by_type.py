@@ -249,9 +249,14 @@ def filter_out_params(parameter_names):
 
 
 def rename_data(data, data_type):
+
+    #logging.info('inside rename_data')
+
     # Rename by loading dict into pandas dataframe,
     # rename cols then output back to dict
     df_data = pd.DataFrame.from_dict(data)
+
+    #logging.info(f"column names before rename {list(df_data.columns)}")
 
     data_columns = list(df_data.columns)
 
@@ -283,6 +288,8 @@ def rename_data(data, data_type):
     cols_to_filter_out = filter_out_params(list(df_data.columns))
 
     df_data = df_data.drop(cols_to_filter_out, axis=1)
+
+    #logging.info(f"column names after rename {list(df_data.columns)}")
 
     data = df_data.to_dict('records')
 
@@ -319,6 +326,8 @@ def remove_deleted_vars_from_mappings(
 
 
 def remove_nan_variables(data):
+
+    #logging.info('inside remove_nan_variables')
 
     # Read data into a pandas dataframe
     df_data = pd.DataFrame.from_dict(data)
@@ -476,6 +485,10 @@ def add_cchdo_meta(meta, cchdo_file_meta, cchdo_cruise_meta):
 def process_data_profiles(profiles_obj):
 
     data_type = profiles_obj['data_type']
+
+    expocode = profiles_obj['cchdo_cruise_meta']['expocode']
+
+    #logging.info(f'Processing data profiles for {expocode}')
 
     cchdo_file_meta = profiles_obj['cchdo_file_meta']
     cchdo_cruise_meta = profiles_obj['cchdo_cruise_meta']
@@ -636,6 +649,10 @@ def post_process_cruise_objs_by_type(cruises_profile_objs):
     updated_cruises_profile_objs = []
 
     for cruise_profiles_obj in cruises_profile_objs:
+
+        cruise_expocode = cruise_profiles_obj['cruise_expocode']
+
+        logging.info(f"Post processing expocode {cruise_expocode}")
 
         all_data_types_profile_objs = cruise_profiles_obj['all_data_types_profile_objs']
 

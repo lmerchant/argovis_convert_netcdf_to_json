@@ -110,6 +110,9 @@ def rename_to_argovis_mapping(cchdo_names):
             cchdo_argovis_name_mapping['ctd_temperature_68'] = 'ctd_temperature_68'
             cchdo_argovis_name_mapping['ctd_temperature_68_qc'] = 'ctd_temperature_68_qc'
 
+        # TODO, remove after testing for this log message
+        # exit(1)
+
     if has_both_oxy:
 
         logging.info('has two ctd oxygens, param names are')

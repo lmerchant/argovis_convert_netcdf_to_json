@@ -2,6 +2,9 @@ from datetime import datetime
 import logging
 from collections import defaultdict
 import itertools
+from pathlib import Path
+
+from global_vars import GlobalVars
 
 
 from xarray_and_dask.check_has_ctd_vars import check_has_ctd_vars
@@ -214,11 +217,7 @@ def create_xr_obj(cruise_obj):
         # of var names to Argovis names
         # *********************************
 
-        logging.info(f"Modify xarray cruise object")
-
         nc, nc_mappings, meta_param_names = modify_xarray_obj(file_obj)
-
-        logging.info(f"File shape {nc.dims}")
 
         file_obj['nc'] = nc
         file_obj['nc_mappings'] = nc_mappings
@@ -258,6 +257,14 @@ def process_cruise_objs_by_type(cruise_objs):
         cruise_xr_obj = create_xr_obj(cruise_obj)
 
         if not cruise_xr_obj['xr_file_objs']:
+            # Write cruise expocode not processed to file
+
+            not_processed_log = Path(
+                GlobalVars.LOGGING_DIR) / 'all_cruises_not_processed.txt'
+
+            with open(not_processed_log, 'a') as f:
+                f.write(f"{cruise_obj['cruise_expocode']}\n")
+
             continue
 
         # ***************************

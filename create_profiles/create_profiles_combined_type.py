@@ -312,11 +312,11 @@ def balance_profiles_by_station_cast(profiles_objs):
 
     # Get profile dicts so have the same number of profiles
     # one may be blank while the other exists at a cast
-    btl_profiles, ctd_profiles = get_same_station_cast_profile_btl_ctd(
-        btl_profiles, ctd_profiles)
-
     logging.info(f"Number of btl profiles {len(btl_profiles)}")
     logging.info(f"Number of ctd profiles {len(ctd_profiles)}")
+
+    btl_profiles, ctd_profiles = get_same_station_cast_profile_btl_ctd(
+        btl_profiles, ctd_profiles)
 
     #  bottle  and ctd have same keys, but  different values
     # which are the profile numbers

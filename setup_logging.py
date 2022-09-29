@@ -45,13 +45,16 @@ def delete_logs(append_logs):
         remove_file('cruises_no_core_ctd_vars.txt', logging_dir)
         remove_file('cruises_w_ctd_temp_no_qc.txt', logging_dir)
         remove_file('cruises_w_ctd_temp_no_ref_scale.txt', logging_dir)
-        remove_file('cruises_no_ctd_temp.txt', logging_dir)
+        remove_file('cruise_files_no_ctd_temp.txt', logging_dir)
         remove_file('cruises_no_expocode.txt', logging_dir)
-        remove_file('cruises_no_pressure.txt', logging_dir)
+        remove_file('cruise_files_no_pressure.txt', logging_dir)
         remove_file('found_cruises_with_coords_netcdf.txt', logging_dir)
         remove_file('diff_cruise_and_file_expocodes.txt', logging_dir)
-        remove_file('cruises_not_converted.txt', logging_dir)
+        remove_file('cruise_files_not_converted.txt', logging_dir)
         remove_file('cruises_w_ctd_temp_unk.txt', logging_dir)
+        remove_file('profiles_information.txt', logging_dir)
+        remove_file('all_cruises_not_processed.txt', logging_dir)
+        remove_file('all_cruises_processed.txt', logging_dir)
 
     include_exclude_dir = GlobalVars.INCLUDE_EXCLUDE_DIR
 

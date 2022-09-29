@@ -1,4 +1,7 @@
 import logging
+from pathlib import Path
+
+from global_vars import GlobalVars
 
 from create_profiles.create_profiles_combined_type import create_profiles_combined_type
 from create_profiles.update_profiles_single_type import update_profiles_single_type
@@ -27,6 +30,12 @@ def post_process_cruise_objs_by_collection(cruise_objs_by_type):
         logging.info("****************************")
         logging.info(f"Post processing {expocode}")
         logging.info("****************************")
+
+        # Save expocode processed to a file collecting all processed
+        processed_cruises_file = Path(
+            GlobalVars.LOGGING_DIR) / 'all_cruises_processed.txt'
+        with open(processed_cruises_file, 'a') as f:
+            f.write(f"{expocode}\n")
 
         # In profiles objs, the combined type may just
         # be btl and not ctd or ctd and not btl

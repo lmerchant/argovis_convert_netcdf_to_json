@@ -244,11 +244,39 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
         # that it is not ship_ctd_btl but ship_ctd
         # Look at station 535, cast 1, only ctd
         # station 536, has btl and ctd
-        test_cruise_expocode = '06AQANTX_4'
+        #test_cruise_expocode = '06AQANTX_4'
 
         # has CDOM_WAVELENGTHS dimension
         # skip files like this till write code to handle it
         #test_cruise_expocode = '33RR20160208'
+
+        # TODO
+        # check this out
+        # Log says two ctd_temperatures (+68 one), but I only see one
+        # when I browse with panopoly
+        #test_cruise_expocode = '58JH19951108'
+
+        # I need one where pressure looses a dim
+        #test_cruise_expocode = '318MSAVE5'
+        #test_cruise_expocode = '492SSY9607_1'
+
+        # converting oxygen, so concatenating converted profile datasets
+        #test_cruise_expocode = '316N154_2'
+
+        # cruise with two ctd temperatures (includes 68)
+        #test_cruise_expocode = '49K6KY9606_1'
+
+        # cruise with btl and ctd profiles but when combine them
+        # get same btl only profiles
+        # INFO : Combining btl and ctd
+        # INFO : Number of btl profiles 127
+        # INFO : Number of ctd profiles 127
+        # INFO : Processed btl and ctd combined profiles
+        # INFO :   (total_cruises_processed, <class 'int'>) (total_btl_profiles, <class 'int'>) (total_ctd_profiles, <class 'int'>) (total_btl_ctd_profiles, <class 'int'>)
+        # 0 1 2 0 125
+        # This is correct, so the line about number of ctd profiles is incorrect because
+        # the ctd file opened up in panopoly says N_PROF = 125 and not 127
+        test_cruise_expocode = '33RR20220613'
 
         netcdf_cruises_objs = [
             cruise_obj for cruise_obj in netcdf_cruises_objs if cruise_obj['cruise_expocode'] == test_cruise_expocode]
@@ -287,7 +315,8 @@ def add_file_data(netcdf_cruise_obj):
                 f"Error reading file for cruise {file_obj['cruise_expocode']}")
             logging.info(f"Data type {file_obj['data_type']}")
 
-            return {}
+            # return {}
+            continue
 
         file_obj['nc'] = nc
 
@@ -655,7 +684,7 @@ def process_all_cruises(time_range):
     num_batches = math.floor(num_netcdf_cruises_objs/num_in_batch)
     num_leftover = num_netcdf_cruises_objs % num_in_batch
 
-    logging.info(f"Total cruises {num_netcdf_cruises_objs}")
+    logging.info(f"Total cruises with netCDF files {num_netcdf_cruises_objs}")
     logging.info(f"num batches {num_batches} and num leftover {num_leftover}")
 
     for start in range(0, num_batches):

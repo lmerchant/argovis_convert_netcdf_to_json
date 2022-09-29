@@ -315,24 +315,26 @@ def save_included_excluded_cchdo_vars(included, excluded):
                 f.write(f"{id}\n")
 
 
-def save_data_type_profiles(data_type_obj_profiles):
+# def save_data_type_profiles(data_type_obj_profiles):
+
+#     logging.info('Saving files')
+
+#     data_type = data_type_obj_profiles['data_type']
+
+#     data_type_profiles = data_type_obj_profiles['data_type_profiles_list']
+
+#     # Look at one profile to get the cchdo units
+#     # to see what kinds there are
+#     all_cchdo_units_mapping = get_unique_cchdo_units(data_type_profiles)
+
+#     write_all_cchdo_units(all_cchdo_units_mapping)
+
+#     save_as_zip_data_type_profiles(data_type_profiles)
+
+# not used anymore
+def save_data_type_profiles_single(single_profiles):
 
     logging.info('Saving files single type')
-
-    data_type = data_type_obj_profiles['data_type']
-
-    data_type_profiles = data_type_obj_profiles['data_type_profiles_list']
-
-    # Look at one profile to get the cchdo units
-    # to see what kinds there are
-    all_cchdo_units_mapping = get_unique_cchdo_units(data_type_profiles)
-
-    write_all_cchdo_units(all_cchdo_units_mapping)
-
-    save_as_zip_data_type_profiles(data_type_profiles)
-
-
-def save_data_type_profiles_single(single_profiles):
 
     # Loop through all profiles, get all units and get unique
     all_cchdo_units_mapping = get_unique_cchdo_units(single_profiles)
@@ -342,9 +344,10 @@ def save_data_type_profiles_single(single_profiles):
     save_as_zip_data_type_profiles(single_profiles)
 
 
+# not used anymore
 def save_data_type_profiles_combined(combined_profiles):
 
-    logging.info('Saving files')
+    logging.info('Saving files combined type')
 
     # Loop through all profiles, get all units and get unique
     all_cchdo_units_mapping = get_unique_cchdo_units(combined_profiles)

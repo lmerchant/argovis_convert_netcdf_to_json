@@ -102,7 +102,7 @@ def get_cchdo_argovis_name_mapping_per_type(data_type):
 
     return {
         # 'pressure': 'pres',
-        # 'pressure_qc': 'pres_woceqc',
+        # 'pressure_qc': 'pressure_woceqc',
         'pressure': 'pressure',
         # 'ctd_salinity': f'psal_{data_type}',
         # 'ctd_salinity_qc': f'psal_{data_type}_woceqc',
