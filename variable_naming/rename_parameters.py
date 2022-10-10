@@ -57,7 +57,7 @@ def rename_with_data_type(params, data_type):
     return new_params
 
 
-def has_both_temperatures(names):
+def has_two_ctd_temperatures(names):
 
     has_ctd_temperature = any(
         [True for name in names if name == 'ctd_temperature'])
@@ -70,7 +70,7 @@ def has_both_temperatures(names):
         return False
 
 
-def has_both_oxygen(names):
+def has_two_ctd_oxygens(names):
 
     has_ctd_oxygen = any(
         [True for name in names if name == 'ctd_oxygen'])
@@ -89,8 +89,8 @@ def rename_to_argovis_mapping(cchdo_names):
 
     core_cchdo_names = list(cchdo_argovis_name_mapping.keys())
 
-    logging.info('core cchdo names')
-    logging.info(core_cchdo_names)
+    # logging.info('core cchdo names')
+    # logging.info(core_cchdo_names)
 
     # First find out which temperature and oxygen names are used
 
@@ -100,8 +100,8 @@ def rename_to_argovis_mapping(cchdo_names):
     # hierarchy if both oxygen names found
     # Choose ctd_oxygen
 
-    has_both_temp = has_both_temperatures(cchdo_names)
-    has_both_oxy = has_both_oxygen(cchdo_names)
+    has_both_temp = has_two_ctd_temperatures(cchdo_names)
+    has_both_oxy = has_two_ctd_oxygens(cchdo_names)
 
     if has_both_temp:
 

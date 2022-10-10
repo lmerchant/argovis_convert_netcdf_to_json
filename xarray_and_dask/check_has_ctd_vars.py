@@ -6,9 +6,12 @@ import logging
 
 from global_vars import GlobalVars
 
+from variable_naming.rename_parameters import has_two_ctd_temperatures
+from variable_naming.rename_parameters import has_two_ctd_oxygens
+
 
 def log_ctd_var_status(file_obj, has_pres,
-                       has_ctd_temp, has_ctd_temp_ref_scale):
+                       has_ctd_temp, has_ctd_temp_ref_scale, has_both_temp, has_both_oxy):
 
     logging_dir = GlobalVars.LOGGING_DIR
 
@@ -51,6 +54,19 @@ def log_ctd_var_status(file_obj, has_pres,
         with open(filepath, 'a') as f:
             f.write(f"expocode {expocode} {data_type}\n")
 
+    if has_both_temp:
+        filename = 'cruise_files_multiple_ctd_temp_oxy.txt'
+        filepath = os.path.join(logging_dir, filename)
+        with open(filepath, 'a') as f:
+            f.write(
+                f"expocode {expocode} {data_type} multiple CTD temperatures\n")
+
+    if has_both_oxy:
+        filename = 'cruise_files_multiple_ctd_temp_oxy.txt'
+        filepath = os.path.join(logging_dir, filename)
+        with open(filepath, 'a') as f:
+            f.write(f"expocode {expocode} {data_type} multiple CTD oxygens\n")
+
 
 def check_has_ctd_vars(file_obj):
 
@@ -90,13 +106,24 @@ def check_has_ctd_vars(file_obj):
     coords = list(nc.coords)
     has_pres = 'pressure' in coords
 
-    if has_pres and has_ctd_temp and has_ctd_temp_ref_scale:
+    # Check has only one CTD Temperature variable on one scale
+    has_both_temp = has_two_ctd_temperatures(params)
+
+    # Check has only one CTD oxygen with one unit value
+    has_both_oxy = has_two_ctd_oxygens(params)
+
+    if has_both_temp or has_both_oxy:
+        has_single_ctd_temp_oxy = False
+    else:
+        has_single_ctd_temp_oxy = True
+
+    if has_pres and has_ctd_temp and has_ctd_temp_ref_scale and has_single_ctd_temp_oxy:
         has_all_ctd_vars = True
     else:
         has_all_ctd_vars = False
 
     # Now find which variables that are missing and write to files
     log_ctd_var_status(file_obj, has_pres,
-                       has_ctd_temp, has_ctd_temp_ref_scale)
+                       has_ctd_temp, has_ctd_temp_ref_scale, has_both_temp, has_both_oxy)
 
     return has_all_ctd_vars

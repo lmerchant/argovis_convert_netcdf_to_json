@@ -40,6 +40,8 @@ def convert_boolean(obj):
     return obj
 
 
+# TODO
+# doesn't look to be used
 def filter_measurements(data_type_profiles):
 
     # TODO
@@ -50,6 +52,10 @@ def filter_measurements(data_type_profiles):
     #     meas_names['station_cast'] = station_cast
     #     meas_names['station_parameters'] = list(val_df.columns)
     #     all_meas_names.append(meas_names)
+
+    # TODO
+    # shouldn't this be filtering on cchdo names, and be
+    # ctd_temperature and not just 'temperature'?
 
     output_profiles_list = []
 
@@ -101,7 +107,7 @@ def filter_measurements(data_type_profiles):
 def get_measurements_sources(df_meas):
 
     using_ctd_salinity = False
-    using_btl_salinity = False
+    using_bottle_salinity = False
     using_ctd_temperature = False
     using_ctd_temperature_68 = False
 
@@ -137,18 +143,18 @@ def get_measurements_sources(df_meas):
     else:
         all_ctd_salinity_empty = True
 
-    has_btl_salinity_col = 'bottle_salinity' in df_meas.columns
-    if has_btl_salinity_col:
+    has_bottle_salinity_col = 'bottle_salinity' in df_meas.columns
+    if has_bottle_salinity_col:
         all_bottle_salinity_empty = df_meas['bottle_salinity'].isnull().all()
     else:
         all_bottle_salinity_empty = True
 
     if has_ctd_salinity_col and not all_ctd_salinity_empty:
         using_ctd_salinity = True
-    elif has_ctd_salinity_col and all_ctd_salinity_empty and has_btl_salinity_col and not all_bottle_salinity_empty:
-        using_btl_salinity = True
-    elif not has_ctd_salinity_col and has_btl_salinity_col and not all_bottle_salinity_empty:
-        using_btl_salinity = True
+    elif has_ctd_salinity_col and all_ctd_salinity_empty and has_bottle_salinity_col and not all_bottle_salinity_empty:
+        using_bottle_salinity = True
+    elif not has_ctd_salinity_col and has_bottle_salinity_col and not all_bottle_salinity_empty:
+        using_bottle_salinity = True
 
     meas_sources = {}
 
@@ -161,8 +167,8 @@ def get_measurements_sources(df_meas):
     if has_ctd_salinity_col:
         meas_sources['ctd_salinity'] = using_ctd_salinity
 
-    if has_btl_salinity_col:
-        meas_sources['bottle_salinity'] = using_btl_salinity
+    if has_bottle_salinity_col:
+        meas_sources['bottle_salinity'] = using_bottle_salinity
 
     # For json_str need to convert True, False to 'true','false'
     #meas_sources = convert_boolean(meas_sources)
@@ -294,8 +300,11 @@ def create_measurements_df_all(df):
     core_cols = [col for col in df.columns if col in core_names]
 
     # pressure has no qc so don't need to look at it for qc=0 or 2
-    core_non_qc_wo_press = [
-        col for col in core_cols if '_qc' not in col and col != 'pressure']
+    # not true anymore
+    # core_non_qc_wo_press = [
+    #     col for col in core_cols if '_qc' not in col and col != 'pressure']
+    core_non_qc = [
+        col for col in core_cols if '_qc' not in col]
 
     # Also include N_PROF, station_cast for unique identifiers
     cols_to_keep = core_cols
@@ -310,7 +319,8 @@ def create_measurements_df_all(df):
     # pressure or temperature are null. Want to filter
     # for each station_cast profile
 
-    for col in core_non_qc_wo_press:
+    # for col in core_non_qc_wo_press:
+    for col in core_non_qc:
 
         qc_col = f"{col}_qc"
 

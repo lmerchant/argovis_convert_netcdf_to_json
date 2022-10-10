@@ -13,6 +13,8 @@ def convert_boolean(obj):
     return obj
 
 
+# TODO
+# doesn't look to be used
 def filter_measurements(data_type_profiles):
 
     # For measurements, already filtered whether to

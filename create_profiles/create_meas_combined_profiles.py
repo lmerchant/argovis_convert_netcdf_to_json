@@ -3,6 +3,9 @@ import pandas as pd
 
 from variable_naming.meta_param_mapping import get_measurements_mapping
 
+# TODO
+# redo this now with bottle_salinity name staying bottle_salinity and not salinity
+
 
 def convert_boolean(obj):
     if isinstance(obj, bool):
@@ -15,6 +18,10 @@ def convert_boolean(obj):
 
 
 def get_combined_measurements(btl_meas, ctd_meas, hierarchy_meas_cols, hierarchy_source_flag, hierarchy_meas_sources):
+
+    # TODO
+    # why looking at 'temperature' and not 'ctd_temperarature' would have to be
+    # after convert names
 
     # Convert btl_meas and ctd_meas into df and then select columns I want
     # using hierarchy_meas_cols
@@ -442,6 +449,10 @@ def get_hierarchy_single_source(source_dict):
     source = source_dict[meas_sources_key]
 
     hierarchy = {}
+
+    # TODO
+    # Wouldn't this still be 'ctd_temperature' in source?
+    # and ctd_salinity in source?
 
     # check ctd_temperature
     has_key = 'temperature' in source

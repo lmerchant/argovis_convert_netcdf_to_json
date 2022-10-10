@@ -1,5 +1,5 @@
 def get_cchdo_core_meas_var_names():
-    return ['pressure', 'ctd_salinity', 'ctd_salinity_qc', 'bottle_salinity', 'bottle_salinity_qc', 'ctd_temperature', 'ctd_temperature_qc', 'ctd_temperature_68', 'ctd_temperature_68_qc']
+    return ['pressure', 'pressure_qc', 'ctd_salinity', 'ctd_salinity_qc', 'bottle_salinity', 'bottle_salinity_qc', 'ctd_temperature', 'ctd_temperature_qc', 'ctd_temperature_68', 'ctd_temperature_68_qc']
 
 
 # def get_cchdo_core_meas_salinity_names():

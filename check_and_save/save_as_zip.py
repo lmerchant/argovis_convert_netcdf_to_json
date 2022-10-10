@@ -55,7 +55,7 @@ def get_data_dict(profile_dict, station_cast):
 
     data_type = profile_dict['data_type']
 
-    # If has psal and all null, don't save in masurement data obj
+    # If has psal (renamed salinity)and all null, don't save in masurement data obj
     df_meas = pd.DataFrame.from_dict(measurements)
 
     if 'salinity' in df_meas.columns:

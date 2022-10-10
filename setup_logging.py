@@ -55,6 +55,7 @@ def delete_logs(append_logs):
         remove_file('profiles_information.txt', logging_dir)
         remove_file('all_cruises_not_processed.txt', logging_dir)
         remove_file('all_cruises_processed.txt', logging_dir)
+        remove_file('cruise_files_multiple_ctd_temp_oxy.txt', logging_dir)
 
     include_exclude_dir = GlobalVars.INCLUDE_EXCLUDE_DIR
 
