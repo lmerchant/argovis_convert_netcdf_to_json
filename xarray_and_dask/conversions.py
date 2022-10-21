@@ -527,6 +527,21 @@ def get_temp_to_use_and_qc(nc_profile, var, profiles_no_oxy_conversions):
 
 def get_var_qc_if_sal_temp_and_oxy(nc_profile, var, profiles_no_oxy_conversions):
 
+    # ------------
+
+    # I need a new method for getting a flag,
+
+    # If all good, no problem
+    # If oxy bad, use that flag for final qc
+    # If temperature or salinity have a bad flag, use the flag
+    # of bad temperature first and then use bad salinity flag.
+
+    # So what is a formula for this?
+
+    # Even if value not qc = 0, 2, convert and use original qc of oxy
+
+    # -------------
+
     # Depends on temperature and salinity flags
 
     # If the temp_qc is bad, use in calculation but set qc
@@ -534,7 +549,7 @@ def get_var_qc_if_sal_temp_and_oxy(nc_profile, var, profiles_no_oxy_conversions)
     # convert an oxygen with a bad temperature qc. Same
     # for the salinity.
 
-    # already accounted for case of no_sal_temp
+    # already accounted for case of all_sal_or_temp_nan
 
     profile_size = nc_profile.sizes['N_LEVELS']
 
@@ -640,7 +655,22 @@ def get_var_qc_if_sal_temp_and_oxy(nc_profile, var, profiles_no_oxy_conversions)
     return var_qc
 
 
-def check_if_all_nan(nc_profile, var):
+def check_has_ctd_temp_and_salinity(nc_profile):
+
+    if 'ctd_temperature' in nc_profile.keys() or 'ctd_temperature_68' in nc_profile.keys():
+        has_temperature = True
+    else:
+        has_temperature = False
+
+    if 'ctd_salinity' in nc_profile.keys() or 'bottle_salinity' in nc_profile.keys():
+        has_salinity = True
+    else:
+        has_salinity = False
+
+    return has_temperature, has_salinity
+
+
+def check_null_status_temp_salinity(nc_profile, var):
     # TODO ***
     # Put this in it's own function checking if
     # have non nan values for all 3 variables oxy, sal, temp
@@ -698,11 +728,15 @@ def check_if_all_nan(nc_profile, var):
         if not one_sal_exists:
             logging.info('*** No oxygen conversion because missing Salinity')
 
-        no_sal_temp = True
+        all_sal_or_temp_nan = True
     else:
-        no_sal_temp = False
+        all_sal_or_temp_nan = False
 
-    return no_sal_temp
+    return all_sal_or_temp_nan
+
+
+def get_var_qc(nc_profile, var):
+    pass
 
 
 def convert_oxygen_to_new_units(nc, var, profiles_no_oxy_conversions):
@@ -745,13 +779,22 @@ def convert_oxygen_to_new_units(nc, var, profiles_no_oxy_conversions):
 
         # --------------------
 
-        no_sal_temp = check_if_all_nan(nc_profile, var)
+        all_sal_or_temp_nan = check_null_status_temp_salinity(nc_profile, var)
+
+        has_temperature, has_salinity = check_has_ctd_temp_and_salinity(
+            nc_profile)
 
         # ----------------
         # Get var qc values
         # ----------------
 
-        if no_sal_temp:
+        # As of Oct 2022, always convert,
+        # so if missing salinity or temperature, set ctd oxygen to NaN and set a flag (which one?)
+
+        # If salinity or temperature all NaN, just go through conversion and value will be NaN
+        # with the flag being the worst one from Salinity or Temperature (which flag is worse?)
+
+        if all_sal_or_temp_nan:
 
             # TODO
             # Don't convert var
@@ -765,6 +808,12 @@ def convert_oxygen_to_new_units(nc, var, profiles_no_oxy_conversions):
             else:
                 # set to flag = 0 since no qc
                 var_qc = np.zeros(profile_size)
+
+                # NOTE
+                # Since var_qc would show up in all profiles if it exists in nc.keys,
+                # only need to worry about it if there is no var_qc
+                # Even it it doesn't start with a qc, the temp or sal may have a qc and
+                # this whould create a qc
 
             station_cast = nc_profile['station_cast'].values
 
@@ -809,14 +858,17 @@ def convert_oxygen_to_new_units(nc, var, profiles_no_oxy_conversions):
 
         # Convert if any good vars, otherwise, don't convert
 
-        if no_sal_temp:
+        if all_sal_or_temp_nan:
 
             # TODO
 
             # add to profiles_no_oxy_conversions
 
             # TODO
-            # ask Sarah if should convert anyway and use bad flag with it
+            # ask Sarah if should convert anyway and use bad flag with it. yes, but what flag?
+
+            # logs don't find this case
+
             logging.info(
                 "Missing quality temp or sal needed to do Oxygen conversion")
             logging.info(f"Didn't convert {var} for profile")
