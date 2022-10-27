@@ -63,8 +63,10 @@ def get_meta_mapping():
 
 def get_program_argovis_source_info_mapping():
 
+    # keys are names used in this program
+    # values are the final key names to be used for Argovis
+
     return {
-        # 'cchdoMetaNames': 'cchdo_meta_names',
         'cchdo_param_names': 'data_keys_source',
         'cchdo_param_names_btl': 'data_keys_source_btl',
         'cchdo_param_names_ctd': 'data_keys_source_ctd',

@@ -1,4 +1,5 @@
 import logging
+import profile
 
 import pandas as pd
 import numpy as np
@@ -128,14 +129,14 @@ def rename_measurements_sources(data_type, measurements_sources):
     for key, val in measurements_sources.items():
         # change key to argovis name
         # e.g. 'using_ctd_temperature' to 'temperature'
-        #var_in_key = key.replace('using_', '')
+        # var_in_key = key.replace('using_', '')
         # get map of cchdo name to argovis name
         # rename_to_argovis expects a list of names to map
         key_name_mapping = rename_to_argovis_mapping([key])
 
         new_key = f"{key_name_mapping[key]}"
 
-        #new_key = new_key.replace(f"_{data_type}", '')
+        # new_key = new_key.replace(f"_{data_type}", '')
 
         if key == 'ctd_temperature_68':
             new_key = new_key + '_68'
@@ -169,7 +170,7 @@ def create_mappings(profile_dict, data_type, meta, argovis_col_names_mapping):
 
     # Want before and after conversions
     # before
-    #cchdo_meta_names = profile_dict['cchdoMetaNames']
+    # cchdo_meta_names = profile_dict['cchdoMetaNames']
     cchdo_units = profile_dict['cchdo_units']
     cchdo_ref_scale = profile_dict['cchdo_reference_scale']
     cchdo_param_names = profile_dict['cchdo_param_names']
@@ -185,7 +186,7 @@ def create_mappings(profile_dict, data_type, meta, argovis_col_names_mapping):
 
     # key argovisMetaNames
     # (listing of all the var names in meta)
-    #mappings['argovisMetaNames'] = list(meta.keys())
+    # mappings['argovisMetaNames'] = list(meta.keys())
 
     # key argovisParamNames
     # (listing of all the var names in data)
@@ -269,13 +270,13 @@ def filter_out_params(parameter_names):
 
 def rename_data(data, data_type):
 
-    #logging.info('inside rename_data')
+    # logging.info('inside rename_data')
 
     # Rename by loading dict into pandas dataframe,
     # rename cols then output back to dict
     df_data = pd.DataFrame.from_dict(data)
 
-    #logging.info(f"column names before rename {list(df_data.columns)}")
+    # logging.info(f"column names before rename {list(df_data.columns)}")
 
     data_columns = list(df_data.columns)
 
@@ -308,16 +309,113 @@ def rename_data(data, data_type):
 
     df_data = df_data.drop(cols_to_filter_out, axis=1)
 
-    #logging.info(f"column names after rename {list(df_data.columns)}")
+    # logging.info(f"column names after rename {list(df_data.columns)}")
 
     data = df_data.to_dict('records')
 
     return data, argovis_col_names_mapping
 
 
-def remove_deleted_vars_from_mappings(
-        profile_dict, variables_deleted):
+def remove_extra_dim_vars_from_mappings(profile_dict, variables_to_delete_in_mappings, variables_to_add_in_mappings):
 
+    # Get the names of extra dim vars
+    extra_dim_vars = variables_to_add_in_mappings.keys()
+
+    for extra_dim in extra_dim_vars:
+
+        # First keep mapping attribute values of one variable out of the exploded vars
+        # Then delete and add variables
+
+        variables_to_delete = variables_to_delete_in_mappings[extra_dim]
+        variables_to_add = variables_to_add_in_mappings[extra_dim]
+
+        variables_to_include = []
+
+        non_qc_var_to_add = variables_to_add['non_qc_var']
+
+        variables_to_include.append(non_qc_var_to_add)
+
+        try:
+            qc_var_to_add = variables_to_add['qc_var']
+            variables_to_include.append(qc_var_to_add)
+        except:
+            pass
+
+        col_naming_var = variables_to_add['col_naming_var']
+        variables_to_include.append(col_naming_var)
+
+        non_qc_vars_to_delete = [
+            var for var in variables_to_delete if not var.endswith('_qc')]
+        qc_vars_to_delete = [
+            var for var in variables_to_delete if var.endswith('_qc')]
+
+        non_qc_vars_to_delete.sort()
+        qc_vars_to_delete.sort()
+
+        sample_non_qc_var = non_qc_vars_to_delete[0]
+        sample_qc_var = qc_vars_to_delete[0]
+
+        for key, value in profile_dict.items():
+
+            if key == 'cchdo_param_names':
+
+                new_value = [
+                    val for val in value if val not in variables_to_delete]
+
+                new_value.extend(variables_to_include)
+
+                profile_dict[key] = new_value
+
+            if key == 'cchdo_standard_names':
+
+                new_value = {}
+                for k, v in value.items():
+
+                    if k == sample_non_qc_var:
+                        new_value[non_qc_var_to_add] = v
+
+                    elif k == sample_qc_var:
+                        new_value[qc_var_to_add] = v
+
+                    else:
+                        new_value[k] = v
+
+                profile_dict[key] = {k: v for k, v in new_value.items()
+                                     if k not in variables_to_delete}
+
+            if key == 'cchdo_reference_scale':
+
+                new_value = {}
+                for k, v in value.items():
+
+                    if k == sample_non_qc_var:
+                        new_value[non_qc_var_to_add] = v
+                    else:
+                        new_value[k] = v
+
+                profile_dict[key] = {k: v for k, v in new_value.items()
+                                     if k not in variables_to_delete}
+
+            if key == 'cchdo_units':
+
+                new_value = {}
+                for k, v in value.items():
+
+                    if k == sample_non_qc_var:
+                        new_value[non_qc_var_to_add] = v
+                    else:
+                        new_value[k] = v
+
+                profile_dict[key] = {k: v for k, v in new_value.items()
+                                     if k not in variables_to_delete}
+
+    return profile_dict
+
+
+def remove_deleted_vars_from_mappings(profile_dict, variables_deleted):
+
+    # keys are names used in this program
+    # values are the final key names to be used for Argovis
     cchdo_key_mapping = get_program_argovis_source_info_mapping()
 
     for key, value in profile_dict.items():
@@ -346,7 +444,7 @@ def remove_deleted_vars_from_mappings(
 
 def remove_nan_variables(data):
 
-    #logging.info('inside remove_nan_variables')
+    # logging.info('inside remove_nan_variables')
 
     # Read data into a pandas dataframe
     df_data = pd.DataFrame.from_dict(data)
@@ -378,7 +476,7 @@ def add_data_type_to_meta(meta, data_type):
 
     for key, val in meta.items():
         if key not in ignore_keys:
-            #new_meta[key] = val
+            # new_meta[key] = val
             new_key = f"{key}_{data_type}"
             new_meta[new_key] = val
         else:
@@ -459,7 +557,7 @@ def add_argovis_meta(meta):
     profile_time = meta['time']
     meta['date_formatted'] = pd.to_datetime(profile_time).strftime("%Y-%m-%d")
 
-    #meta['date'] = pd.to_datetime(profile_time).isoformat()
+    # meta['date'] = pd.to_datetime(profile_time).isoformat()
     meta['date'] = pd.to_datetime(profile_time).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     # Don't include cchdo meta time var
@@ -501,13 +599,76 @@ def add_cchdo_meta(meta, cchdo_file_meta, cchdo_cruise_meta):
     return meta
 
 
+def coalesce_extra_dim_variables(profile_dict):
+
+    extra_dim_obj = profile_dict['extra_dim_obj']
+
+    data = profile_dict['data']
+
+    # Put data in a pandas dataframe, pull out the extra dim columns,
+    # combine them into one column as an array (number of WAVELENGTHS)
+    # Then save as json
+
+    df = pd.DataFrame.from_records(data)
+
+    # Get list of the renamed variables that are no longer needed since
+    # are coalescing into single value arrays and qc arrays and an array
+    # identifying the columns such as the wavelength number
+    variables_to_delete_in_mappings = {}
+    variables_to_add_in_mappings = {}
+
+    for key, value in extra_dim_obj.items():
+
+        if key == 'cdom':
+            wavelengths = value['wavelengths']
+            cdom_variables = value['variables']
+
+            non_qc = [var for var in cdom_variables if not var.endswith('_qc')]
+            qc = [var for var in cdom_variables if var.endswith('_qc')]
+
+            # Sort on column number
+            qc.sort()
+            non_qc.sort()
+
+            df['cdom'] = df[non_qc].values.tolist()
+            df['cdom_qc'] = df[qc].values.tolist()
+
+            df = df.drop(cdom_variables, axis=1)
+
+            # Save cdom wavelengths as a list in each cell of a column of the dataframe
+            indices = list(df.index)
+
+            df.loc[indices, 'cdom_wavelengths'] = pd.Series(
+                [wavelengths]*len(indices), index=indices)
+
+            df['cdom_wavelengths'] = df['cdom_wavelengths'].apply(
+                lambda x: list(x))
+
+            variables_to_delete_in_mappings['cdom'] = cdom_variables
+
+            # Will need to use attributes extracted from starting xarray file object
+            # in the mappings when remove variables and add these in.
+            # cdom and cdom_qc will have the same attributes as the deleted expanded vars
+            variables_to_add_in_mappings['cdom'] = {
+                'non_qc_var': 'cdom',
+                'qc_var': 'cdom_qc',
+                'col_naming_var': 'cdom_wavelengths'
+            }
+
+    data = df.to_dict('records')
+
+    profile_dict['data'] = data
+
+    return profile_dict, variables_to_delete_in_mappings, variables_to_add_in_mappings
+
+
 def process_data_profiles(profiles_obj):
 
     data_type = profiles_obj['data_type']
 
     expocode = profiles_obj['cchdo_cruise_meta']['expocode']
 
-    #logging.info(f'Processing data profiles for {expocode}')
+    # logging.info(f'Processing data profiles for {expocode}')
 
     cchdo_file_meta = profiles_obj['cchdo_file_meta']
     cchdo_cruise_meta = profiles_obj['cchdo_cruise_meta']
@@ -531,6 +692,33 @@ def process_data_profiles(profiles_obj):
         data = profile_dict['data']
         measurements = profile_dict['measurements']
 
+        has_extra_dim = profile_dict['has_extra_dim']
+
+        # **************
+        # Combine variables with extra dims into two variables
+
+        # One containing the values of each column and the
+        # other a two dimensional array of the coalesced variables that were
+        # previously exploded into separate one dim variables of the starting xarray
+        # ****************
+
+        # For cdom
+        # One containing the wavelengths of each column and the
+        # other a two dimensional array of the coalesced variables that were
+        # previously exploded into separate one dim variables of the starting xarray
+
+        #print(f"has extra dim {has_extra_dim}")
+
+        if has_extra_dim:
+            profile_dict, variables_to_delete_in_mappings, variables_to_add_in_mappings = coalesce_extra_dim_variables(
+                profile_dict)
+
+            data = profile_dict['data']
+
+        else:
+            variables_to_delete_in_mappings = []
+            variables_to_add_in_mappings = []
+
         # *****************************
         # Delete variables from profile
         # if values are all NaN
@@ -540,6 +728,16 @@ def process_data_profiles(profiles_obj):
 
         profile_dict = remove_deleted_vars_from_mappings(
             profile_dict, variables_deleted)
+
+        # ****************************************
+        # Remove exploded var names
+        # if expanded a variable having extra dims
+        # ****************************************
+
+        if has_extra_dim:
+
+            profile_dict = remove_extra_dim_vars_from_mappings(
+                profile_dict, variables_to_delete_in_mappings, variables_to_add_in_mappings)
 
         # ******************************
         # Add metadata to cchdo metadata
@@ -621,7 +819,7 @@ def process_data_profiles(profiles_obj):
 
         measurements_source = profile_dict['measurements_source']
         measurements_sources = profile_dict['measurements_sources']
-        #station_parameters = profile_dict.pop('stationParameters', None)
+        # station_parameters = profile_dict.pop('stationParameters', None)
 
         # Rename measurementsSources keys
         measurements_sources = rename_measurements_sources(
@@ -646,7 +844,7 @@ def process_data_profiles(profiles_obj):
         new_profile_dict['measurements'] = measurements
         new_profile_dict['measurements_source'] = measurements_source
         new_profile_dict['measurements_sources'] = measurements_sources
-        #profile_dict['stationParameters'] = station_parameters
+        # profile_dict['stationParameters'] = station_parameters
 
         renamed_profile_dict = rename_core_profile_keys(new_profile_dict)
 
@@ -679,12 +877,21 @@ def post_process_cruise_objs_by_type(cruises_profile_objs):
 
         for profiles_obj in all_data_types_profile_objs:
 
+            # has_extra_dim = profiles_obj['has_extra_dim']
+            # if has_extra_dim:
+            #     cdom_wavelengths = profiles_obj['cdom_wavelengths']
+
             data_type = profiles_obj['data_type']
 
             updated_data_profiles = process_data_profiles(profiles_obj)
 
             new_profiles_obj = {}
             new_profiles_obj['data_type'] = data_type
+
+            # new_profiles_obj['has_extra_dim'] = has_extra_dim
+
+            # if has_extra_dim:
+            #     new_profiles_obj['cdom_wavelengths'] = cdom_wavelengths
 
             new_profiles_obj['data_type_profiles_list'] = updated_data_profiles
 

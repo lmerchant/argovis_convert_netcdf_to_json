@@ -32,13 +32,15 @@ def process_batch_of_cruises(cruise_objs):
 
     # profiles = one_type['data_type_profiles_list']
 
-    # one_profile = profiles[0]
+    # one_profile = profiles[1]
 
     # print(one_profile['profile_dict']['cchdo_param_names'])
 
     # print(f"\n")
 
     # print(one_profile)
+
+    # exit(1)
 
     # **********************************
     # Rename variables to ArgoVis names

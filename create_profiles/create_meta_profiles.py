@@ -34,6 +34,7 @@ def create_meta_profiles(df_meta):
     # df_meta = ddf_meta.compute()
 
     logging.info('create all_meta list')
+
     grouped_meta_dict = dict(tuple(df_meta.groupby('N_PROF')))
 
     all_meta_profiles = []

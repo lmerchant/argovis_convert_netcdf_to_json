@@ -16,7 +16,48 @@ from create_profiles.create_meas_profiles import create_meas_profiles
 from create_profiles.create_data_profiles import create_data_profiles
 from create_profiles.create_cchdo_argovis_mappings import create_cchdo_mappings
 
-from xarray_and_dask.check_has_cdom_vars import check_has_cdom_vars
+from xarray_and_dask.explode_vars_with_extra_dim_to_cols import explode_cdom_vars_to_cols
+
+
+def adjust_profiles_with_extra_dims_naming(combined_profiles, has_extra_dim, extra_dim_obj):
+
+    adjusted_combined_profiles = []
+
+    for profile in combined_profiles:
+
+        cchdo_param_names = profile['profile_dict']['cchdo_param_names']
+
+        # Check if extra dim variables still exist in parameters because
+        # if they were all NaN, they would be removed
+        if has_extra_dim:
+            found_dims = False
+            for key, val in extra_dim_obj.items():
+                if key == 'cdom':
+                    wavelengths = val['wavelengths']
+                    variables = val['variables']
+
+                    # check if variables are in the profile data, if it is,
+                    # include this information
+                    cchdo_params_set = set(cchdo_param_names)
+                    cdom_variables_set = set(variables)
+                    common_vars = cchdo_params_set.intersection(
+                        cdom_variables_set)
+
+                    if len(common_vars):
+                        found_dims = True
+
+            if found_dims:
+                profile['profile_dict']['has_extra_dim'] = True
+                profile['profile_dict']['extra_dim_obj'] = extra_dim_obj
+            else:
+                profile['profile_dict']['has_extra_dim'] = False
+
+        else:
+            profile['profile_dict']['has_extra_dim'] = False
+
+        adjusted_combined_profiles.append(profile)
+
+    return adjusted_combined_profiles
 
 
 def combine_profiles(meta_profiles, all_data_profiles, all_meas_profiles, meas_source_profiles, meas_names, cchdo_mapping_profiles, data_type):
@@ -61,6 +102,13 @@ def create_profiles_objs(cruise_ddf_obj):
         cchdo_file_meta = ddf_obj['cchdo_file_meta']
         cchdo_cruise_meta = ddf_obj['cchdo_cruise_meta']
 
+        has_extra_dim = ddf_obj['has_extra_dim']
+
+        if has_extra_dim:
+            extra_dim_obj = ddf_obj['extra_dim_obj']
+        else:
+            extra_dim_obj = None
+
         logging.info('create all_meta profiles')
 
         df_meta = ddf_meta.compute()
@@ -98,12 +146,25 @@ def create_profiles_objs(cruise_ddf_obj):
         combined_profiles = combine_profiles(all_meta_profiles, all_data_profiles,
                                              all_meas_profiles, all_meas_source_profiles, all_meas_names, cchdo_mapping_profiles, data_type)
 
+        # ****************************
+        # Add in extra dim information
+        # ****************************
+
+        # Add in information to enable any expanded variables to be coalesced into an array
+        # when there was an extra dimension beyond N_PROFILE and N_LEVELS dimensions of the
+        # original xarray file object
+
+        adjusted_combined_profiles = adjust_profiles_with_extra_dims_naming(
+            combined_profiles, has_extra_dim, extra_dim_obj)
+
+        # *******************************************************
         # Create profiles_obj to hold profiles for one data type
+        # *******************************************************
         profiles_obj = {}
         profiles_obj['data_type'] = data_type
         profiles_obj['cchdo_file_meta'] = cchdo_file_meta
         profiles_obj['cchdo_cruise_meta'] = cchdo_cruise_meta
-        profiles_obj['data_type_profiles_list'] = combined_profiles
+        profiles_obj['data_type_profiles_list'] = adjusted_combined_profiles
 
         profiles_objs.append(profiles_obj)
 
@@ -144,8 +205,20 @@ def create_dask_dataframe_obj(cruise_xr_obj):
         # Add dimensions and have station_cast for both
         # station_cast acts as a unique identifier
 
-        meta_names.extend(['N_PROF', 'N_LEVELS'])
-        param_names.extend(['N_PROF', 'N_LEVELS', 'station_cast'])
+        if 'N_PROF' not in meta_names:
+            meta_names.append('N_PROF')
+
+        if 'N_LEVELS' not in meta_names:
+            meta_names.append('N_LEVELS')
+
+        if 'N_PROF' not in param_names:
+            param_names.append('N_PROF')
+
+        if 'N_LEVELS' not in param_names:
+            param_names.append('N_LEVELS')
+
+        if 'station_cast' not in param_names:
+            param_names.append('station_cast')
 
         ddf_meta = ddf[meta_names].copy()
         ddf_param = ddf[param_names].copy()
@@ -155,6 +228,11 @@ def create_dask_dataframe_obj(cruise_xr_obj):
         ddf_obj['nc_mappings'] = xr_file_obj['nc_mappings']
         ddf_obj['cchdo_file_meta'] = xr_file_obj['cchdo_file_meta']
         ddf_obj['cchdo_cruise_meta'] = xr_file_obj['cchdo_cruise_meta']
+
+        ddf_obj['has_extra_dim'] = xr_file_obj['has_extra_dim']
+
+        if xr_file_obj['has_extra_dim']:
+            ddf_obj['extra_dim_obj'] = xr_file_obj['extra_dim_obj']
 
         logging.info("Modify Dask meta dataframe")
 
@@ -205,11 +283,7 @@ def create_xr_obj(cruise_obj):
         # Skip files with CDOM_WAVELENGTHS dimension
         # ********************
 
-        has_extra_dim = check_has_cdom_vars(file_obj)
-
-        if has_extra_dim:
-            logging.info("Skipping file with CDOM_WAVELENGTHS dimension")
-            continue
+        file_obj = explode_cdom_vars_to_cols(file_obj)
 
         # ********************************
         # Modify Xarray object

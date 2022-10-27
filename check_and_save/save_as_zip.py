@@ -19,6 +19,9 @@ def convert(o):
     if isinstance(o, np.int8):
         return int(o)
 
+    if isinstance(o, np.int32):
+        return int(o)
+
     if isinstance(o, np.int64):
         return int(o)
 
@@ -163,6 +166,9 @@ def save_as_zip_data_type_profiles(data_type_profiles):
         df_profiles_info.loc[0] = [total_cruises_processed,
                                    total_btl_profiles, total_ctd_profiles, total_btl_ctd_profiles, total_profiles]
 
+        df_profiles_info.columns = ['total_cruises_processed', 'total_btl_profiles',
+                                    'total_ctd_profiles', 'total_btl_ctd_profiles', 'total_profiles']
+
     json_dicts = []
 
     for data_type_profile in data_type_profiles:
@@ -173,6 +179,11 @@ def save_as_zip_data_type_profiles(data_type_profiles):
         data_type = profile_dict['data_type']
 
         json_dict = get_data_dict(profile_dict, station_cast)
+
+        # TODO
+        # Add in function to coerce any qc values from float to integer
+        # since floats occur if any column value was NaN in pandas dataframe
+
         json_dicts.append(json_dict)
 
         # Save summary information to df_profiles_info
@@ -180,8 +191,11 @@ def save_as_zip_data_type_profiles(data_type_profiles):
             total_btl_profiles = total_btl_profiles + 1
         elif data_type == 'ctd':
             total_ctd_profiles = total_ctd_profiles + 1
-        else:
+        elif data_type == 'btl_ctd':
             total_btl_ctd_profiles = total_btl_ctd_profiles + 1
+        else:
+            logging.info(
+                "Profile type not found when saving to profile information file")
 
     if '/' in expocode:
         folder = expocode.replace('/', '_')
@@ -205,7 +219,7 @@ def save_as_zip_data_type_profiles(data_type_profiles):
 
     # TODO
     # For development (comment out later)
-    # unzip_file(zip_folder, zip_file)
+    unzip_file(zip_folder, zip_file)
 
     # Save profile information to first row
 

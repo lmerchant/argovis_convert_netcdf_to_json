@@ -77,8 +77,8 @@ def apply_c_format_param(nc, param_mapping):
         try:
             nc[var] = apply_c_format_xr(nc[var], f_format, dtype)
 
-            logging.info("dimensions")
-            logging.info(nc[var].sizes)
+            # logging.info("dimensions")
+            # logging.info(nc[var].sizes)
 
         except:
             logging.info('====================')

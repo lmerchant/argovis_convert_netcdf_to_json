@@ -5,9 +5,11 @@ import logging
 from datetime import datetime
 import math
 import copy
+from cchdo.params import WHPNames
 
 from global_vars import GlobalVars
 from process_cruises.process_batch_of_cruises import process_batch_of_cruises
+from variable_naming.rename_parameters import rename_to_argovis_mapping
 
 session = requests.Session()
 a = requests.adapters.HTTPAdapter(max_retries=5)
@@ -64,6 +66,10 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
         # 218_001 station cast
         # test_cruise_expocode = '18HU20130507'
 
+        # -------------
+        # oxygen conversions
+        # ---------------
+
         # test for cacl oxygen_ml_l with qc = 1
         # test_cruise_expocode = '06PO20110601'
 
@@ -92,6 +98,21 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
         # do I have qc = 2 unless sal and temp not good qc
         # and leave rest of qc alone
         #test_cruise_expocode = '316N145_12'
+
+        # BTL and  CTD
+        # oxygen and temp conversion
+        # More than one O2 var with ml/l
+        # for ctd_oxy qc = 3
+        # for oxygen, qc = 2 and 9
+        # And CTD converts
+        # TODO
+        # remove test print statements
+        #test_cruise_expocode = '316N154_2'
+
+        # oxygen conversion
+        # CTD file
+        # And has temp:null, psal: #
+        # also temp: null, psal: null
 
         # -----------------------
 
@@ -159,21 +180,6 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
         # Says there are 200 included vars
         # but that number doesn't exist
         # test_cruise_expocode = '32MW078_1'
-
-        # BTL and  CTD
-        # oxygen and temp conversion
-        # More than one O2 var with ml/l
-        # for ctd_oxy qc = 3
-        # for oxygen, qc = 2 and 9
-        # And CTD converts
-        # TODO
-        # remove test print statements
-        #test_cruise_expocode = '316N154_2'
-
-        # oxygen conversion
-        # CTD file
-        # And has temp:null, psal: #
-        # also temp: null, psal: null
 
         # TODO
         # So has ctd_temperature but no good values
@@ -246,15 +252,26 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
         # station 536, has btl and ctd
         #test_cruise_expocode = '06AQANTX_4'
 
+        # -----------
+        # CDOM parameters
+        # ------------
+
         # has CDOM_WAVELENGTHS dimension
         # skip files like this till write code to handle it
+
+        # CDOM_WAVELENGTHS  (CDOM_WAVELENGTHS) int32 325 340 380 412 443 490 555
+        # corresponding with cdom and cdom_qc vars
+
+        # In the WHPNAMES from params package, there are individual CDOM variables listed,
+        # what files do these appear in so we know how to label CDOM vars for users to find and use
+
         #test_cruise_expocode = '33RR20160208'
 
         # TODO
         # check this out
         # Log says two ctd_temperatures (+68 one), but I only see one
         # when I browse with panopoly
-        #test_cruise_expocode = '58JH19951108'
+        test_cruise_expocode = '58JH19951108'
 
         # I need one where pressure looses a dim
         #test_cruise_expocode = '318MSAVE5'
@@ -265,7 +282,7 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
 
         # cruise with two ctd temperatures (includes 68)
         #test_cruise_expocode = '49K6KY9606_1'
-        test_cruise_expocode = '316N145_11'
+        #test_cruise_expocode = '316N145_11'
 
         # cruise with two ctd_oxygens (includes ml_l)
         #test_cruise_expocode = '90VE43_1'
@@ -594,7 +611,65 @@ def check_if_us_goship(cruise_json):
         return False
 
 
+def save_all_cchdo_parameter_names():
+
+    logging.info('Saving all CCHDO parameter names renamed to ArgoVis names')
+
+    cchdo_parameters = list(WHPNames.keys())
+
+    # How to get which ones have a qc var with them
+
+    # And need to rename to argovis versions
+    # Won't have a _btl or _ctd in their name
+
+    parameter_names = []
+
+    for param in cchdo_parameters:
+
+        whp_name = WHPNames[param].whp_name
+        nc_name = WHPNames[param].nc_name
+
+        if nc_name:
+            name = nc_name
+        else:
+            name = whp_name
+
+        parameter_names.append(name)
+
+    all_cchdo_nc_names = list(set(parameter_names))
+
+    # print(all_cchdo_nc_names)
+
+    # Rename these to ArgoVis format
+    # Result are cchdo names mapped to Argovis names
+    all_cchdo_argovis_names_mapping = rename_to_argovis_mapping(
+        all_cchdo_nc_names)
+
+    all_cchdo_argovis_names = list(all_cchdo_argovis_names_mapping.values())
+
+    btl_ctd_vars = []
+
+    for name in all_cchdo_argovis_names:
+
+        # Bottle/CTD suffix
+        btl_ctd_vars.append(f"{name}_btl")
+        btl_ctd_vars.append(f"{name}_ctd")
+
+        btl_ctd_vars.append(f"{name}_btl_woceqc")
+        btl_ctd_vars.append(f"{name}_ctd_woceqc")
+
+    output_file = f"{GlobalVars.LOGGING_DIR}/all_renamed_cchdo_parameter_names.txt"
+
+    with open(output_file, 'w') as f:
+        for var in btl_ctd_vars:
+            f.write(f"{var}\n")
+
+
 def process_all_cruises(time_range):
+
+    # Get all CCHDO existing parameter names that
+    # could appear in the CF-netCDF files
+    save_all_cchdo_parameter_names()
 
     # Get active cruises and active NetCDF CF files
     # attached to them. Will use json
