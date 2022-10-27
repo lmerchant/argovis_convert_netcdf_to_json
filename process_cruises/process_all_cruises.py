@@ -265,13 +265,13 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
         # In the WHPNAMES from params package, there are individual CDOM variables listed,
         # what files do these appear in so we know how to label CDOM vars for users to find and use
 
-        #test_cruise_expocode = '33RR20160208'
+        test_cruise_expocode = '33RR20160208'
 
         # TODO
         # check this out
         # Log says two ctd_temperatures (+68 one), but I only see one
         # when I browse with panopoly
-        test_cruise_expocode = '58JH19951108'
+        #test_cruise_expocode = '58JH19951108'
 
         # I need one where pressure looses a dim
         #test_cruise_expocode = '318MSAVE5'

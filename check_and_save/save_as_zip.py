@@ -34,6 +34,63 @@ def unzip_file(zip_folder, zip_file):
     os.remove(zip_file)  # delete zipped file
 
 
+def coerce_qc_to_integer(json_dict):
+
+    data = json_dict['data']
+
+    # Read into a pandas dataframe and check if there are null values
+    # If there are, then do a loop through and coerce qc values to integer
+
+    # Also do a coerce if there are qc values as a list (such as extra dims parameters)
+
+    data_df = pd.DataFrame.from_dict(data)
+
+    columns = list(data_df.columns)
+
+    qc_columns = [col for col in columns if col.endswith('_woceqc')]
+
+    col_dtypes = data_df[qc_columns].dtypes.apply(lambda x: x.name).to_dict()
+
+    if 'object' in col_dtypes.values():
+        has_qc_object_columns = True
+    else:
+        has_qc_object_columns = False
+
+    # Find which qc_columns have NaN values in them, and save to coerce to integer
+
+    # Does this find columns with cells containing a list of with NaN values in it?
+    qc_cols_w_nans = data_df[qc_columns].columns[data_df[qc_columns].isna(
+    ).any()].tolist()
+
+    has_nan_qc_cols = len(qc_cols_w_nans)
+
+    if has_nan_qc_cols or has_qc_object_columns:
+        coerced_data = []
+
+        for obj in data:
+            new_obj = {}
+            for k, v in obj.items():
+                if k in qc_columns:
+                    if isinstance(v, list):
+                        try:
+                            new_obj[k] = [int(val) for val in v]
+                        except ValueError:
+                            new_obj[k] = v
+                    else:
+                        try:
+                            new_obj[k] = int(v)
+                        except ValueError:
+                            new_obj[k] = v
+                else:
+                    new_obj[k] = v
+
+            coerced_data.append(new_obj)
+
+        json_dict['data'] = coerced_data
+
+    return json_dict
+
+
 def get_data_dict(profile_dict, station_cast):
 
     # TODO
@@ -183,6 +240,7 @@ def save_as_zip_data_type_profiles(data_type_profiles):
         # TODO
         # Add in function to coerce any qc values from float to integer
         # since floats occur if any column value was NaN in pandas dataframe
+        json_dict = coerce_qc_to_integer(json_dict)
 
         json_dicts.append(json_dict)
 
