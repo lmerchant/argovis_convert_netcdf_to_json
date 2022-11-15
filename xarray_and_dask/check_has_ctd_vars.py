@@ -59,13 +59,14 @@ def log_ctd_var_status(file_obj, has_pres,
         filepath = os.path.join(logging_dir, filename)
         with open(filepath, 'a') as f:
             f.write(
-                f"expocode {expocode} {data_type} multiple CTD temperatures\n")
+                f"expocode {expocode} {data_type} have both ctd_temperature and ctd_temperature_68\n")
 
     if has_both_oxy:
         filename = 'cruise_files_multiple_ctd_temp_oxy.txt'
         filepath = os.path.join(logging_dir, filename)
         with open(filepath, 'a') as f:
-            f.write(f"expocode {expocode} {data_type} multiple CTD oxygens\n")
+            f.write(
+                f"expocode {expocode} {data_type} have both ctd_oxygen and ctd_oxygen_ml_l\n")
 
 
 def check_has_ctd_vars(file_obj):
