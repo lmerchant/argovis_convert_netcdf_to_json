@@ -522,7 +522,7 @@ def create_geolocation_dict(lat, lon):
     return geo_dict
 
 
-def add_argovis_meta(meta):
+def add_argovis_meta(meta, data_type):
 
     # Add in station_cast var for later
     # processing of groups. But in
@@ -537,12 +537,12 @@ def add_argovis_meta(meta):
     cast = meta['cast']
 
     # Create unique id
-    def create_id(x, y):
+    def create_id(x, y, data_type):
         station = (str(x).zfill(3)).lower()
         cast = str(y).zfill(3)
-        return f"expo_{expocode}_sta_{station}_cast_{cast}"
+        return f"expo_{expocode}_sta_{station}_cast_{cast}_type_{data_type}"
 
-    meta['_id'] = create_id(station, cast)
+    meta['_id'] = create_id(station, cast, data_type)
 
     meta['positioning_system'] = 'GPS'
     meta['data_center'] = 'CCHDO'
@@ -745,7 +745,7 @@ def process_data_profiles(profiles_obj):
 
         meta = add_cchdo_meta(meta, cchdo_file_meta, cchdo_cruise_meta)
 
-        meta = add_argovis_meta(meta)
+        meta = add_argovis_meta(meta, data_type)
 
         # Rename meta for argovis json format and get subset
         meta = get_subset_meta(meta)
