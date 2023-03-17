@@ -1110,8 +1110,6 @@ def convert_oxygen_to_new_units(nc, var, profiles_no_oxy_conversions):
 
     logging.info(nc['ctd_oxygen_ml_l_qc'])
 
-    exit(1)
-
     return nc, profiles_no_oxy_conversions
 
 
