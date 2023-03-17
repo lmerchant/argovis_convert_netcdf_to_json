@@ -1,6 +1,5 @@
 import logging
 
-#from variable_naming.meta_param_mapping import get_cchdo_argovis_name_mapping_per_type
 from variable_naming.meta_param_mapping import get_cchdo_argovis_name_mapping
 from variable_naming.meta_param_mapping import get_parameters_no_data_type
 
@@ -89,9 +88,6 @@ def rename_to_argovis_mapping(cchdo_names):
 
     core_cchdo_names = list(cchdo_argovis_name_mapping.keys())
 
-    # logging.info('core cchdo names')
-    # logging.info(core_cchdo_names)
-
     # First find out which temperature and oxygen names are used
 
     # hierarchy if both ctd temperature names found
@@ -106,17 +102,11 @@ def rename_to_argovis_mapping(cchdo_names):
     if has_both_temp:
 
         # Only want to rename one
-        logging.info('has two ctd temperatures in xarray, param names are')
-        # logging.info(cchdo_names)
-
         if 'ctd_temperature_68' in cchdo_argovis_name_mapping.keys():
             cchdo_argovis_name_mapping['ctd_temperature_68'] = 'ctd_temperature_68'
             cchdo_argovis_name_mapping['ctd_temperature_68_qc'] = 'ctd_temperature_68_qc'
 
     if has_both_oxy:
-
-        logging.info('has two ctd oxygens in xarray, param names are')
-        # logging.info(cchdo_names)
 
         # Only want to rename one
         if 'ctd_oxygen_ml_l' in cchdo_argovis_name_mapping.keys():
