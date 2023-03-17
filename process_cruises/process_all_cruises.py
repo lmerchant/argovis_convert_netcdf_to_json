@@ -264,7 +264,6 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
 
         # In the WHPNAMES from params package, there are individual CDOM variables listed,
         # what files do these appear in so we know how to label CDOM vars for users to find and use
-
         test_cruise_expocode = '33RR20160208'
 
         # TODO
@@ -327,7 +326,6 @@ def add_file_data(netcdf_cruise_obj):
                 f"Error reading file for cruise {file_obj['cruise_expocode']}")
             logging.info(f"Data type {file_obj['data_type']}")
 
-            # return {}
             continue
 
         file_obj['nc'] = nc
@@ -615,6 +613,7 @@ def save_all_cchdo_parameter_names():
 
     logging.info('Saving all CCHDO parameter names renamed to ArgoVis names')
 
+    # Get all cchdo collection paramter WHP names
     cchdo_parameters = list(WHPNames.keys())
 
     # How to get which ones have a qc var with them
@@ -637,8 +636,6 @@ def save_all_cchdo_parameter_names():
         parameter_names.append(name)
 
     all_cchdo_nc_names = list(set(parameter_names))
-
-    # print(all_cchdo_nc_names)
 
     # Rename these to ArgoVis format
     # Result are cchdo names mapped to Argovis names
@@ -668,7 +665,7 @@ def save_all_cchdo_parameter_names():
 def process_all_cruises(time_range):
 
     # Get all CCHDO existing parameter names that
-    # could appear in the CF-netCDF files
+    # could appear in CF-netCDF files
     save_all_cchdo_parameter_names()
 
     # Get active cruises and active NetCDF CF files
