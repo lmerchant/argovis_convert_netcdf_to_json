@@ -101,22 +101,14 @@ def process_profiles(profiles):
     return new_profiles
 
 
-def update_profiles_single_type(profiles_objs, data_type):
+def update_profiles_single_type(profiles_objs):
 
     for profiles_obj in profiles_objs:
 
-        profiles_obj_data_type = profiles_obj['data_type']
         profiles = profiles_obj['data_type_profiles_list']
-
-        if profiles_obj_data_type != data_type:
-            continue
 
         # Add meta without data type suffix
         new_profiles = process_profiles(profiles)
-
-        # TODO
-        # Remove any measurements with temp = NaN
-        # Do this when save file
 
     logging.info('Processed single type profiles')
 
