@@ -10,6 +10,32 @@ from variable_naming.rename_parameters import has_two_ctd_temperatures
 from variable_naming.rename_parameters import has_two_ctd_oxygens
 
 
+def has_two_ctd_temperatures(names):
+
+    has_ctd_temperature = any(
+        [True for name in names if name == 'ctd_temperature'])
+    has_ctd_temperature_68 = any(
+        [True for name in names if name == 'ctd_temperature_68'])
+
+    if has_ctd_temperature and has_ctd_temperature_68:
+        return True
+    else:
+        return False
+
+
+def has_two_ctd_oxygens(names):
+
+    has_ctd_oxygen = any(
+        [True for name in names if name == 'ctd_oxygen'])
+    has_ctd_oxygen_ml_l = any(
+        [True for name in names if name == 'ctd_oxygen_ml_l'])
+
+    if has_ctd_oxygen and has_ctd_oxygen_ml_l:
+        return True
+    else:
+        return False
+
+
 def log_ctd_var_status(file_obj, has_pres,
                        has_ctd_temp, has_ctd_temp_ref_scale, has_both_temp, has_both_oxy):
 
@@ -110,8 +136,14 @@ def check_has_ctd_vars(file_obj):
     # Check has only one CTD Temperature variable on one scale
     has_both_temp = has_two_ctd_temperatures(params)
 
+    if has_both_temp:
+        logging.info("There are two ctd temperature parameters (should be 1)")
+
     # Check has only one CTD oxygen with one unit value
     has_both_oxy = has_two_ctd_oxygens(params)
+
+    if has_both_oxy:
+        logging.info("There are two ctd oxygen parameters (should be 1)")
 
     if has_both_temp or has_both_oxy:
         has_single_ctd_temp_oxy = False
