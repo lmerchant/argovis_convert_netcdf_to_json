@@ -22,7 +22,7 @@ def get_meta_wo_data_type_combined_profiles(meta, data_type):
         if key not in source_independent_meta_names:
             new_key = key.replace(f"_{data_type}", '')
 
-            if new_key == 'source_info':
+            if new_key == 'source':
                 # Remove the data type suffix from all the keys of
                 # the source_info obj
                 meta_wo_data_type[new_key] = {}
@@ -53,7 +53,7 @@ def get_meta_w_data_type_combined_profiles(meta, data_type):
 
         if key not in source_independent_meta_names:
 
-            if key == 'source_info':
+            if key == 'source':
                 # Add the data type suffix to all the keys of
                 # the source_info obj
                 meta_w_data_type[new_key] = {}
