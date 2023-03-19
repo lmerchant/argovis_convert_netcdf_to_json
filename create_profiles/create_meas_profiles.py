@@ -5,15 +5,7 @@ import re
 from datetime import datetime
 import logging
 
-# Doesn't seem to do much
-# https://stackoverflow.com/questions/47776936/why-is-a-computation-much-slower-within-a-dask-distributed-worker
-#pd.options.mode.chained_assignment = None
-
-#from create_profiles.create_cchdo_argovis_mappings import get_argovis_core_meas_values_per_type
-# from create_profiles.create_cchdo_argovis_mappings import get_cchdo_core_meas_var_names
-
-#import create_profiles.create_cchdo_argovis_mappings as mapping
-import variable_naming.choose_names as choose_names
+from variable_naming.meta_param_mapping import get_cchdo_core_meas_var_names
 
 
 def dtjson(o):
@@ -38,70 +30,6 @@ def convert_boolean(obj):
     if isinstance(obj, dict):
         return {convert_boolean(key): convert_boolean(value) for key, value in obj.items()}
     return obj
-
-
-# TODO
-# doesn't look to be used
-def filter_measurements(data_type_profiles):
-
-    # TODO
-    # Change station_parameters keys if empty meas?
-
-    # if val_df.empty:
-    #     meas_names = {}
-    #     meas_names['station_cast'] = station_cast
-    #     meas_names['station_parameters'] = list(val_df.columns)
-    #     all_meas_names.append(meas_names)
-
-    # TODO
-    # shouldn't this be filtering on cchdo names, and be
-    # ctd_temperature and not just 'temperature'?
-
-    output_profiles_list = []
-
-    for profile in data_type_profiles:
-
-        profile_dict = profile['profile_dict']
-        station_cast = profile['station_cast']
-
-        measurements = profile_dict['measurements']
-        meas_sources = profile_dict['measurements_sources']
-
-        # For json_str need to convert True, False to 'true','false'
-        #meas_sources = convert_boolean(meas_sources)
-
-        # Check if all elems null in measurements besides pressure
-        all_vals = []
-        all_temp_vals = []
-
-        for obj in measurements:
-            vals = [val for key, val in obj.items() if pd.notnull(val)
-                    and key != 'pressure']
-            all_vals.extend(vals)
-
-            # check if no temp vals, then set to empty measurements
-            temp_vals = [val for key, val in obj.items() if pd.notnull(val)
-                         and key == 'temperature']
-            all_temp_vals.extend(temp_vals)
-
-        if not len(all_vals):
-
-            measurements = []
-
-        if not len(all_temp_vals):
-
-            measurements = []
-
-        profile_dict['measurements'] = measurements
-        profile_dict['measurements_sources'] = meas_sources
-
-        output_profile = {}
-        output_profile['profile_dict'] = profile_dict
-        output_profile['station_cast'] = station_cast
-
-        output_profiles_list.append(output_profile)
-
-    return output_profiles_list
 
 
 def get_measurements_sources(df_meas):
@@ -213,11 +141,26 @@ def filter_salinity(df_meas, meas_sources):
     return df_meas
 
 
+def choose_core_temperature_from_hierarchy(col_names):
+
+    # check which temperature to use if both exist
+    is_ctd_temp = 'ctd_temperature' in col_names
+    is_ctd_temp_68 = 'ctd_temperature_68' in col_names
+
+    if (is_ctd_temp and is_ctd_temp_68) or is_ctd_temp:
+        use_temperature = 'ctd_temperature'
+    elif is_ctd_temp_68:
+        use_temperature = 'ctd_temperature_68'
+    else:
+        use_temperature = ''
+
+    return use_temperature
+
+
 def get_core_cols_from_hierarchy(df):
 
     # core cols includes '_qc' vars
-    # core_names = mapping.get_cchdo_core_meas_var_names()
-    core_names = choose_names.get_cchdo_core_meas_var_names()
+    core_names = get_cchdo_core_meas_var_names()
 
     # Salinity names not filtered yet
 
@@ -226,7 +169,7 @@ def get_core_cols_from_hierarchy(df):
 
     # There is a hierarchy of which variable to use in core cchdo names
     # if both ref scale and units variables exist
-    temperature_name = choose_names.choose_core_temperature_from_hierarchy(
+    temperature_name = choose_core_temperature_from_hierarchy(
         core_cols)
 
     hierarchy_temperature_names = [temperature_name, temperature_name + '_qc']
@@ -295,7 +238,7 @@ def create_measurements_df_all(df):
     # Keep all core named values and filter more when looking
     # at each profile
 
-    core_names = choose_names.get_cchdo_core_meas_var_names()
+    core_names = get_cchdo_core_meas_var_names()
 
     core_cols = [col for col in df.columns if col in core_names]
 
