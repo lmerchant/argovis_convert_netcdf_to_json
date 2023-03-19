@@ -1,23 +1,23 @@
 import logging
 
 
-def create_geolocation_dict(lat, lon):
+# def create_geolocation_dict(lat, lon):
 
-    # "geoLocation": {
-    #     "coordinates": [
-    #         -158.2927,
-    #         21.3693
-    #     ],
-    #     "type": "Point"
-    # },
+#     # "geoLocation": {
+#     #     "coordinates": [
+#     #         -158.2927,
+#     #         21.3693
+#     #     ],
+#     #     "type": "Point"
+#     # },
 
-    coordinates = [lon, lat]
+#     coordinates = [lon, lat]
 
-    geo_dict = {}
-    geo_dict['coordinates'] = coordinates
-    geo_dict['type'] = 'Point'
+#     geo_dict = {}
+#     geo_dict['coordinates'] = coordinates
+#     geo_dict['type'] = 'Point'
 
-    return geo_dict
+#     return geo_dict
 
 
 def create_meta_profiles(df_meta):
@@ -44,12 +44,6 @@ def create_meta_profiles(df_meta):
         val_df = val_df.drop(['station_cast', 'N_PROF'],  axis=1)
 
         meta_dict = val_df.to_dict('records')[0]
-
-        # lat = meta_dict['latitude']
-        # lon = meta_dict['longitude']
-
-        # geo_dict = create_geolocation_dict(lat, lon)
-        # meta_dict['geoLocation'] = geo_dict
 
         meta_obj = {}
         meta_obj['station_cast'] = station_cast
