@@ -35,12 +35,6 @@ def get_unique_cchdo_units(data_type_profiles):
     cchdo_units_key = 'cchdo_units'
     renamed_cchdo_units_key = key_mapping[cchdo_units_key]
 
-    cchdo_units_key_btl = 'cchdo_units_btl'
-    renamed_cchdo_units_key_btl = key_mapping[cchdo_units_key_btl]
-
-    cchdo_units_key_ctd = 'cchdo_units_ctd'
-    renamed_cchdo_units_key_ctd = key_mapping[cchdo_units_key_ctd]
-
     all_cchdo_units_mapping = {}
 
     for profile in data_type_profiles:
@@ -49,35 +43,10 @@ def get_unique_cchdo_units(data_type_profiles):
         data_type = profile_dict['data_type']
 
         if data_type == 'btl' or data_type == 'ctd':
-            # print(f"data type {data_type}")
-            # print(f"renamed_cchdo_units_key {renamed_cchdo_units_key}")
-            # print(f"profile dict keys")
-            # print(profile_dict.keys())
-            try:
-                source_info = profile_dict['meta']['source_info']
-                cchdo_units_mapping = source_info[renamed_cchdo_units_key]
-            except:
-                if data_type == 'btl':
-                    source_info = profile_dict['meta']['source_info_btl']
-                    cchdo_units_mapping = source_info[renamed_cchdo_units_key_btl]
-                elif data_type == 'ctd':
-                    source_info = profile_dict['meta']['source_info_ctd']
-                    cchdo_units_mapping = source_info[renamed_cchdo_units_key_ctd]
 
-        if data_type == 'btl_ctd':
+            source_info = profile_dict['meta']['source']
 
-            try:
-
-                source_info = profile_dict['meta']['source_info_btl']
-                cchdo_units_btl = source_info[renamed_cchdo_units_key_btl]
-
-                source_info = profile_dict['meta']['source_info_ctd']
-                cchdo_units_ctd = source_info[renamed_cchdo_units_key_ctd]
-
-                cchdo_units_mapping = {**cchdo_units_btl, **cchdo_units_ctd}
-            except:
-                source_info = profile_dict['meta']['source_info']
-                cchdo_units_mapping = source_info[renamed_cchdo_units_key]
+            cchdo_units_mapping = source_info[renamed_cchdo_units_key]
 
         # TODO
         # overwrite key if it already exists
@@ -134,14 +103,6 @@ def write_profile_cchdo_units_one_profile(data_type, profile):
     if data_type == 'ctd':
         cchdo_units_mapping = profile_dict[renamed_cchdo_units_key]
 
-    if data_type == 'btl_ctd':
-        try:
-            cchdo_units_btl = profile_dict[renamed_cchdo_units_key_btl]
-            cchdo_units_ctd = profile_dict[renamed_cchdo_units_key_ctd]
-            cchdo_units_mapping = {**cchdo_units_btl, **cchdo_units_ctd}
-        except:
-            cchdo_units_mapping = profile_dict[renamed_cchdo_units_key]
-
     with open(filepath, 'a') as f:
         json.dump(cchdo_units_mapping, f, indent=4,
                   sort_keys=True, default=convert)
@@ -159,12 +120,6 @@ def write_profile_cchdo_units(checked_profiles_info):
     cchdo_units_key = 'cchdo_units'
     renamed_cchdo_units_key = key_mapping[cchdo_units_key]
 
-    cchdo_units_key_btl = 'cchdo_units_btl'
-    renamed_cchdo_units_key_btl = key_mapping[cchdo_units_key_btl]
-
-    cchdo_units_key_ctd = 'cchdo_units_ctd'
-    renamed_cchdo_units_key_ctd = key_mapping[cchdo_units_key_ctd]
-
     # Write one profile cchdo units to
     # keep a record of what units need to be converted
 
@@ -181,14 +136,6 @@ def write_profile_cchdo_units(checked_profiles_info):
 
         if data_type == 'ctd':
             cchdo_units_profile = profile_dict[renamed_cchdo_units_key]
-
-        if data_type == 'btl_ctd':
-            try:
-                cchdo_units_btl = profile_dict[renamed_cchdo_units_key_btl]
-                cchdo_units_ctd = profile_dict[renamed_cchdo_units_key_ctd]
-                cchdo_units_profile = {**cchdo_units_btl, **cchdo_units_ctd}
-            except:
-                cchdo_units_profile = profile_dict[renamed_cchdo_units_key]
 
         with open(filepath, 'a') as f:
             json.dump(cchdo_units_profile, f, indent=4,
@@ -240,48 +187,6 @@ def save_included_excluded_cchdo_vars(included, excluded):
         with file.open("a") as f:
             for id in excluded_str:
                 f.write(f"{id}\n")
-
-
-# def save_data_type_profiles(data_type_obj_profiles):
-
-#     logging.info('Saving files')
-
-#     data_type = data_type_obj_profiles['data_type']
-
-#     data_type_profiles = data_type_obj_profiles['data_type_profiles_list']
-
-#     # Look at one profile to get the cchdo units
-#     # to see what kinds there are
-#     all_cchdo_units_mapping = get_unique_cchdo_units(data_type_profiles)
-
-#     write_all_cchdo_units(all_cchdo_units_mapping)
-
-#     save_as_zip_data_type_profiles(data_type_profiles)
-
-# not used anymore
-def save_data_type_profiles_single(single_profiles):
-
-    logging.info('Saving files single type')
-
-    # Loop through all profiles, get all units and get unique
-    all_cchdo_units_mapping = get_unique_cchdo_units(single_profiles)
-
-    write_all_cchdo_units(all_cchdo_units_mapping)
-
-    save_as_zip_data_type_profiles(single_profiles)
-
-
-# not used anymore
-def save_data_type_profiles_combined(combined_profiles):
-
-    logging.info('Saving files combined type')
-
-    # Loop through all profiles, get all units and get unique
-    all_cchdo_units_mapping = get_unique_cchdo_units(combined_profiles)
-
-    write_all_cchdo_units(all_cchdo_units_mapping)
-
-    save_as_zip_data_type_profiles(combined_profiles)
 
 
 def save_data_type_profiles(all_profiles):
