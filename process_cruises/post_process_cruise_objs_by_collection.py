@@ -3,7 +3,6 @@ from pathlib import Path
 
 from global_vars import GlobalVars
 
-from create_profiles.create_profiles_combined_type import create_profiles_combined_type
 from create_profiles.update_profiles_single_type import update_profiles_single_type
 from check_and_save.save_output import save_data_type_profiles
 
