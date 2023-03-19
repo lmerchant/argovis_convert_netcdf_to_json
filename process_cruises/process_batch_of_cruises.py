@@ -67,6 +67,8 @@ def process_batch_of_cruises(cruise_objs):
     cruise_objs_by_type = post_process_cruise_objs_by_type(
         cruise_objs_by_type)
 
+    post_process_cruise_objs_by_collection(cruise_objs_by_type)
+
     # one_cruise = cruise_objs_by_type[0]
     # type_objs = one_cruise['all_data_types_profile_objs']
 
@@ -105,9 +107,9 @@ def process_batch_of_cruises(cruise_objs):
 
     # profiles = one_type['data_type_profiles_list']
 
-    # one_profile = profiles[15]
+    # one_profile = profiles[0]
 
-    # print(one_profile['profile_dict']['data_keys'])
+    # print(one_profile['profile_dict']['meta']['source'])
 
     # exit(1)
 
@@ -117,17 +119,11 @@ def process_batch_of_cruises(cruise_objs):
 
     # ***********************************************
     # Post process cruise objs by collection
-    # If cruise has both ctd and btl, combine and save.
-    # If cruise only has btl or ctd, save that.
-    # It can happen that one station_cast only exists
-    # for one data type, so save that uncombined
-    #
-    # Add a suffix of _btl or _ctd
     # ************************************************
 
     logging.info('-----------------------------------------')
-    logging.info("Combine btl/ctd if both found and save")
     logging.info("Filter out single data type to save next")
+    logging.info("Update profiles")
     logging.info('-----------------------------------------')
 
-    post_process_cruise_objs_by_collection(cruise_objs_by_type)
+    # post_process_cruise_objs_by_collection(cruise_objs_by_type)
