@@ -18,8 +18,10 @@ session.mount('https://', a)
 
 def get_file_id_hash_mapping():
 
-    # Use when checking if file is new and needs to be updated
-    # in final json
+    # Use file hash when checking if a file is new and needs to be updated
+    # in the final Argovis JSON output.
+    # If a file is new in the CCHDO database, the file hash is new and if
+    # the file has been updated, the file hash is different than previously
 
     query = f"{GlobalVars.API_END_POINT}/file"
     response = session.get(query)
@@ -45,6 +47,8 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
     by_batch = False
 
     if by_expocode:
+
+        # the following are expocodes that are examples of various inputs
 
         #  BTL & CTD
         # station cast 016_001 has meas = []
@@ -105,8 +109,6 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
         # for ctd_oxy qc = 3
         # for oxygen, qc = 2 and 9
         # And CTD converts
-        # TODO
-        # remove test print statements
         #test_cruise_expocode = '316N154_2'
 
         # oxygen conversion
@@ -266,12 +268,6 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
         # what files do these appear in so we know how to label CDOM vars for users to find and use
         test_cruise_expocode = '33RR20160208'
 
-        # TODO
-        # check this out
-        # Log says two ctd_temperatures (+68 one), but I only see one
-        # when I browse with panopoly
-        #test_cruise_expocode = '58JH19951108'
-
         # I need one where pressure looses a dim
         #test_cruise_expocode = '318MSAVE5'
         #test_cruise_expocode = '492SSY9607_1'
@@ -342,7 +338,6 @@ def add_file_data(netcdf_cruise_obj):
 def get_cruises_data_objs(netcdf_cruises_objs):
 
     # Add file data into objs
-
     cruise_objs_w_data = []
     for netcdf_cruise_obj in netcdf_cruises_objs:
 
@@ -360,7 +355,7 @@ def get_cchdo_cruise_meta(cruise_json):
 
     cruise_meta = copy.deepcopy(cruise_json)
 
-    # Remove  internal  CCHDO notes and select meta later to use
+    # Remove internal CCHDO notes and select meta to use later
     # at end of program
 
     cruise_meta.pop('notes', None)
@@ -485,11 +480,6 @@ def create_file_obj(file_json, cruise_json):
 
     file_data_type = file_json['data_type']
 
-    # TODO
-    # No need to rename yet
-    # Just doing it now because assumed file suffix on data
-    # in final json wouldn't change. But now put renaming at
-    # end of program
     if file_data_type == 'bottle':
         data_type = 'btl'
     elif file_data_type == 'ctd':
@@ -507,6 +497,10 @@ def create_file_obj(file_json, cruise_json):
 
 
 def check_if_netcdf_data(file_json):
+
+    # Check if the file is in the 'In dataset' section of the CCHDO database
+    # and if the data format is CF netcdf. Also check that the file is
+    # a bottle or CTD file
 
     file_role = file_json['role']
     data_format = file_json['data_format']
@@ -578,7 +572,7 @@ def get_active_cruises_json():
 
     cruises_json = response.json()
 
-    # Remove any with no start date
+    # Remove any with no start date because these are CCHDO templates for future cruises
     cruises_json = [cruise for cruise in cruises_json if cruise['startDate']]
 
     def get_date(cruise_start_date):
@@ -590,37 +584,15 @@ def get_active_cruises_json():
     return cruises_json
 
 
-def check_if_us_goship(cruise_json):
-
-    collections = cruise_json['collections']
-    programs = collections['programs']
-
-    goship_programs = [
-        program for program in programs if program.lower() == 'go-ship']
-
-    country = cruise_json['country']
-
-    is_us = country == 'US'
-
-    if len(goship_programs) >= 1 and is_us:
-        print('found us goship')
-        return True
-    else:
-        return False
-
-
 def save_all_cchdo_parameter_names():
 
-    logging.info('Saving all CCHDO parameter names renamed to ArgoVis names')
+    logging.info(
+        'Saving all possible CCHDO parameter names as renamed ArgoVis names')
 
-    # Get all cchdo collection paramter WHP names
+    # Get all cchdo collection parameters with WHP names
     cchdo_parameters = list(WHPNames.keys())
 
-    # How to get which ones have a qc var with them
-
-    # And need to rename to argovis versions
-    # Won't have a _btl or _ctd in their name
-
+    # The WHP names take priority over netcdf names when used as Argovis param names
     parameter_names = []
 
     for param in cchdo_parameters:
@@ -637,35 +609,36 @@ def save_all_cchdo_parameter_names():
 
     all_cchdo_nc_names = list(set(parameter_names))
 
-    # Rename these to ArgoVis format
-    # Result are cchdo names mapped to Argovis names
+    # Rename these to ArgoVis names using a mapping
     all_cchdo_argovis_names_mapping = rename_to_argovis_mapping(
         all_cchdo_nc_names)
 
     all_cchdo_argovis_names = list(all_cchdo_argovis_names_mapping.values())
 
-    btl_ctd_vars = []
+    qc_vars = []
 
+    # add '_woceqc' to variable names because there are none in the
+    # CCHDO parameter database
     for name in all_cchdo_argovis_names:
-
-        # Bottle/CTD suffix
-        btl_ctd_vars.append(f"{name}_btl")
-        btl_ctd_vars.append(f"{name}_ctd")
-
-        btl_ctd_vars.append(f"{name}_btl_woceqc")
-        btl_ctd_vars.append(f"{name}_ctd_woceqc")
+        qc_vars.append(f"{name}_woceqc")
 
     output_file = f"{GlobalVars.LOGGING_DIR}/all_renamed_cchdo_parameter_names.txt"
 
     with open(output_file, 'w') as f:
-        for var in btl_ctd_vars:
+        for var in all_cchdo_argovis_names:
+            f.write(f"{var}\n")
+
+        for var in qc_vars:
             f.write(f"{var}\n")
 
 
 def process_all_cruises(time_range):
 
-    # Get all CCHDO existing parameter names that
-    # could appear in CF-netCDF files
+    # Get all CCHDO parameter names along with their possible
+    # qc variable that could appear in CF-netCDF files
+    # Not all variables have a corresponding qc variable, but since
+    # only parameter names without qc values are in the CCHDO name
+    # database, a qc value was included for each CCHDO name
     save_all_cchdo_parameter_names()
 
     # Get active cruises and active NetCDF CF files
@@ -692,7 +665,6 @@ def process_all_cruises(time_range):
     # Now find cruises with the NetCDF CF active files attached
     netcdf_cruises_objs = []
 
-    goship_cruises = []
     for cruise_json in active_cruises_json:
 
         in_time_range = check_if_in_time_range(cruise_json, time_range)
@@ -700,18 +672,9 @@ def process_all_cruises(time_range):
         if not in_time_range:
             continue
 
-        # TODO
-        # remove in production
-
-        # Temporary function to filter us goship cruises
-        # is_us_goship = check_if_us_goship(cruise_json)
-
-        # if not is_us_goship:
-        #     continue
-
-        # Get files attached to the cruise which
-        # could be inactive ones so check if file exists in all_files
-        # which is a list of active files
+        # Get files attached to the cruise (which include all files ever attached)
+        # and then check if those files exists in a CCHDO file
+        # listing of active CCHDO files
         cruise_file_ids = cruise_json['files']
 
         cruise_netcdf_file_ids = [
@@ -745,6 +708,8 @@ def process_all_cruises(time_range):
     if GlobalVars.TEST:
         netcdf_cruises_objs = setup_test_cruise_objs(netcdf_cruises_objs)
 
+    # Only process cruises in batches in case something goes wrong in a batch,
+    # then the program can be restarted from that batch
     num_netcdf_cruises_objs = len(netcdf_cruises_objs)
     num_in_batch = GlobalVars.NUM_IN_BATCH
 
