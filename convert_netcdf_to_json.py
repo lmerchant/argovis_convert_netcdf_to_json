@@ -1,17 +1,13 @@
-import ctypes
 from datetime import date, datetime
 import os
 import shutil
 import logging
 import click
 from dask.diagnostics import ProgressBar
-from dask.distributed import Client
-from dask.diagnostics import Profiler
 
 from global_vars import GlobalVars
 from setup_logging import setup_logging
 from process_cruises.process_all_cruises import process_all_cruises
-
 
 pbar = ProgressBar()
 pbar.register()
@@ -47,26 +43,4 @@ def main(start_year, end_year, append):
 
 if __name__ == '__main__':
 
-    # To troubleshoot, set dask config to ?
-    # So it is not parallel
-    # dask.config.set(scheduler='single-threaded')
-    # client()
-
-    # does this change dask config yaml file?
-    # if so, need to use refresh option to update  it
-    # if change anything
-
-    # client = Client(memory_limit='4GB', processes=True,
-    #                 n_workers=4, dashboard_address=None)
-
-    # client
-
-    # def trim_memory() -> int:
-    #     libc = ctypes.CDLL("libc.so.6")
-    #     return libc.malloc_trim(0)
-
-    # client.run(trim_memory)
-
     main()
-
-    # client.close()
