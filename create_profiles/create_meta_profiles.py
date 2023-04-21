@@ -3,7 +3,7 @@ import logging
 
 # def create_geolocation_dict(lat, lon):
 
-#     # "geoLocation": {
+#     # "geolocation": {
 #     #     "coordinates": [
 #     #         -158.2927,
 #     #         21.3693
