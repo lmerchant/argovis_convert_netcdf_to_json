@@ -189,6 +189,35 @@ def save_included_excluded_cchdo_vars(included, excluded):
                 f.write(f"{id}\n")
 
 
+# def save_data_type_profiles_new(all_profiles):
+
+#     logging.info('Saving files')
+
+#     # Loop through all profiles, get all units and get unique
+#     all_cchdo_units_mapping = get_unique_cchdo_units(all_profiles)
+
+#     write_all_cchdo_units(all_cchdo_units_mapping)
+
+#     save_as_zip_data_type_profiles(all_profiles)
+
+
+# def save_data_type_profiles2(all_profiles_objs):
+
+#     logging.info('Saving files')
+
+#     for profiles_obj in all_profiles_objs:
+
+#         data_type = profiles_obj['data_type']
+#         all_profiles = profiles_obj['data_type_profiles_list']
+
+#         # Loop through all profiles, get all units and get unique
+#         all_cchdo_units_mapping = get_unique_cchdo_units(all_profiles)
+
+#         write_all_cchdo_units(all_cchdo_units_mapping)
+
+#         save_as_zip_data_type_profiles(all_profiles)
+
+
 def save_data_type_profiles(all_profiles):
 
     logging.info('Saving files')
@@ -197,5 +226,9 @@ def save_data_type_profiles(all_profiles):
     all_cchdo_units_mapping = get_unique_cchdo_units(all_profiles)
 
     write_all_cchdo_units(all_cchdo_units_mapping)
+
+    # Get pressure qc and expocodes with all pressure_qc = 1
+    # Put in a pandas dataframe, check the data key and look in
+    # each profile
 
     save_as_zip_data_type_profiles(all_profiles)
