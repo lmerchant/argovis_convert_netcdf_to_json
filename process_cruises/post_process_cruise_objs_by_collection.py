@@ -36,9 +36,15 @@ def post_process_cruise_objs_by_collection(cruise_objs_by_type):
         with open(processed_cruises_file, 'a') as f:
             f.write(f"{expocode}\n")
 
+        # change this to skip updating single type profile since this
+        # now only updated a meta profile that said the instrument type
+        # of the file, which could have been btl_ctd in the past
+
         # For meta data, add meta with data_type suffix removed
         all_profiles = update_profiles_single_type(
             all_data_types_profile_objs)
+
+        # Change save function to use cruise_obj and not profiles
 
         # Inside save, if not btl_ctd data type, will filter out
         # measurements objects with temp = NaN
