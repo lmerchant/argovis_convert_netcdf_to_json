@@ -12,7 +12,6 @@ def process_profiles(profiles):
         profile_dict = profile['profile_dict']
 
         data_type = profile_dict['data_type']
-
         ship_data_type = f"ship_{data_type}"
 
         new_profile = {}
@@ -37,7 +36,9 @@ def process_profiles(profiles):
     return new_profiles
 
 
-def update_profiles_single_type(profiles_objs):
+def update_profiles_single_type_orig(profiles_objs):
+
+    all_new_profiles = []
 
     for profiles_obj in profiles_objs:
 
@@ -46,6 +47,28 @@ def update_profiles_single_type(profiles_objs):
         # Add meta without data type suffix
         new_profiles = process_profiles(profiles)
 
+        all_new_profiles.extend(new_profiles)
+
     logging.info('Processed single type profiles')
 
-    return new_profiles
+    # return new_profiles
+    return all_new_profiles
+
+
+def update_profiles_single_type(profiles_objs):
+
+    all_new_profiles = []
+
+    for profiles_obj in profiles_objs:
+
+        profiles = profiles_obj['data_type_profiles_list']
+
+        # Add meta without data type suffix
+        new_profiles = process_profiles(profiles)
+
+        all_new_profiles.extend(new_profiles)
+
+    logging.info('Processed single type profiles')
+
+    # return new_profiles
+    return all_new_profiles
