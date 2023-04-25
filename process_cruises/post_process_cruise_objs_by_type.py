@@ -1,8 +1,10 @@
 import logging
-import profile
 
 import pandas as pd
 import numpy as np
+from pathlib import Path
+
+from global_vars import GlobalVars
 
 from variable_naming.filter_parameters import get_parameters_to_filter_out
 from variable_naming.rename_parameters import rename_to_argovis_mapping
@@ -15,6 +17,10 @@ from variable_naming.meta_param_mapping import get_program_argovis_source_info_m
 from variable_naming.meta_param_mapping import get_program_argovis_data_info_mapping
 from variable_naming.meta_param_mapping import get_source_independent_meta_names
 from variable_naming.rename_units import change_units_to_argovis
+
+from create_profiles.update_profiles_single_type import update_profiles_single_type
+from create_profiles.update_profiles_single_type2 import update_profiles_single_type2
+from check_and_save.save_output import save_data_type_profiles
 
 
 def reorganize_meta_and_mappings(meta, mappings):
@@ -484,7 +490,7 @@ def get_subset_meta(meta):
 
 def create_geolocation_dict(lat, lon):
 
-    # "geoLocation": {
+    # "geolocation": {
     #     "coordinates": [
     #         -158.2927,
     #         21.3693
@@ -522,6 +528,11 @@ def add_argovis_meta(meta, data_type):
         return f"expo_{expocode}_sta_{station}_cast_{cast}_type_{data_type}"
 
     meta['_id'] = create_id(station, cast, data_type)
+
+    # Do I put this here or later when looking at the 'collection'?
+    # They could want instrument to refer to cruise having btl & ctd
+    # even if they aren't combined into one file
+    #meta['instrument'] = f"ship_{data_type}"
 
     meta['positioning_system'] = 'GPS'
     meta['data_center'] = 'CCHDO'
@@ -562,7 +573,7 @@ def add_argovis_meta(meta, data_type):
 
     geo_dict = create_geolocation_dict(latitude, longitude)
 
-    meta['geoLocation'] = geo_dict
+    meta['geolocation'] = geo_dict
 
     return meta
 
@@ -664,9 +675,6 @@ def process_data_profiles(profiles_obj):
 
         new_profile = {}
         new_profile['station_cast'] = station_cast
-
-        # TODO
-        # remove var stationCast ?
 
         meta = profile_dict['meta']
         data = profile_dict['data']
@@ -841,6 +849,140 @@ def process_data_profiles(profiles_obj):
     return updated_data_profiles
 
 
+def post_process_cruise_objs_by_type_new1(cruises_profile_objs):
+
+    # Rename variables and add argovis mappings
+
+    updated_cruises_profile_objs = []
+
+    for cruise_profiles_obj in cruises_profile_objs:
+
+        cruise_expocode = cruise_profiles_obj['cruise_expocode']
+
+        logging.info(f"Post processing expocode {cruise_expocode}")
+
+        all_data_types_profile_objs = cruise_profiles_obj['all_data_types_profile_objs']
+
+        updated_all_data_types_profile_objs = []
+
+        for profiles_obj in all_data_types_profile_objs:
+
+            data_type = profiles_obj['data_type']
+
+            updated_data_profiles = process_data_profiles(profiles_obj)
+
+            new_profiles_obj = {}
+            new_profiles_obj['data_type'] = data_type
+
+            new_profiles_obj['data_type_profiles_list'] = updated_data_profiles
+
+            updated_all_data_types_profile_objs.append(new_profiles_obj)
+
+        cruise_profiles_obj['all_data_types_profile_objs'] = updated_all_data_types_profile_objs
+
+        updated_cruises_profile_objs.append(cruise_profiles_obj)
+
+        # -----
+
+    for cruise_obj in updated_cruises_profile_objs:
+
+        expocode = cruise_obj['cruise_expocode']
+
+        all_data_types_profile_objs = cruise_obj['all_data_types_profile_objs']
+
+        logging.info("****************************")
+        logging.info(f"Post processing {expocode}")
+        logging.info("****************************")
+
+        # Save expocode processed to a file collecting all processed
+        processed_cruises_file = Path(
+            GlobalVars.LOGGING_DIR) / 'all_cruises_processed.txt'
+        with open(processed_cruises_file, 'a') as f:
+            f.write(f"{expocode}\n")
+
+        # For meta data, add meta with data_type suffix removed
+        all_profiles = update_profiles_single_type2(
+            all_data_types_profile_objs)
+
+        # Inside save, if not btl_ctd data type, will filter out
+        # measurements objects with temp = NaN
+        save_data_type_profiles(all_profiles)
+
+    return updated_cruises_profile_objs
+
+
+def post_process_cruise_objs_by_type_new2(cruises_profile_objs):
+
+    # Rename variables and add argovis mappings
+
+    updated_cruises_profile_objs = []
+
+    for cruise_profiles_obj in cruises_profile_objs:
+
+        cruise_expocode = cruise_profiles_obj['cruise_expocode']
+
+        logging.info(f"Post processing expocode {cruise_expocode}")
+
+        all_data_types_profile_objs = cruise_profiles_obj['all_data_types_profile_objs']
+
+        updated_all_data_types_profile_objs = []
+
+        for profiles_obj in all_data_types_profile_objs:
+
+            data_type = profiles_obj['data_type']
+
+            updated_data_profiles = process_data_profiles(profiles_obj)
+
+            # save profiles here instead of at end
+            # afterwards, get include/exclude vars uses the cruise objs form
+            # save_data_type_profiles(updated_data_profiles)
+
+            new_profiles_obj = {}
+            new_profiles_obj['data_type'] = data_type
+
+            new_profiles_obj['data_type_profiles_list'] = updated_data_profiles
+
+            updated_all_data_types_profile_objs.append(new_profiles_obj)
+
+        cruise_profiles_obj['all_data_types_profile_objs'] = updated_all_data_types_profile_objs
+
+        updated_cruises_profile_objs.append(cruise_profiles_obj)
+
+        # Save expocode processed to a file collecting all processed
+        processed_cruises_file = Path(
+            GlobalVars.LOGGING_DIR) / 'all_cruises_processed.txt'
+        with open(processed_cruises_file, 'a') as f:
+            f.write(f"{cruise_expocode}\n")
+
+        # -----
+
+    # for cruise_obj in updated_cruises_profile_objs:
+
+    #     expocode = cruise_obj['cruise_expocode']
+
+    #     all_data_types_profile_objs = cruise_obj['all_data_types_profile_objs']
+
+    #     logging.info("****************************")
+    #     logging.info(f"Post processing {expocode}")
+    #     logging.info("****************************")
+
+    #     # Save expocode processed to a file collecting all processed
+    #     processed_cruises_file = Path(
+    #         GlobalVars.LOGGING_DIR) / 'all_cruises_processed.txt'
+    #     with open(processed_cruises_file, 'a') as f:
+    #         f.write(f"{expocode}\n")
+
+    #     # # For meta data, add meta with data_type suffix removed
+    #     # all_profiles = update_profiles_single_type(
+    #     #     all_data_types_profile_objs)
+
+    #     # # Inside save, if not btl_ctd data type, will filter out
+    #     # # measurements objects with temp = NaN
+    #     # save_data_type_profiles(all_profiles)
+
+    return updated_cruises_profile_objs
+
+
 def post_process_cruise_objs_by_type(cruises_profile_objs):
 
     # Rename variables and add argovis mappings
@@ -859,21 +1001,12 @@ def post_process_cruise_objs_by_type(cruises_profile_objs):
 
         for profiles_obj in all_data_types_profile_objs:
 
-            # has_extra_dim = profiles_obj['has_extra_dim']
-            # if has_extra_dim:
-            #     cdom_wavelengths = profiles_obj['cdom_wavelengths']
-
             data_type = profiles_obj['data_type']
 
             updated_data_profiles = process_data_profiles(profiles_obj)
 
             new_profiles_obj = {}
             new_profiles_obj['data_type'] = data_type
-
-            # new_profiles_obj['has_extra_dim'] = has_extra_dim
-
-            # if has_extra_dim:
-            #     new_profiles_obj['cdom_wavelengths'] = cdom_wavelengths
 
             new_profiles_obj['data_type_profiles_list'] = updated_data_profiles
 
