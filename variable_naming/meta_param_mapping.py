@@ -79,7 +79,7 @@ def get_meta_mapping():
         'roundLon': 'roundLon',
         'strLat': 'strLat',
         'strLon': 'strLon',
-        'geoLocation': 'geoLocation',
+        'geolocation': 'geolocation',
         'source': 'source'
     }
 
