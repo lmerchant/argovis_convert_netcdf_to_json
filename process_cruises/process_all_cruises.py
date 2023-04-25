@@ -50,6 +50,15 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
 
         # the following are expocodes that are examples of various inputs
 
+        # CTD only file
+        # It has a pressure qc, but pres_qc = 1, so it's
+        # excluded from the measurements key
+        # Why is there a qc and why is it 1?
+        #test_cruise_expocode = '45CE20170427'
+
+        # BTL only file
+        #test_cruise_expocode = '06AQ19870704'
+
         #  BTL & CTD
         # station cast 016_001 has meas = []
         #  "measurementsSource": null,
@@ -58,11 +67,18 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
 
         # what's up with limited vars of pres and sample
         # but no other? Seems whole profile should not exist
-        # test_cruise_expocode = '096U20160426'
+        #test_cruise_expocode = '096U20160426'
 
-        # This cruise is BTL_CTD
+        # This cruise is has btl & ctd data
+        # but ctd file has no ctd vars so it's skipped
         # uses salinity_btl  for station3 cast 1
-        # test_cruise_expocode = '06HF991_1'
+        #test_cruise_expocode = '06HF991_1'
+
+        # This cruise has btl & ctd data
+        test_cruise_expocode = '325020210420'
+
+        # cruise with pressure_qc = 1
+        #test_cruise_expocode = '45CE20170427'
 
         # meas source qc not unique and not None [2.0 None]
         # temp and qc_source are None and 2.0 but has psal val
@@ -191,9 +207,10 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
         # 'N_LEVELS': 6070, 'N_PROF': 152
         #  test_cruise_expocode  = '33RO200306_01
 
+        # btl and ctd
         # Many Btl parameters
         # pressure is Geo2D type?
-        # test_cruise_expocode = '325020210420
+        #test_cruise_expocode = '325020210420'
 
         # test_cruise_expocode = '77DN20010717'
 
@@ -266,7 +283,7 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
 
         # In the WHPNAMES from params package, there are individual CDOM variables listed,
         # what files do these appear in so we know how to label CDOM vars for users to find and use
-        test_cruise_expocode = '33RR20160208'
+        #test_cruise_expocode = '33RR20160208'
 
         # I need one where pressure looses a dim
         #test_cruise_expocode = '318MSAVE5'
