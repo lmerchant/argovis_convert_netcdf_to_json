@@ -33,7 +33,7 @@ def has_two_ctd_oxygens(names):
         return False
 
 
-def log_ctd_var_status(file_obj, has_pres,
+def log_ctd_var_status(file_obj, good_pres,
                        has_ctd_temp, has_ctd_temp_ref_scale, has_both_temp, has_both_oxy):
 
     logging_dir = GlobalVars.LOGGING_DIR
@@ -42,7 +42,7 @@ def log_ctd_var_status(file_obj, has_pres,
     data_type = file_obj['data_type']
 
     # No pressure
-    if not has_pres:
+    if not good_pres:
         filename = 'cruise_files_no_pressure.txt'
         filepath = os.path.join(logging_dir, filename)
         with open(filepath, 'a') as f:
@@ -50,7 +50,7 @@ def log_ctd_var_status(file_obj, has_pres,
             f.write(f"expocode {expocode}\n")
             f.write(f"collection type {data_type}\n")
 
-    if has_pres and has_ctd_temp and has_ctd_temp_ref_scale:
+    if good_pres and has_ctd_temp and has_ctd_temp_ref_scale:
         has_all_ctd_vars = True
     else:
         has_all_ctd_vars = False
@@ -127,8 +127,43 @@ def check_has_ctd_vars(file_obj):
             has_ctd_temp_ref_scale = True
             break
 
+    # Check that pressure exists and that there are at least some good QC values
     coords = list(nc.coords)
     has_pres = 'pressure' in coords
+
+    has_good_pres = False
+
+    # TODO
+    # should really be checking that there are some values with qc=2
+    # Or not check qc at all and let the user decide
+
+    if 'pressure_qc' in params:
+
+        # dataframe with N_PROF as index and N_LEVELS as columns
+        df = nc['pressure_qc'].to_pandas()
+
+        # Remove columns with all NaN
+        pres_qc_group = df.groupby('N_PROF')
+
+        # Check for at least one N_PROF without a bad qc=1 value
+        for n_prof, qc_df in pres_qc_group:
+
+            qc_df = qc_df.dropna(axis=1)
+
+            pressure_qc_all_bad = qc_df.eq(1.0).all(axis=1)
+
+            if not pressure_qc_all_bad.all():
+                has_good_pres = True
+                break
+
+    else:
+        has_good_pres = True
+
+    if has_pres and has_good_pres:
+        good_pres = True
+    else:
+        good_pres = False
+        logging.info('There is no good pressure')
 
     # Check has only one CTD Temperature variable on one scale
     has_both_temp = has_two_ctd_temperatures(params)
@@ -147,13 +182,13 @@ def check_has_ctd_vars(file_obj):
     else:
         has_single_ctd_temp_oxy = True
 
-    if has_pres and has_ctd_temp and has_ctd_temp_ref_scale and has_single_ctd_temp_oxy:
+    if good_pres and has_ctd_temp and has_ctd_temp_ref_scale and has_single_ctd_temp_oxy:
         has_all_ctd_vars = True
     else:
         has_all_ctd_vars = False
 
     # Now find which variables that are missing and write to files
-    log_ctd_var_status(file_obj, has_pres,
+    log_ctd_var_status(file_obj, good_pres,
                        has_ctd_temp, has_ctd_temp_ref_scale, has_both_temp, has_both_oxy)
 
     return has_all_ctd_vars
