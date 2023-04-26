@@ -122,7 +122,6 @@ def modify_xarray_obj(file_obj):
     # Call load to convert nc from Dask to pure xarray for conversions calc
     # Couldn't get apply_ufunc and gsw to work with dask
     # So load it back to pure xarray
-    nc.load()
 
     nc, profiles_no_oxy_conversions = xr_conv.apply_conversions(nc)
 
