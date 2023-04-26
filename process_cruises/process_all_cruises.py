@@ -70,6 +70,18 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
         # oxygen conversions
         # ---------------
 
+        # converts oxygen_ml_l
+        #test_cruise_expocode = '32EV311_1'
+
+        # converts oxygen_ml_l
+        # Why is lat dims before convert () empty?
+        #test_cruise_expocode = '06BE88_1'
+
+        # converts ctd_oxygen_ml_l and temperature
+        # Check final values of oxygen, Does it look correct
+        # that it is a much larger number?
+        test_cruise_expocode = '32MW9305'
+
         # test for cacl oxygen_ml_l with qc = 1
         # test_cruise_expocode = '06PO20110601'
 
@@ -309,26 +321,43 @@ def add_file_data(netcdf_cruise_obj):
 
         file_path = file_obj['cchdo_file_meta']['file_path']
 
-        try:
-            with fsspec.open(file_path) as fobj:
-                nc = xr.open_dataset(fobj, engine='h5netcdf',
-                                     chunks={"N_PROF": GlobalVars.CHUNK_SIZE})
+        # try:
+        #     with fsspec.open(file_path) as fobj:
+        #         # nc = xr.open_dataset(fobj, engine='h5netcdf',
+        #         #                      chunks={"N_PROF": GlobalVars.CHUNK_SIZE})
 
-            # Try this way to see if program
-            # doesn't hang while reading in file
-            # with fsspec.open(file_path) as fobj:
-            #     nc = xr.open_dataset(fobj, engine='h5netcdf')
-            #     nc = nc.chunk(chunks={"N_PROF": GlobalVars.CHUNK_SIZE})
+        #         nc = xr.open_dataset(fobj, engine='h5netcdf')
 
-        except Exception as e:
-            logging.warning(f"Error reading in file {file_path}")
-            logging.warning(f"Error {e}")
-            logging.info(
-                f"Error reading file for cruise {file_obj['cruise_expocode']}")
-            logging.info(f"Data type {file_obj['data_type']}")
+        #         nc.close()
 
-            # return {}
-            continue
+        #         print(nc.coords['station'].values)
+        #         print(nc.coords['cast'].values)
+
+        #         print(nc.keys())
+
+        #     #nc = xr.open_dataset(file_path, engine='h5netcdf')
+
+        #     # Try this way to see if program
+        #     # doesn't hang while reading in file
+        #     # with fsspec.open(file_path) as fobj:
+        #     #     nc = xr.open_dataset(fobj, engine='h5netcdf')
+        #     #     nc = nc.chunk(chunks={"N_PROF": GlobalVars.CHUNK_SIZE})
+
+        # except Exception as e:
+        #     logging.warning(f"Error reading in file {file_path}")
+        #     logging.warning(f"Error {e}")
+        #     logging.info(
+        #         f"Error reading file for cruise {file_obj['cruise_expocode']}")
+        #     logging.info(f"Data type {file_obj['data_type']}")
+
+        #     continue
+
+
+        fs = fsspec.filesystem('https')
+
+        #fs.glob(file_path)
+
+        nc = xr.open_dataset(fs.open(file_path))
 
         file_obj['nc'] = nc
 
