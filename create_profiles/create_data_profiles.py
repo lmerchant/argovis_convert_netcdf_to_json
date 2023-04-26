@@ -73,7 +73,9 @@ def create_data_profiles(df_param):
     # remove when finished
     df_param = df_param.reindex(sorted(df_param.columns), axis=1)
 
-    all_data_df_groups = dict(tuple(df_param.groupby('N_PROF')))
+    # TODO
+    # check wheter to keep group_keys = False
+    all_data_df_groups = dict(tuple(df_param.groupby('N_PROF', group_keys=False)))
 
     all_data_profiles = []
     all_name_mapping = []

@@ -349,7 +349,10 @@ def create_meas_profiles(df_param, data_type):
 
     logging.info("Create all Measurements profiles")
 
-    df_meas = df_param.groupby('N_PROF').apply(
+    # TODO
+    # check whether I want to keep group_keys False
+
+    df_meas = df_param.groupby('N_PROF', group_keys=False).apply(
         create_measurements_df_all)
 
     # Remove N_PROF as index and drop because
@@ -360,7 +363,9 @@ def create_meas_profiles(df_param, data_type):
     # Inconsistent though. Try  doing per meas obj
     # df_meas = df_meas.where(pd.notnull(df_meas), None)
 
-    meas_df_groups = dict(tuple(df_meas.groupby('N_PROF')))
+    # TODO
+    # check whether I want to keep group_keys False
+    meas_df_groups = dict(tuple(df_meas.groupby('N_PROF', group_keys=False)))
 
     all_meas_profiles = []
     all_meas_source_profiles = []
