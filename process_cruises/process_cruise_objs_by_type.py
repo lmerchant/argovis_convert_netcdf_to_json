@@ -199,7 +199,11 @@ def create_dask_dataframe_obj(cruise_xr_obj):
         # meta_names = argovis_meta_mapping['names']
         # param_names = argovis_param_mapping['names']
 
+        # TODO, recomment this
         # nc was read in with Dask xarray, so now save to dask dataframe
+        # changed nc to be read in as xarray but then I see in modify
+        # xarray object it was converted to dask
+
         ddf = nc.to_dask_dataframe(dim_order=['N_PROF', 'N_LEVELS'])
 
         # Add dimensions and have station_cast for both
