@@ -88,7 +88,7 @@ def rename_measurements(data_type, measurements):
         new_meas_name_mapping[cchdo_name] = argovis_name
 
     df_measurements = df_measurements.set_axis(
-        list(new_meas_name_mapping.values()), axis='columns', inplace=False)
+        list(new_meas_name_mapping.values()), axis='columns')
 
     # Can have either salinity instead of psal if using bottle_salinity
     # need to rename saliniy to psal
@@ -291,7 +291,7 @@ def rename_data(data, data_type):
         argovis_col_names.append(argovis_name)
 
     df_data = df_data.set_axis(
-        argovis_col_names, axis='columns', inplace=False)
+        argovis_col_names, axis='columns')
 
     # Now add suffix of data type to both data
     data_columns = list(df_data.columns)
@@ -302,7 +302,7 @@ def rename_data(data, data_type):
         argovis_col_names_mapping_wo_data_type, data_type)
 
     df_data = df_data.set_axis(
-        data_type_col_names, axis='columns', inplace=False)
+        data_type_col_names, axis='columns')
 
     # Filter out parameters not used for ArgoVis
     cols_to_filter_out = filter_out_params(list(df_data.columns))
