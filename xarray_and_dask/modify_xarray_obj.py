@@ -122,7 +122,9 @@ def modify_xarray_obj(file_obj):
     # Call load to convert nc from Dask to pure xarray for conversions calc
     # Couldn't get apply_ufunc and gsw to work with dask
     # So load it back to pure xarray
-    nc.load()
+
+    # Since loaded in as xarray, don't need to load it first
+    #nc.load()
 
     nc, profiles_no_oxy_conversions = xr_conv.apply_conversions(nc)
 
@@ -159,7 +161,7 @@ def modify_xarray_obj(file_obj):
 
     chunk_size = GlobalVars.CHUNK_SIZE
 
-    # Convert back to Dask
+    # Convert to Dask
     nc = nc.chunk({'N_PROF': chunk_size})
 
     nc = mod_xr_meta.apply_c_format_meta(
