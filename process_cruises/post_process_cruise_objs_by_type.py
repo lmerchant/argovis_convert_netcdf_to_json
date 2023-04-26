@@ -99,8 +99,11 @@ def rename_measurements(measurements):
     for cchdo_name, argovis_name in meas_name_mapping.items():
         new_meas_name_mapping[cchdo_name] = argovis_name
 
+    # df_measurements = df_measurements.set_axis(
+    #     list(new_meas_name_mapping.values()), axis='columns', inplace=False)
+
     df_measurements = df_measurements.set_axis(
-        list(new_meas_name_mapping.values()), axis='columns', inplace=False)
+        list(new_meas_name_mapping.values()), axis='columns')
 
     # Can have either salinity instead of psal if using bottle_salinity
     # need to rename saliniy to psal
@@ -280,12 +283,16 @@ def rename_data(data):
 
         argovis_col_names.append(argovis_name)
 
+    # df_data = df_data.set_axis(
+    #     argovis_col_names, axis='columns', inplace=False)
+
     df_data = df_data.set_axis(
-        argovis_col_names, axis='columns', inplace=False)
+        argovis_col_names, axis='columns')
 
     data_columns = list(df_data.columns)
 
-    df_data = df_data.set_axis(data_columns, axis='columns', inplace=False)
+    # df_data = df_data.set_axis(data_columns, axis='columns', inplace=False)
+    df_data = df_data.set_axis(data_columns, axis='columns')
 
     # Filter out parameters not used for ArgoVis
     cols_to_filter_out = filter_out_params(list(df_data.columns))
