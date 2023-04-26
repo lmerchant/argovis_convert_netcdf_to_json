@@ -12,6 +12,9 @@ from process_cruises.process_all_cruises import process_all_cruises
 pbar = ProgressBar()
 pbar.register()
 
+# TODO
+# Don't clear converted files folder if append is chosen
+# and don't clear included/excluded vars folder
 
 @ click.command()
 @ click.option('-s', '--start_year', default=1900, help='Start year')
