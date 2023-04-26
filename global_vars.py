@@ -1,6 +1,6 @@
 class GlobalVars:
 
-    TEST = True
+    TEST = False
 
     API_END_POINT = "https://cchdo.ucsd.edu/api/v1"
 
