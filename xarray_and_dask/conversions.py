@@ -271,6 +271,9 @@ def convert_oxygen(nc_profile, var, profiles_no_oxy_conversions):
     logging.info('Inside convert oxygen')
     logging.info(f"lat dims before convert {nc_profile['latitude'].dims}")
 
+    logging.info("O2 after conversion")
+    logging.info(converted_oxygen)
+
     # Update with new values
     try:
         # If it's a dataset
@@ -943,9 +946,6 @@ def check_null_status_temp_salinity(nc_profile, var):
     return all_sal_or_temp_nan
 
 
-# def get_var_qc(nc_profile, var):
-#     pass
-
 
 def convert_oxygen_to_new_units(nc, var, profiles_no_oxy_conversions):
 
@@ -1065,6 +1065,15 @@ def convert_oxygen_to_new_units(nc, var, profiles_no_oxy_conversions):
 
         # else:
 
+
+        logging.info('Before convert oxygen')
+        logging.info(nc_profile[var].data)
+
+        try:
+            logging.info(nc_profile[f"{var}_qc"].data)
+        except:
+            logging.info('no qc')
+
         converted_nc_profile, converted_oxygen_qc, profiles_no_oxy_conversions = convert_oxygen(
             nc_profile, var, profiles_no_oxy_conversions)
 
@@ -1089,6 +1098,9 @@ def convert_oxygen_to_new_units(nc, var, profiles_no_oxy_conversions):
     nc = xr.combine_nested(
         ds_grid, concat_dim=["N_LEVELS", "N_PROF"], combine_attrs='identical', coords='different')
 
+    logging.info("after conversion of oxygen")
+    logging.info(nc[var].data)
+
     # nc = xr.combine_nested(
     #     ds_grid, concat_dim=["N_LEVELS", "N_PROF"], combine_attrs='override', compat='broadcast_equals')
 
@@ -1103,12 +1115,8 @@ def convert_oxygen_to_new_units(nc, var, profiles_no_oxy_conversions):
 
         nc = nc.assign(qc_var)
 
-    logging.info('after convert qc values')
-    logging.info(nc)
-
-    logging.info(nc['ctd_oxygen_ml_l'])
-
-    logging.info(nc['ctd_oxygen_ml_l_qc'])
+        logging.info('after convert qc values of oxygen')
+        logging.info(qc_var)
 
     return nc, profiles_no_oxy_conversions
 
@@ -1338,12 +1346,18 @@ def convert_sea_water_temp(nc_profile, var, var_cchdo_ref_scale, argovis_ref_sca
         # Convert to ITS-90 scal
         temperature = nc_profile[var].data
 
+        logging.info('before conversion of temperature')
+        logging.info(temperature)
+
         converted_temperature = temperature/1.00024
 
         # Set temperature value in nc_profile because use it later to
         # create profile dict
         nc_profile[var].data = converted_temperature
         nc_profile[var].attrs['reference_scale'] = 'ITS-90'
+
+        logging.info('after conversion of temperature')
+        logging.info(converted_temperature)
 
     return nc_profile
 
