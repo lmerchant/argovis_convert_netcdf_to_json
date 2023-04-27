@@ -967,8 +967,8 @@ def convert_oxygen_to_new_units(nc, var, profiles_no_oxy_conversions):
     var_qc = f"{var}_qc"
 
     # TODO
-    # check if want to keep group_keys = False
-    for nc_group in nc.groupby('N_PROF', group_keys=False):
+    # Only dask uses the option group_keys and xarray does not
+    for nc_group in nc.groupby('N_PROF'):
 
         logging.info('-------------------')
         logging.info(f"Converting oxygen for profile {nc_group[0]}")
