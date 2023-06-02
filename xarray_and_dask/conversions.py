@@ -966,6 +966,8 @@ def convert_oxygen_to_new_units(nc, var, profiles_no_oxy_conversions):
     # Add var qc if it doesn't exist
     var_qc = f"{var}_qc"
 
+    # TODO
+    # Only dask uses the option group_keys and xarray does not
     for nc_group in nc.groupby('N_PROF'):
 
         logging.info('-------------------')

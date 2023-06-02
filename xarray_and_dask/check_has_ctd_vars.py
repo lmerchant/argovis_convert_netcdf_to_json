@@ -143,7 +143,9 @@ def check_has_ctd_vars(file_obj):
         df = nc['pressure_qc'].to_pandas()
 
         # Remove columns with all NaN
-        pres_qc_group = df.groupby('N_PROF')
+        # TODO
+        # check if want to keep group_keys = False
+        pres_qc_group = df.groupby('N_PROF', group_keys=False)
 
         # Check for at least one N_PROF without a bad qc=1 value
         for n_prof, qc_df in pres_qc_group:

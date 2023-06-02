@@ -8,7 +8,6 @@ from check_and_save.save_output import save_data_type_profiles
 
 
 def post_process_cruise_objs_by_collection(cruise_objs_by_type):
-
     # All variables have been renamed prior to combining as a collection
 
     # TODO
@@ -21,19 +20,19 @@ def post_process_cruise_objs_by_collection(cruise_objs_by_type):
     # exit(1)
 
     for cruise_obj in cruise_objs_by_type:
+        expocode = cruise_obj["cruise_expocode"]
 
-        expocode = cruise_obj['cruise_expocode']
-
-        all_data_types_profile_objs = cruise_obj['all_data_types_profile_objs']
+        all_data_types_profile_objs = cruise_obj["all_data_types_profile_objs"]
 
         logging.info("****************************")
         logging.info(f"Post processing {expocode}")
         logging.info("****************************")
 
         # Save expocode processed to a file collecting all processed
-        processed_cruises_file = Path(
-            GlobalVars.LOGGING_DIR) / 'all_cruises_processed.txt'
-        with open(processed_cruises_file, 'a') as f:
+        processed_cruises_file = (
+            Path(GlobalVars.LOGGING_DIR) / "all_cruises_processed.txt"
+        )
+        with open(processed_cruises_file, "a") as f:
             f.write(f"{expocode}\n")
 
         # change this to skip updating single type profile since this
@@ -41,8 +40,11 @@ def post_process_cruise_objs_by_collection(cruise_objs_by_type):
         # of the file, which could have been btl_ctd in the past
 
         # For meta data, add meta with data_type suffix removed
-        all_profiles = update_profiles_single_type(
-            all_data_types_profile_objs)
+        all_profiles = update_profiles_single_type(all_data_types_profile_objs)
+
+        profile = all_profiles[0]
+
+        # print(profile["profile_dict"]["data"])
 
         # Change save function to use cruise_obj and not profiles
 

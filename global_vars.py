@@ -1,16 +1,15 @@
 class GlobalVars:
-
-    TEST = False
+    TEST = True
 
     API_END_POINT = "https://cchdo.ucsd.edu/api/v1"
 
-    LOGGING_DIR = './logging'
+    LOGGING_DIR = "./logging"
 
-    JSON_DIR = './converted_data'
+    JSON_DIR = "./converted_data"
 
-    INCLUDE_EXCLUDE_DIR = './logging/included_excluded'
+    INCLUDE_EXCLUDE_DIR = "./logging/included_excluded"
 
-    OUTPUT_LOG = 'output_log.txt'
+    OUTPUT_LOG = "output_log.txt"
 
     CHUNK_SIZE = 30
 
