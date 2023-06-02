@@ -65,9 +65,11 @@ def modify_param_dask_obj(ddf_param):
 
     # https://stackoverflow.com/questions/54164879/what-is-an-efficient-way-to-use-groupby-apply-a-custom-function-for-a-huge-dat
 
+    # TODO
+    # check if want to keep group_keys = False
     dask_meta = ddf_param.dtypes.to_dict()
     ddf_param = ddf_param.map_partitions(
-        lambda part: part.groupby('N_PROF').apply(remove_empty_rows), meta=dask_meta)
+        lambda part: part.groupby('N_PROF', group_keys=False).apply(remove_empty_rows), meta=dask_meta)
 
     ddf_param = ddf_param.drop(['N_LEVELS'], axis=1)
     ddf_param = ddf_param.reset_index(drop=True)
