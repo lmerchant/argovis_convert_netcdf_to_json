@@ -35,7 +35,9 @@ def create_meta_profiles(df_meta):
 
     logging.info('create all_meta list')
 
-    grouped_meta_dict = dict(tuple(df_meta.groupby('N_PROF')))
+    # TODO
+    # check if want group_keys = False
+    grouped_meta_dict = dict(tuple(df_meta.groupby('N_PROF', group_keys=False)))
 
     all_meta_profiles = []
     for val_df in grouped_meta_dict.values():
