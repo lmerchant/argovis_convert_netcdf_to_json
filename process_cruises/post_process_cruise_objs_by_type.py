@@ -12,7 +12,8 @@ from variable_naming.meta_param_mapping import rename_mappings_source_info_keys
 from variable_naming.meta_param_mapping import rename_mappings_data_info_keys
 from variable_naming.meta_param_mapping import get_meta_mapping
 from variable_naming.meta_param_mapping import rename_core_profile_keys
-from variable_naming.meta_param_mapping import rename_measurements_keys
+
+# from variable_naming.meta_param_mapping import rename_measurements_keys
 from variable_naming.meta_param_mapping import get_program_argovis_source_info_mapping
 from variable_naming.meta_param_mapping import get_program_argovis_data_info_mapping
 from variable_naming.meta_param_mapping import get_source_independent_meta_names
@@ -23,34 +24,97 @@ from create_profiles.update_profiles_single_type2 import update_profiles_single_
 from check_and_save.save_output import save_data_type_profiles
 
 
-def reorganize_meta_and_mappings(meta, mappings):
+def reformat_data_info(data_info, standard_names_mapping):
+    new_data_info = []
 
+    data_keys = data_info["data_keys"]
+    data_units = data_info["data_units"]
+    data_reference_scale = data_info["data_reference_scale"]
+
+    new_data_info.append(data_keys)
+
+    new_data_info.append(
+        [
+            "data_keys_mapping",
+            "units",
+            "data_source_standard_names",
+            "reference_scale",
+        ]
+    )
+
+    # mapping where keys = cchdo names, values = argovis names
+    data_keys_mapping = data_info["data_keys_mapping"]
+
+    # Swap this
+    mapping_argovis_to_cchdo = {value: key for key, value in data_keys_mapping.items()}
+
+    data_rows = []
+    for var in data_keys:
+        new_data_row = []
+
+        cchdo_var_name = mapping_argovis_to_cchdo[var]
+
+        new_data_row.append(cchdo_var_name)
+
+        if var in data_units.keys():
+            data_unit = data_units[var]
+        else:
+            data_unit = np.nan
+
+        new_data_row.append(data_unit)
+
+        # Get Argovis var corresponding standard name
+        try:
+            argovis_standard_name = standard_names_mapping[cchdo_var_name]
+        except KeyError:
+            argovis_standard_name = np.nan
+
+        new_data_row.append(argovis_standard_name)
+
+        if var in data_reference_scale.keys():
+            ref_scale = data_reference_scale[var]
+        else:
+            ref_scale = np.nan
+
+        new_data_row.append(ref_scale)
+
+        data_rows.append(new_data_row)
+
+    new_data_info.append(data_rows)
+
+    return new_data_info
+
+
+def reorganize_meta_and_mappings(meta, mappings):
     # put mappings into dictionaries called source and data_info
 
     source_info = {}
 
     source_info_keys = get_program_argovis_source_info_mapping().values()
 
+    standard_names_mapping = mappings["data_source_standard_names"]
+
     for key in source_info_keys:
         source_info[key] = mappings[key]
 
-    if 'source' in meta.keys():
-        source_info['source'] = meta['source']
-        meta.pop('source', None)
+    # source is what "programs" was mapped to
+    if "source" in meta.keys():
+        source_info["source"] = meta["source"]
+        meta.pop("source", None)
 
-    if 'cruise_url' in meta.keys():
-        source_info['cruise_url'] = meta['cruise_url']
-        meta.pop('cruise_url', None)
+    if "cruise_url" in meta.keys():
+        source_info["cruise_url"] = meta["cruise_url"]
+        meta.pop("cruise_url", None)
 
-    if 'source_url' in meta.keys():
-        source_info['url'] = meta['source_url']
-        meta.pop('source_url', None)
+    if "source_url" in meta.keys():
+        source_info["url"] = meta["source_url"]
+        meta.pop("source_url", None)
 
-    if 'file_name' in meta.keys():
-        source_info['file_name'] = meta['file_name']
-        meta.pop('file_name', None)
+    if "file_name" in meta.keys():
+        source_info["file_name"] = meta["file_name"]
+        meta.pop("file_name", None)
 
-    meta['source'] = source_info
+    meta["source"] = [source_info]
 
     data_info = {}
 
@@ -59,126 +123,135 @@ def reorganize_meta_and_mappings(meta, mappings):
     for key in data_info_keys:
         data_info[key] = mappings[key]
 
-    meta['data_info'] = data_info
+    data_info = reformat_data_info(data_info, standard_names_mapping)
+
+    meta["data_info"] = data_info
+
+    # TODO
+    # this must change the whole mappings keys and I don't see them
+    # later when I try to update them.
+    # Should I do this reorganization later?
 
     return meta
 
 
-def rename_measurements(measurements):
+# def rename_measurements(measurements):
+#     df_measurements = pd.DataFrame.from_dict(measurements)
 
-    df_measurements = pd.DataFrame.from_dict(measurements)
+#     # If there is both ctd_temperature and ctd_temperature_68, remove
+#     # the ctd_temperature_68 column
+#     # check which temperature to use if both exist
+#     col_names = list(df_measurements.columns)
+#     is_ctd_temp = "ctd_temperature" in col_names
+#     is_ctd_temp_68 = "ctd_temperature_68" in col_names
 
-    # If there is both ctd_temperature and ctd_temperature_68, remove
-    # the ctd_temperature_68 column
-    # check which temperature to use if both exist
-    col_names = list(df_measurements.columns)
-    is_ctd_temp = 'ctd_temperature' in col_names
-    is_ctd_temp_68 = 'ctd_temperature_68' in col_names
+#     if is_ctd_temp and is_ctd_temp_68:
+#         df_measurements.drop("ctd_temperature_68", axis=1, inplace=True)
 
-    if is_ctd_temp and is_ctd_temp_68:
-        df_measurements.drop('ctd_temperature_68', axis=1, inplace=True)
+#     # if there is both a ctd_oxygen and ctd_oxygen_ml_l, remove the
+#     # oxygen_ml_l column
+#     col_names = list(df_measurements.columns)
+#     is_ctd_oxy = "ctd_oxygen" in col_names
+#     is_ctd_oxy_ml_l = "ctd_oxygen_ml_l" in col_names
 
-    # if there is both a ctd_oxygen and ctd_oxygen_ml_l, remove the
-    # oxygen_ml_l column
-    col_names = list(df_measurements.columns)
-    is_ctd_oxy = 'ctd_oxygen' in col_names
-    is_ctd_oxy_ml_l = 'ctd_oxygen_ml_l' in col_names
+#     if is_ctd_oxy and is_ctd_oxy_ml_l:
+#         df_measurements.drop("ctd_oxygen_ml_l", axis=1, inplace=True)
 
-    if is_ctd_oxy and is_ctd_oxy_ml_l:
-        df_measurements.drop('ctd_oxygen_ml_l', axis=1, inplace=True)
+#     # key is current name and value is argovis name
+#     # TODO
+#     # rename function to cchdo_to_argovis_mapping
+#     meas_name_mapping = rename_to_argovis_mapping(list(df_measurements.columns))
 
-    # key is current name and value is argovis name
-    # TODO
-    # rename function to cchdo_to_argovis_mapping
-    meas_name_mapping = rename_to_argovis_mapping(
-        list(df_measurements.columns))
+#     # Don't use suffix on measurementsSourceQC
 
-    # Don't use suffix on measurementsSourceQC
+#     new_meas_name_mapping = {}
+#     for cchdo_name, argovis_name in meas_name_mapping.items():
+#         new_meas_name_mapping[cchdo_name] = argovis_name
 
-    new_meas_name_mapping = {}
-    for cchdo_name, argovis_name in meas_name_mapping.items():
-        new_meas_name_mapping[cchdo_name] = argovis_name
+#     # df_measurements = df_measurements.set_axis(
+#     #     list(new_meas_name_mapping.values()), axis='columns', inplace=False)
 
-    # df_measurements = df_measurements.set_axis(
-    #     list(new_meas_name_mapping.values()), axis='columns', inplace=False)
+#     df_measurements = df_measurements.set_axis(
+#         list(new_meas_name_mapping.values()), axis="columns"
+#     )
 
-    df_measurements = df_measurements.set_axis(
-        list(new_meas_name_mapping.values()), axis='columns')
+#     # Can have either salinity instead of psal if using bottle_salinity
+#     # need to rename saliniy to psal
+#     # TODO
+#     # Don't rename till after use with combined types
+#     # since relying on salinity to exist to select it
 
-    # Can have either salinity instead of psal if using bottle_salinity
-    # need to rename saliniy to psal
-    # TODO
-    # Don't rename till after use with combined types
-    # since relying on salinity to exist to select it
+#     # if 'salinity' in df_measurements.columns:
+#     #     df_measurements = df_measurements.rename(
+#     #         {'salinity': 'psal'}, axis=1)
 
-    # if 'salinity' in df_measurements.columns:
-    #     df_measurements = df_measurements.rename(
-    #         {'salinity': 'psal'}, axis=1)
+#     # TODO
+#     # Or could rename if keep track of what it was.
+#     # Wouldn't measurements source do that for me?
 
-    # TODO
-    # Or could rename if keep track of what it was.
-    # Wouldn't measurements source do that for me?
+#     # combined is looking at key = 'measurementsSourceQC'
+#     # for source of psal or salinity. Look at where I
+#     # create this for one source
 
-    # combined is looking at key = 'measurementsSourceQC'
-    # for source of psal or salinity. Look at where I
-    # create this for one source
+#     measurements = df_measurements.to_dict("records")
 
-    measurements = df_measurements.to_dict('records')
-
-    return measurements
+#     return measurements
 
 
-def rename_measurements_sources(measurements_sources):
-    # Rename measurementsSourceQC
-    # If have two 'temperature' var names, means had both
-    # ctd_temerature and ctd_temperature_68
-    # Check before rename, and remove one not being used
-    # if both not being used, remove one so don't end
-    # up with two 'temperature' keys and should
-    # be saying using_temp False
+# def rename_measurements_sources(measurements_sources):
+#     # Rename measurementsSourceQC
+#     # If have two 'temperature' var names, means had both
+#     # ctd_temerature and ctd_temperature_68
+#     # Check before rename, and remove one not being used
+#     # if both not being used, remove one so don't end
+#     # up with two 'temperature' keys and should
+#     # be saying using_temp False
 
-    renamed_meas_sources = {}
+#     renamed_meas_sources = {}
 
-    # renamed_meas_sources['qc'] = measurements_sources.pop('qc', None)
+#     # renamed_meas_sources['qc'] = measurements_sources.pop('qc', None)
 
-    for key, val in measurements_sources.items():
-        # change key to argovis name
-        # e.g. 'using_ctd_temperature' to 'temperature'
-        # var_in_key = key.replace('using_', '')
-        # get map of cchdo name to argovis name
-        # rename_to_argovis expects a list of names to map
-        key_name_mapping = rename_to_argovis_mapping([key])
+#     for key, val in measurements_sources.items():
+#         # change key to argovis name
+#         # e.g. 'using_ctd_temperature' to 'temperature'
+#         # var_in_key = key.replace('using_', '')
+#         # get map of cchdo name to argovis name
+#         # rename_to_argovis expects a list of names to map
+#         key_name_mapping = rename_to_argovis_mapping([key])
 
-        new_key = f"{key_name_mapping[key]}"
+#         new_key = f"{key_name_mapping[key]}"
 
-        if key == 'ctd_temperature_68':
-            new_key = new_key + '_68'
+#         if key == "ctd_temperature_68":
+#             new_key = new_key + "_68"
 
-        renamed_meas_sources[new_key] = val
+#         renamed_meas_sources[new_key] = val
 
-    if ('temperature' in renamed_meas_sources) and ('temperature_68' in renamed_meas_sources):
-        using_temp = renamed_meas_sources['temperature']
-        using_temp_68 = renamed_meas_sources['temperature_68']
+#     if ("temperature" in renamed_meas_sources) and (
+#         "temperature_68" in renamed_meas_sources
+#     ):
+#         using_temp = renamed_meas_sources["temperature"]
+#         using_temp_68 = renamed_meas_sources["temperature_68"]
 
-        if using_temp:
-            renamed_meas_sources.pop('temperature_68', None)
-        elif using_temp_68:
-            renamed_meas_sources.pop('temperature', None)
-            renamed_meas_sources['temperature'] = renamed_meas_sources['temperature_68']
-            renamed_meas_sources.pop('temperature_68', None)
-        else:
-            renamed_meas_sources['temperature'] = False
-            renamed_meas_sources.pop('temperature_68', None)
+#         if using_temp:
+#             renamed_meas_sources.pop("temperature_68", None)
+#         elif using_temp_68:
+#             renamed_meas_sources.pop("temperature", None)
+#             renamed_meas_sources["temperature"] = renamed_meas_sources["temperature_68"]
+#             renamed_meas_sources.pop("temperature_68", None)
+#         else:
+#             renamed_meas_sources["temperature"] = False
+#             renamed_meas_sources.pop("temperature_68", None)
 
-    elif ('temperature' not in renamed_meas_sources) and ('temperature_68' in renamed_meas_sources):
-        renamed_meas_sources['temperature'] = renamed_meas_sources['temperature_68']
-        renamed_meas_sources.pop('temperature_68', None)
+#     elif ("temperature" not in renamed_meas_sources) and (
+#         "temperature_68" in renamed_meas_sources
+#     ):
+#         renamed_meas_sources["temperature"] = renamed_meas_sources["temperature_68"]
+#         renamed_meas_sources.pop("temperature_68", None)
 
-    return renamed_meas_sources
+#     return renamed_meas_sources
 
 
 def create_mappings(profile_dict, argovis_col_names_mapping):
-
     # Creates argovis mappings and
     # adds in cchdoConvertedUnits & cchdoConvertedReferenceScale if there are any
 
@@ -190,49 +263,51 @@ def create_mappings(profile_dict, argovis_col_names_mapping):
 
     # keys before conversion of cchdo file
 
-    cchdo_units = profile_dict['cchdo_units']
-    cchdo_ref_scale = profile_dict['cchdo_reference_scale']
-    cchdo_param_names = profile_dict['cchdo_param_names']
-    cchdo_standard_names = profile_dict['cchdo_standard_names']
+    cchdo_units = profile_dict["cchdo_units"]
+    cchdo_ref_scale = profile_dict["cchdo_reference_scale"]
+    cchdo_param_names = profile_dict["cchdo_param_names"]
+    cchdo_standard_names = profile_dict["cchdo_standard_names"]
 
     # vars with attributes changed
     # Want to incorporate these into cchdo_units and cchdo_reference_scale
-    cchdo_converted_units = profile_dict['cchdoConvertedUnits']
-    cchdo_converted_ref_scale = profile_dict['cchdoConvertedReferenceScale']
+    cchdo_converted_units = profile_dict["cchdoConvertedUnits"]
+    cchdo_converted_ref_scale = profile_dict["cchdoConvertedReferenceScale"]
 
     # later need to add cchdo names to netcdf names mapping.
     # Do this earlier in the program since getting info from
     # netcdf file
 
     # (listing of all the var names in data)
-    mappings['argovis_param_names'] = list(argovis_col_names_mapping.values())
+    mappings["argovis_param_names"] = list(argovis_col_names_mapping.values())
 
     # from above, this is argovis_col_names_mapping
-    mappings['cchdo_argovis_param_mapping'] = argovis_col_names_mapping
+    mappings["cchdo_argovis_param_mapping"] = argovis_col_names_mapping
 
-    mappings['cchdo_standard_names'] = cchdo_standard_names
+    mappings["cchdo_standard_names"] = cchdo_standard_names
 
-    mappings['cchdo_param_names'] = cchdo_param_names
+    mappings["cchdo_param_names"] = cchdo_param_names
 
     # Values are the same as cchdo except those converted
     # And rename
-    cchdo_name_ref_scale_mapping = {
-        **cchdo_ref_scale, **cchdo_converted_ref_scale}
+    cchdo_name_ref_scale_mapping = {**cchdo_ref_scale, **cchdo_converted_ref_scale}
 
     # Get mapping and then swap out keys with argovis names
     # Takes in ref_scale_mapping.keys(), cchdo names, and
     # gives back the mapping from these cchdo names to argovis names
+    data_type = profile_dict["data_type"]
     cchdo_to_argovis_name_mapping = rename_to_argovis_mapping(
-        list(cchdo_name_ref_scale_mapping.keys()))
+        list(cchdo_name_ref_scale_mapping.keys()), data_type
+    )
 
-    mappings['argovis_reference_scale'] = {
-        cchdo_to_argovis_name_mapping[key]: value for key, value in cchdo_name_ref_scale_mapping.items()}
+    mappings["argovis_reference_scale"] = {
+        cchdo_to_argovis_name_mapping[key]: value
+        for key, value in cchdo_name_ref_scale_mapping.items()
+    }
 
     # key argovisUnits
     # Values are the same as cchdo except those converted
     # And rename
-    cchdo_units_mapping = {
-        **cchdo_units, **cchdo_converted_units}
+    cchdo_units_mapping = {**cchdo_units, **cchdo_converted_units}
 
     # Convert unit names to argovis names
     # Take in cchdo name to units (included those converted)
@@ -241,31 +316,34 @@ def create_mappings(profile_dict, argovis_col_names_mapping):
     # since salinity units are currently 1 which can be a unit
     # of many variables
     cchdo_name_to_argovis_unit_mapping = change_units_to_argovis(
-        cchdo_units_mapping, cchdo_name_ref_scale_mapping)
+        cchdo_units_mapping, cchdo_name_ref_scale_mapping
+    )
 
     # Convert cchdo names to argovis names
     # Get mapping and then swap out keys with argovis names
     cchdo_to_argovis_name_mapping = rename_to_argovis_mapping(
-        list(cchdo_name_to_argovis_unit_mapping.keys()))
+        list(cchdo_name_to_argovis_unit_mapping.keys()), data_type
+    )
 
-    mappings['argovis_units'] = {
-        cchdo_to_argovis_name_mapping[key]: value for key, value in cchdo_name_to_argovis_unit_mapping.items()}
+    mappings["argovis_units"] = {
+        cchdo_to_argovis_name_mapping[key]: value
+        for key, value in cchdo_name_to_argovis_unit_mapping.items()
+    }
 
     return mappings
 
 
 def filter_out_params(parameter_names):
-
     params_to_filter_out = get_parameters_to_filter_out()
 
     params_to_filter = [
-        param for param in parameter_names if param in params_to_filter_out]
+        param for param in parameter_names if param in params_to_filter_out
+    ]
 
     return params_to_filter
 
 
-def rename_data(data):
-
+def rename_data(data_type, data):
     # Rename by loading dict into pandas dataframe,
     # rename cols then output back to dict
     df_data = pd.DataFrame.from_dict(data)
@@ -274,8 +352,8 @@ def rename_data(data):
 
     data_columns = list(df_data.columns)
 
-    # First rename to any ArgoVis names
-    argovis_col_names_mapping = rename_to_argovis_mapping(data_columns)
+    # First rename to any ArgoVis names and change _qc to _woceqc
+    argovis_col_names_mapping = rename_to_argovis_mapping(data_columns, data_type)
 
     argovis_col_names = []
     for col_name in data_columns:
@@ -286,31 +364,39 @@ def rename_data(data):
     # df_data = df_data.set_axis(
     #     argovis_col_names, axis='columns', inplace=False)
 
-    df_data = df_data.set_axis(
-        argovis_col_names, axis='columns')
+    df_data = df_data.set_axis(argovis_col_names, axis="columns")
 
     data_columns = list(df_data.columns)
 
     # df_data = df_data.set_axis(data_columns, axis='columns', inplace=False)
-    df_data = df_data.set_axis(data_columns, axis='columns')
+    df_data = df_data.set_axis(data_columns, axis="columns")
+
+    # ----- delete start
 
     # Filter out parameters not used for ArgoVis
-    cols_to_filter_out = filter_out_params(list(df_data.columns))
+    # cols_to_filter_out = filter_out_params(list(df_data.columns))
 
-    df_data = df_data.drop(cols_to_filter_out, axis=1)
+    # print(cols_to_filter_out)
 
-    data = df_data.to_dict('records')
+    # if filter out column from params, need to filter from mappings
+    # do this earlier in processing
+
+    # df_data = df_data.drop(cols_to_filter_out, axis=1)
+
+    # ----- delete to here
+
+    data = df_data.to_dict("records")
 
     return data, argovis_col_names_mapping
 
 
-def remove_extra_dim_vars_from_mappings(profile_dict, variables_to_delete_in_mappings, variables_to_add_in_mappings):
-
+def remove_extra_dim_vars_from_mappings(
+    profile_dict, variables_to_delete_in_mappings, variables_to_add_in_mappings
+):
     # Get the names of extra dim vars
     extra_dim_vars = variables_to_add_in_mappings.keys()
 
     for extra_dim in extra_dim_vars:
-
         # First keep mapping attribute values of one variable out of the exploded vars
         # Then delete and add variables
 
@@ -319,23 +405,23 @@ def remove_extra_dim_vars_from_mappings(profile_dict, variables_to_delete_in_map
 
         variables_to_include = []
 
-        non_qc_var_to_add = variables_to_add['non_qc_var']
+        non_qc_var_to_add = variables_to_add["non_qc_var"]
 
         variables_to_include.append(non_qc_var_to_add)
 
         try:
-            qc_var_to_add = variables_to_add['qc_var']
+            qc_var_to_add = variables_to_add["qc_var"]
             variables_to_include.append(qc_var_to_add)
         except:
             pass
 
-        col_naming_var = variables_to_add['col_naming_var']
+        col_naming_var = variables_to_add["col_naming_var"]
         variables_to_include.append(col_naming_var)
 
         non_qc_vars_to_delete = [
-            var for var in variables_to_delete if not var.endswith('_qc')]
-        qc_vars_to_delete = [
-            var for var in variables_to_delete if var.endswith('_qc')]
+            var for var in variables_to_delete if not var.endswith("_qc")
+        ]
+        qc_vars_to_delete = [var for var in variables_to_delete if var.endswith("_qc")]
 
         non_qc_vars_to_delete.sort()
         qc_vars_to_delete.sort()
@@ -344,21 +430,16 @@ def remove_extra_dim_vars_from_mappings(profile_dict, variables_to_delete_in_map
         sample_qc_var = qc_vars_to_delete[0]
 
         for key, value in profile_dict.items():
-
-            if key == 'cchdo_param_names':
-
-                new_value = [
-                    val for val in value if val not in variables_to_delete]
+            if key == "cchdo_param_names":
+                new_value = [val for val in value if val not in variables_to_delete]
 
                 new_value.extend(variables_to_include)
 
                 profile_dict[key] = new_value
 
-            if key == 'cchdo_standard_names':
-
+            if key == "cchdo_standard_names":
                 new_value = {}
                 for k, v in value.items():
-
                     if k == sample_non_qc_var:
                         new_value[non_qc_var_to_add] = v
 
@@ -368,57 +449,54 @@ def remove_extra_dim_vars_from_mappings(profile_dict, variables_to_delete_in_map
                     else:
                         new_value[k] = v
 
-                profile_dict[key] = {k: v for k, v in new_value.items()
-                                     if k not in variables_to_delete}
+                profile_dict[key] = {
+                    k: v for k, v in new_value.items() if k not in variables_to_delete
+                }
 
-            if key == 'cchdo_reference_scale':
-
+            if key == "cchdo_reference_scale":
                 new_value = {}
                 for k, v in value.items():
-
                     if k == sample_non_qc_var:
                         new_value[non_qc_var_to_add] = v
                     else:
                         new_value[k] = v
 
-                profile_dict[key] = {k: v for k, v in new_value.items()
-                                     if k not in variables_to_delete}
+                profile_dict[key] = {
+                    k: v for k, v in new_value.items() if k not in variables_to_delete
+                }
 
-            if key == 'cchdo_units':
-
+            if key == "cchdo_units":
                 new_value = {}
                 for k, v in value.items():
-
                     if k == sample_non_qc_var:
                         new_value[non_qc_var_to_add] = v
                     else:
                         new_value[k] = v
 
-                profile_dict[key] = {k: v for k, v in new_value.items()
-                                     if k not in variables_to_delete}
+                profile_dict[key] = {
+                    k: v for k, v in new_value.items() if k not in variables_to_delete
+                }
 
     return profile_dict
 
 
 def remove_deleted_vars_from_mappings(profile_dict, variables_deleted):
-
     # keys are names used in this program
     # values are the final key names to be used for Argovis
     cchdo_key_mapping = get_program_argovis_source_info_mapping()
 
-    argovis_key_mapping = get_program_argovis_data_info_mapping()
+    # argovis_key_mapping = get_program_argovis_data_info_mapping()
 
-    key_mapping = {**cchdo_key_mapping, **argovis_key_mapping}
+    # key_mapping = {**cchdo_key_mapping, **argovis_key_mapping}
+
+    key_mapping = cchdo_key_mapping
 
     for key, value in profile_dict.items():
-
         if key in key_mapping.keys():
-
             # remove variables_deleted from value
             if isinstance(value, list):
                 # Remove deleted var name from list
-                new_value = [
-                    val for val in value if val not in variables_deleted]
+                new_value = [val for val in value if val not in variables_deleted]
 
             elif isinstance(value, dict):
                 # Remove deleted var name from dict
@@ -434,10 +512,7 @@ def remove_deleted_vars_from_mappings(profile_dict, variables_deleted):
     return profile_dict
 
 
-def remove_nan_variables(data):
-
-    # logging.info('inside remove_nan_variables')
-
+def remove_empty_and_nan_variables(data):
     # Read data into a pandas dataframe
     df_data = pd.DataFrame.from_dict(data)
 
@@ -446,22 +521,50 @@ def remove_nan_variables(data):
 
     # Check if all values for column are nan,
     # and if they are, drop them
-    df_data = df_data.dropna(axis=1, how='all')
+    df_data = df_data.dropna(axis=1, how="all")
+
+    columns_not_nan = set(df_data.columns)
+
+    # Check if column values are empty
+    df_data_copy = df_data.copy()
+
+    df_data_copy = df_data_copy.replace(r"^\s*$", np.nan, regex=True)
+    df_data_copy = df_data_copy.dropna(axis=1, how="all")
+
+    columns_empty = set(df_data_copy.columns)
+
+    empty_columns = columns_not_nan.difference(columns_empty)
+
+    empty_variables_to_delete = list(empty_columns)
+    variables_to_keep = list(columns_not_nan)
+
+    for var in empty_variables_to_delete:
+        variables_to_keep.remove(var)
+
+    df_data = df_data[variables_to_keep]
+
+    # Delete vars not used in Argovis final file
+    # cols_to_filter_out = filter_out_params(variables_kept)
+
+    params_to_filter_out = get_parameters_to_filter_out()
+
+    cols_to_filter_out = [
+        param for param in variables_to_keep if param in params_to_filter_out
+    ]
+
+    df_data = df_data.drop(columns=cols_to_filter_out)
+    variables_kept = df_data.columns
 
     # Keep track of dropped vars to remove them from mappings
-    column_names_end = df_data.columns
-
-    variables_deleted = [
-        x for x in column_names_start if x not in column_names_end]
+    variables_deleted = [x for x in column_names_start if x not in variables_kept]
 
     # Turn data back into dict
-    data = df_data.to_dict('records')
+    data = df_data.to_dict("records")
 
     return data, variables_deleted
 
 
 def add_data_type_to_meta(meta, data_type):
-
     ignore_keys = get_source_independent_meta_names()
 
     new_meta = {}
@@ -478,13 +581,12 @@ def add_data_type_to_meta(meta, data_type):
 
 
 def get_subset_meta(meta):
+    # meta mapping only includes meta values want to keep
 
     meta_subset = {}
 
     # keys are names used in this program at start, values are final argovis names
     rename_mapping = get_meta_mapping()
-
-    # meta mapping only includes meta values want to keep
 
     meta_keys = meta.keys()
 
@@ -496,7 +598,6 @@ def get_subset_meta(meta):
 
 
 def create_geolocation_dict(lat, lon):
-
     # "geolocation": {
     #     "coordinates": [
     #         -158.2927,
@@ -508,14 +609,13 @@ def create_geolocation_dict(lat, lon):
     coordinates = [lon, lat]
 
     geo_dict = {}
-    geo_dict['coordinates'] = coordinates
-    geo_dict['type'] = 'Point'
+    geo_dict["coordinates"] = coordinates
+    geo_dict["type"] = "Point"
 
     return geo_dict
 
 
 def add_argovis_meta(meta, data_type):
-
     # Add in station_cast var for later
     # processing of groups. But in
     # final JSON, it's dropped
@@ -524,9 +624,9 @@ def add_argovis_meta(meta, data_type):
     # could have the same station but won't compare
     # the same because case difference
 
-    expocode = meta['expocode']
-    station = meta['station']
-    cast = meta['cast']
+    expocode = meta["expocode"]
+    station = meta["station"]
+    cast = meta["cast"]
 
     # Create unique id
     def create_id(x, y, data_type):
@@ -534,15 +634,15 @@ def add_argovis_meta(meta, data_type):
         cast = str(y).zfill(3)
         return f"expo_{expocode}_sta_{station}_cast_{cast}_type_{data_type}"
 
-    meta['_id'] = create_id(station, cast, data_type)
+    meta["_id"] = create_id(station, cast, data_type)
 
     # Do I put this here or later when looking at the 'collection'?
     # They could want instrument to refer to cruise having btl & ctd
     # even if they aren't combined into one file
-    #meta['instrument'] = f"ship_{data_type}"
+    # meta['instrument'] = f"ship_{data_type}"
 
-    meta['positioning_system'] = 'GPS'
-    meta['data_center'] = 'CCHDO'
+    meta["positioning_system"] = "GPS"
+    meta["data_center"] = "CCHDO"
 
     # # Create a source_info and data_info dict that will hold multiple mapping keys
     # meta['source'] = {}
@@ -552,45 +652,48 @@ def add_argovis_meta(meta, data_type):
     # Use dates instead of time variable
     # **********************************
 
-    profile_time = meta['time']
-    meta['date_formatted'] = pd.to_datetime(profile_time).strftime("%Y-%m-%d")
+    profile_time = meta["time"]
+    meta["date_formatted"] = pd.to_datetime(profile_time).strftime("%Y-%m-%d")
 
     # meta['date'] = pd.to_datetime(profile_time).isoformat()
-    meta['date'] = pd.to_datetime(profile_time).strftime("%Y-%m-%dT%H:%M:%SZ")
+    meta["date"] = pd.to_datetime(profile_time).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     # Don't include cchdo meta time var
-    meta.pop('time', None)
+    meta.pop("time", None)
 
     # **************************************
     # Create ArgoVis lat/lon extra meta data
     # and geolocation key
     # **************************************
 
-    latitude = meta['latitude']
-    longitude = meta['longitude']
+    latitude = meta["latitude"]
+    longitude = meta["longitude"]
 
-    round_lat = np.round(latitude, 3)
-    round_lon = np.round(longitude, 3)
+    # round_lat = np.round(latitude, 3)
+    # round_lon = np.round(longitude, 3)
 
-    meta['roundLat'] = round_lat
-    meta['roundLon'] = round_lon
+    # meta["roundLat"] = round_lat
+    # meta["roundLon"] = round_lon
 
-    meta['strLat'] = f"{round_lat} N"
-    meta['strLon'] = f"{round_lon} E"
+    # meta["strLat"] = f"{round_lat} N"
+    # meta["strLon"] = f"{round_lon} E"
 
     geo_dict = create_geolocation_dict(latitude, longitude)
 
-    meta['geolocation'] = geo_dict
+    meta["geolocation"] = geo_dict
+
+    # then remove latitude and longitude since it is stored in geolocation
+    # meta.pop("latitude", None)
+    # meta.pop("longitude", None)
 
     return meta
 
 
 def add_cchdo_meta(meta, cchdo_file_meta, cchdo_cruise_meta):
-
     # cchdo_file_meta from cchdo file json
     # cchdo_cruise_meta from  cchdo cruise json
 
-    meta['file_expocode'] = meta.pop('expocode', None)
+    meta["file_expocode"] = meta.pop("expocode", None)
 
     meta = {**meta, **cchdo_file_meta, **cchdo_cruise_meta}
 
@@ -598,10 +701,9 @@ def add_cchdo_meta(meta, cchdo_file_meta, cchdo_cruise_meta):
 
 
 def coalesce_extra_dim_variables(profile_dict):
+    extra_dim_obj = profile_dict["extra_dim_obj"]
 
-    extra_dim_obj = profile_dict['extra_dim_obj']
-
-    data = profile_dict['data']
+    data = profile_dict["data"]
 
     # Put data in a pandas dataframe, pull out the extra dim columns,
     # combine them into one column as an array (number of WAVELENGTHS)
@@ -616,78 +718,75 @@ def coalesce_extra_dim_variables(profile_dict):
     variables_to_add_in_mappings = {}
 
     for key, value in extra_dim_obj.items():
+        if key == "cdom":
+            wavelengths = value["wavelengths"]
+            cdom_variables = value["variables"]
 
-        if key == 'cdom':
-            wavelengths = value['wavelengths']
-            cdom_variables = value['variables']
-
-            non_qc = [var for var in cdom_variables if not var.endswith('_qc')]
-            qc = [var for var in cdom_variables if var.endswith('_qc')]
+            non_qc = [var for var in cdom_variables if not var.endswith("_qc")]
+            qc = [var for var in cdom_variables if var.endswith("_qc")]
 
             # Sort on column number
             qc.sort()
             non_qc.sort()
 
-            df['cdom'] = df[non_qc].values.tolist()
-            df['cdom_qc'] = df[qc].values.tolist()
+            df["cdom"] = df[non_qc].values.tolist()
+            df["cdom_qc"] = df[qc].values.tolist()
 
             df = df.drop(cdom_variables, axis=1)
 
             # Save cdom wavelengths as a list in each cell of a column of the dataframe
             indices = list(df.index)
 
-            df.loc[indices, 'cdom_wavelengths'] = pd.Series(
-                [wavelengths]*len(indices), index=indices)
+            df.loc[indices, "cdom_wavelengths"] = pd.Series(
+                [wavelengths] * len(indices), index=indices
+            )
 
-            df['cdom_wavelengths'] = df['cdom_wavelengths'].apply(
-                lambda x: list(x))
+            df["cdom_wavelengths"] = df["cdom_wavelengths"].apply(lambda x: list(x))
 
-            variables_to_delete_in_mappings['cdom'] = cdom_variables
+            variables_to_delete_in_mappings["cdom"] = cdom_variables
 
             # Will need to use attributes extracted from starting xarray file object
             # in the mappings when remove variables and add these in.
             # cdom and cdom_qc will have the same attributes as the deleted expanded vars
-            variables_to_add_in_mappings['cdom'] = {
-                'non_qc_var': 'cdom',
-                'qc_var': 'cdom_qc',
-                'col_naming_var': 'cdom_wavelengths'
+            variables_to_add_in_mappings["cdom"] = {
+                "non_qc_var": "cdom",
+                "qc_var": "cdom_qc",
+                "col_naming_var": "cdom_wavelengths",
             }
 
-    data = df.to_dict('records')
+    data = df.to_dict("records")
 
-    profile_dict['data'] = data
+    profile_dict["data"] = data
 
     return profile_dict, variables_to_delete_in_mappings, variables_to_add_in_mappings
 
 
 def process_data_profiles(profiles_obj):
+    data_type = profiles_obj["data_type"]
 
-    data_type = profiles_obj['data_type']
-
-    expocode = profiles_obj['cchdo_cruise_meta']['expocode']
+    expocode = profiles_obj["cchdo_cruise_meta"]["expocode"]
 
     # logging.info(f'Processing data profiles for {expocode}')
 
-    cchdo_file_meta = profiles_obj['cchdo_file_meta']
-    cchdo_cruise_meta = profiles_obj['cchdo_cruise_meta']
+    cchdo_file_meta = profiles_obj["cchdo_file_meta"]
+    cchdo_cruise_meta = profiles_obj["cchdo_cruise_meta"]
 
-    data_profiles = profiles_obj['data_type_profiles_list']
+    data_profiles = profiles_obj["data_type_profiles_list"]
 
     updated_data_profiles = []
 
     for profile in data_profiles:
-
-        station_cast = profile['station_cast']
-        profile_dict = profile['profile_dict']
+        station_cast = profile["station_cast"]
+        profile_dict = profile["profile_dict"]
 
         new_profile = {}
-        new_profile['station_cast'] = station_cast
+        new_profile["station_cast"] = station_cast
 
-        meta = profile_dict['meta']
-        data = profile_dict['data']
-        measurements = profile_dict['measurements']
+        meta = profile_dict["meta"]
+        data = profile_dict["data"]
+        # measurements = profile_dict["measurements"]
 
-        has_extra_dim = profile_dict['has_extra_dim']
+        has_extra_dim = profile_dict["has_extra_dim"]
 
         # **************
         # Combine variables with extra dims into two variables
@@ -702,13 +801,16 @@ def process_data_profiles(profiles_obj):
         # other a two dimensional array of the coalesced variables that were
         # previously exploded into separate one dim variables of the starting xarray
 
-        #print(f"has extra dim {has_extra_dim}")
+        # print(f"has extra dim {has_extra_dim}")
 
         if has_extra_dim:
-            profile_dict, variables_to_delete_in_mappings, variables_to_add_in_mappings = coalesce_extra_dim_variables(
-                profile_dict)
+            (
+                profile_dict,
+                variables_to_delete_in_mappings,
+                variables_to_add_in_mappings,
+            ) = coalesce_extra_dim_variables(profile_dict)
 
-            data = profile_dict['data']
+            data = profile_dict["data"]
 
         else:
             variables_to_delete_in_mappings = []
@@ -716,13 +818,20 @@ def process_data_profiles(profiles_obj):
 
         # *****************************
         # Delete variables from profile
-        # if values are all NaN
+        # if values are all NaN and if
+        # they are to be removed from final
+        # Argovis format
         # *****************************
 
-        data, variables_deleted = remove_nan_variables(data)
+        data, variables_deleted = remove_empty_and_nan_variables(data)
+
+        # *********************************
+        # Remove deleted vars from mappings
+        # *********************************
 
         profile_dict = remove_deleted_vars_from_mappings(
-            profile_dict, variables_deleted)
+            profile_dict, variables_deleted
+        )
 
         # ****************************************
         # Remove exploded var names
@@ -730,9 +839,11 @@ def process_data_profiles(profiles_obj):
         # ****************************************
 
         if has_extra_dim:
-
             profile_dict = remove_extra_dim_vars_from_mappings(
-                profile_dict, variables_to_delete_in_mappings, variables_to_add_in_mappings)
+                profile_dict,
+                variables_to_delete_in_mappings,
+                variables_to_add_in_mappings,
+            )
 
         # ******************************
         # Add metadata to cchdo metadata
@@ -747,22 +858,13 @@ def process_data_profiles(profiles_obj):
 
         # Also take meta data, and for items not common to a cruise,
         # Add a data_type suffix in addition to what is there
-        #meta = add_data_type_to_meta(meta, data_type)
+        # meta = add_data_type_to_meta(meta, data_type)
 
         # *************************
         # Rename all_data variables
         # *************************
 
-        # TODO
-        # Why have bottle_number_qc? Saw it in one of the cruises btl/ctd files
-        # Don't remember which right now
-
-        # TODO
-        # When rename all_data, ctd_salinity becomes psal unless there is none,
-        # then bottle_salinity is psal. then need to update
-        # cchdo argovis mapping
-
-        data, argovis_col_names_mapping = rename_data(data)
+        data, argovis_col_names_mapping = rename_data(data_type, data)
 
         # ********************
         # Get current mappings
@@ -773,7 +875,6 @@ def process_data_profiles(profiles_obj):
 
         cchdo_key_mapping = get_program_argovis_source_info_mapping()
         for key, value in profile_dict.items():
-
             if key in cchdo_key_mapping.keys():
                 current_mappings[key] = value
 
@@ -814,16 +915,16 @@ def process_data_profiles(profiles_obj):
         # What are station parameters?
         # currently they are starting cchdo names
 
-        measurements_source = profile_dict['measurements_source']
-        measurements_sources = profile_dict['measurements_sources']
+        # measurements_source = profile_dict["measurements_source"]
+        # measurements_sources = profile_dict["measurements_sources"]
+
         # station_parameters = profile_dict.pop('stationParameters', None)
 
         # Rename measurementsSources keys
-        measurements_sources = rename_measurements_sources(
-            measurements_sources)
+        # measurements_sources = rename_measurements_sources(measurements_sources)
 
         # rename measurements variables
-        measurements = rename_measurements(measurements)
+        # measurements = rename_measurements(measurements)
 
         # *********************
         # Update profile values
@@ -831,195 +932,193 @@ def process_data_profiles(profiles_obj):
 
         new_profile_dict = {}
 
-        new_profile_dict['station_cast'] = station_cast
-        new_profile_dict['data_type'] = data_type
+        new_profile_dict["station_cast"] = station_cast
+        new_profile_dict["data_type"] = data_type
 
-        new_profile_dict['meta'] = new_meta
+        new_profile_dict["meta"] = new_meta
 
-        new_profile_dict['data'] = data
+        new_profile_dict["data"] = data
 
-        new_profile_dict['measurements'] = measurements
-        new_profile_dict['measurements_source'] = measurements_source
-        new_profile_dict['measurements_sources'] = measurements_sources
+        # new_profile_dict["measurements"] = measurements
+        # new_profile_dict["measurements_source"] = measurements_source
+        # new_profile_dict["measurements_sources"] = measurements_sources
+
         # profile_dict['stationParameters'] = station_parameters
 
         renamed_profile_dict = rename_core_profile_keys(new_profile_dict)
 
-        renamed_profile_dict = rename_measurements_keys(renamed_profile_dict)
+        # renamed_profile_dict = rename_measurements_keys(renamed_profile_dict)
 
         # updated_profile_dict = {**renamed_profile_dict, **mappings}
 
-        new_profile['profile_dict'] = renamed_profile_dict
+        new_profile["profile_dict"] = renamed_profile_dict
 
         updated_data_profiles.append(new_profile)
 
     return updated_data_profiles
 
 
-def post_process_cruise_objs_by_type_new1(cruises_profile_objs):
+# def post_process_cruise_objs_by_type_new1(cruises_profile_objs):
+#     # Rename variables and add argovis mappings
 
-    # Rename variables and add argovis mappings
+#     updated_cruises_profile_objs = []
 
-    updated_cruises_profile_objs = []
+#     for cruise_profiles_obj in cruises_profile_objs:
+#         cruise_expocode = cruise_profiles_obj["cruise_expocode"]
 
-    for cruise_profiles_obj in cruises_profile_objs:
+#         logging.info(f"Post processing expocode {cruise_expocode}")
 
-        cruise_expocode = cruise_profiles_obj['cruise_expocode']
+#         all_data_types_profile_objs = cruise_profiles_obj["all_data_types_profile_objs"]
 
-        logging.info(f"Post processing expocode {cruise_expocode}")
+#         updated_all_data_types_profile_objs = []
 
-        all_data_types_profile_objs = cruise_profiles_obj['all_data_types_profile_objs']
+#         for profiles_obj in all_data_types_profile_objs:
+#             data_type = profiles_obj["data_type"]
 
-        updated_all_data_types_profile_objs = []
+#             updated_data_profiles = process_data_profiles(profiles_obj)
 
-        for profiles_obj in all_data_types_profile_objs:
+#             new_profiles_obj = {}
+#             new_profiles_obj["data_type"] = data_type
 
-            data_type = profiles_obj['data_type']
+#             new_profiles_obj["data_type_profiles_list"] = updated_data_profiles
 
-            updated_data_profiles = process_data_profiles(profiles_obj)
+#             updated_all_data_types_profile_objs.append(new_profiles_obj)
 
-            new_profiles_obj = {}
-            new_profiles_obj['data_type'] = data_type
+#         cruise_profiles_obj[
+#             "all_data_types_profile_objs"
+#         ] = updated_all_data_types_profile_objs
 
-            new_profiles_obj['data_type_profiles_list'] = updated_data_profiles
+#         updated_cruises_profile_objs.append(cruise_profiles_obj)
 
-            updated_all_data_types_profile_objs.append(new_profiles_obj)
+#         # -----
 
-        cruise_profiles_obj['all_data_types_profile_objs'] = updated_all_data_types_profile_objs
+#     for cruise_obj in updated_cruises_profile_objs:
+#         expocode = cruise_obj["cruise_expocode"]
 
-        updated_cruises_profile_objs.append(cruise_profiles_obj)
+#         all_data_types_profile_objs = cruise_obj["all_data_types_profile_objs"]
 
-        # -----
+#         logging.info("****************************")
+#         logging.info(f"Post processing {expocode}")
+#         logging.info("****************************")
 
-    for cruise_obj in updated_cruises_profile_objs:
+#         # Save expocode processed to a file collecting all processed
+#         processed_cruises_file = (
+#             Path(GlobalVars.LOGGING_DIR) / "all_cruises_processed.txt"
+#         )
+#         with open(processed_cruises_file, "a") as f:
+#             f.write(f"{expocode}\n")
 
-        expocode = cruise_obj['cruise_expocode']
+#         # For meta data, add meta with data_type suffix removed
+#         all_profiles = update_profiles_single_type2(all_data_types_profile_objs)
 
-        all_data_types_profile_objs = cruise_obj['all_data_types_profile_objs']
+#         # Inside save, if not btl_ctd data type, will filter out
+#         # measurements objects with temp = NaN
+#         save_data_type_profiles(all_profiles)
 
-        logging.info("****************************")
-        logging.info(f"Post processing {expocode}")
-        logging.info("****************************")
-
-        # Save expocode processed to a file collecting all processed
-        processed_cruises_file = Path(
-            GlobalVars.LOGGING_DIR) / 'all_cruises_processed.txt'
-        with open(processed_cruises_file, 'a') as f:
-            f.write(f"{expocode}\n")
-
-        # For meta data, add meta with data_type suffix removed
-        all_profiles = update_profiles_single_type2(
-            all_data_types_profile_objs)
-
-        # Inside save, if not btl_ctd data type, will filter out
-        # measurements objects with temp = NaN
-        save_data_type_profiles(all_profiles)
-
-    return updated_cruises_profile_objs
+#     return updated_cruises_profile_objs
 
 
-def post_process_cruise_objs_by_type_new2(cruises_profile_objs):
+# def post_process_cruise_objs_by_type_new2(cruises_profile_objs):
+#     # Rename variables and add argovis mappings
 
-    # Rename variables and add argovis mappings
+#     updated_cruises_profile_objs = []
 
-    updated_cruises_profile_objs = []
+#     for cruise_profiles_obj in cruises_profile_objs:
+#         cruise_expocode = cruise_profiles_obj["cruise_expocode"]
 
-    for cruise_profiles_obj in cruises_profile_objs:
+#         logging.info(f"Post processing expocode {cruise_expocode}")
 
-        cruise_expocode = cruise_profiles_obj['cruise_expocode']
+#         all_data_types_profile_objs = cruise_profiles_obj["all_data_types_profile_objs"]
 
-        logging.info(f"Post processing expocode {cruise_expocode}")
+#         updated_all_data_types_profile_objs = []
 
-        all_data_types_profile_objs = cruise_profiles_obj['all_data_types_profile_objs']
+#         for profiles_obj in all_data_types_profile_objs:
+#             data_type = profiles_obj["data_type"]
 
-        updated_all_data_types_profile_objs = []
+#             updated_data_profiles = process_data_profiles(profiles_obj)
 
-        for profiles_obj in all_data_types_profile_objs:
+#             # save profiles here instead of at end
+#             # afterwards, get include/exclude vars uses the cruise objs form
+#             # save_data_type_profiles(updated_data_profiles)
 
-            data_type = profiles_obj['data_type']
+#             new_profiles_obj = {}
+#             new_profiles_obj["data_type"] = data_type
 
-            updated_data_profiles = process_data_profiles(profiles_obj)
+#             new_profiles_obj["data_type_profiles_list"] = updated_data_profiles
 
-            # save profiles here instead of at end
-            # afterwards, get include/exclude vars uses the cruise objs form
-            # save_data_type_profiles(updated_data_profiles)
+#             updated_all_data_types_profile_objs.append(new_profiles_obj)
 
-            new_profiles_obj = {}
-            new_profiles_obj['data_type'] = data_type
+#         cruise_profiles_obj[
+#             "all_data_types_profile_objs"
+#         ] = updated_all_data_types_profile_objs
 
-            new_profiles_obj['data_type_profiles_list'] = updated_data_profiles
+#         updated_cruises_profile_objs.append(cruise_profiles_obj)
 
-            updated_all_data_types_profile_objs.append(new_profiles_obj)
+#         # Save expocode processed to a file collecting all processed
+#         processed_cruises_file = (
+#             Path(GlobalVars.LOGGING_DIR) / "all_cruises_processed.txt"
+#         )
+#         with open(processed_cruises_file, "a") as f:
+#             f.write(f"{cruise_expocode}\n")
 
-        cruise_profiles_obj['all_data_types_profile_objs'] = updated_all_data_types_profile_objs
+#         # -----
 
-        updated_cruises_profile_objs.append(cruise_profiles_obj)
+#     # for cruise_obj in updated_cruises_profile_objs:
 
-        # Save expocode processed to a file collecting all processed
-        processed_cruises_file = Path(
-            GlobalVars.LOGGING_DIR) / 'all_cruises_processed.txt'
-        with open(processed_cruises_file, 'a') as f:
-            f.write(f"{cruise_expocode}\n")
+#     #     expocode = cruise_obj['cruise_expocode']
 
-        # -----
+#     #     all_data_types_profile_objs = cruise_obj['all_data_types_profile_objs']
 
-    # for cruise_obj in updated_cruises_profile_objs:
+#     #     logging.info("****************************")
+#     #     logging.info(f"Post processing {expocode}")
+#     #     logging.info("****************************")
 
-    #     expocode = cruise_obj['cruise_expocode']
+#     #     # Save expocode processed to a file collecting all processed
+#     #     processed_cruises_file = Path(
+#     #         GlobalVars.LOGGING_DIR) / 'all_cruises_processed.txt'
+#     #     with open(processed_cruises_file, 'a') as f:
+#     #         f.write(f"{expocode}\n")
 
-    #     all_data_types_profile_objs = cruise_obj['all_data_types_profile_objs']
+#     #     # # For meta data, add meta with data_type suffix removed
+#     #     # all_profiles = update_profiles_single_type(
+#     #     #     all_data_types_profile_objs)
 
-    #     logging.info("****************************")
-    #     logging.info(f"Post processing {expocode}")
-    #     logging.info("****************************")
+#     #     # # Inside save, if not btl_ctd data type, will filter out
+#     #     # # measurements objects with temp = NaN
+#     #     # save_data_type_profiles(all_profiles)
 
-    #     # Save expocode processed to a file collecting all processed
-    #     processed_cruises_file = Path(
-    #         GlobalVars.LOGGING_DIR) / 'all_cruises_processed.txt'
-    #     with open(processed_cruises_file, 'a') as f:
-    #         f.write(f"{expocode}\n")
-
-    #     # # For meta data, add meta with data_type suffix removed
-    #     # all_profiles = update_profiles_single_type(
-    #     #     all_data_types_profile_objs)
-
-    #     # # Inside save, if not btl_ctd data type, will filter out
-    #     # # measurements objects with temp = NaN
-    #     # save_data_type_profiles(all_profiles)
-
-    return updated_cruises_profile_objs
+#     return updated_cruises_profile_objs
 
 
 def post_process_cruise_objs_by_type(cruises_profile_objs):
-
     # Rename variables and add argovis mappings
 
     updated_cruises_profile_objs = []
 
     for cruise_profiles_obj in cruises_profile_objs:
-
-        cruise_expocode = cruise_profiles_obj['cruise_expocode']
+        cruise_expocode = cruise_profiles_obj["cruise_expocode"]
 
         logging.info(f"Post processing expocode {cruise_expocode}")
 
-        all_data_types_profile_objs = cruise_profiles_obj['all_data_types_profile_objs']
+        all_data_types_profile_objs = cruise_profiles_obj["all_data_types_profile_objs"]
 
         updated_all_data_types_profile_objs = []
 
         for profiles_obj in all_data_types_profile_objs:
-
-            data_type = profiles_obj['data_type']
+            data_type = profiles_obj["data_type"]
 
             updated_data_profiles = process_data_profiles(profiles_obj)
 
             new_profiles_obj = {}
-            new_profiles_obj['data_type'] = data_type
+            new_profiles_obj["data_type"] = data_type
 
-            new_profiles_obj['data_type_profiles_list'] = updated_data_profiles
+            new_profiles_obj["data_type_profiles_list"] = updated_data_profiles
 
             updated_all_data_types_profile_objs.append(new_profiles_obj)
 
-        cruise_profiles_obj['all_data_types_profile_objs'] = updated_all_data_types_profile_objs
+        cruise_profiles_obj[
+            "all_data_types_profile_objs"
+        ] = updated_all_data_types_profile_objs
 
         updated_cruises_profile_objs.append(cruise_profiles_obj)
 
