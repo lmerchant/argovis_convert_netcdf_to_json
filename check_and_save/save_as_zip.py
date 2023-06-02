@@ -12,7 +12,6 @@ from global_vars import GlobalVars
 
 
 def convert(o):
-
     if isinstance(o, np.float32):
         return np.float64(o)
 
@@ -27,16 +26,21 @@ def convert(o):
 
 
 def unzip_file(zip_folder, zip_file):
-
     zip_ref = zipfile.ZipFile(zip_file)  # create zipfile object
     zip_ref.extractall(zip_folder)  # extract file to dir
     zip_ref.close()  # close file
     os.remove(zip_file)  # delete zipped file
 
 
-def coerce_qc_to_integer(json_dict):
+def find_float_qc_cols(json_dict):
+    # TODO
+    # I need to take the data_info output and then make sure the
+    # mappings in the data_info key match the order in data
 
-    data = json_dict['data']
+    # Get the order of the data_info keys and then rearrange the df
+    # so when I convert to_dict, the order is correct
+
+    data = json_dict["data"]
 
     # Read into a pandas dataframe and check if there are null values
     # If there are, then do a loop through and coerce qc values to integer
@@ -47,11 +51,11 @@ def coerce_qc_to_integer(json_dict):
 
     columns = list(data_df.columns)
 
-    qc_columns = [col for col in columns if col.endswith('_woceqc')]
+    qc_columns = [col for col in columns if col.endswith("_woceqc")]
 
     col_dtypes = data_df[qc_columns].dtypes.apply(lambda x: x.name).to_dict()
 
-    if 'object' in col_dtypes.values():
+    if "object" in col_dtypes.values():
         has_qc_object_columns = True
     else:
         has_qc_object_columns = False
@@ -59,8 +63,83 @@ def coerce_qc_to_integer(json_dict):
     # Find which qc_columns have NaN values in them, and save to coerce to integer
 
     # Does this find columns with cells containing a list of with NaN values in it?
-    qc_cols_w_nans = data_df[qc_columns].columns[data_df[qc_columns].isna(
-    ).any()].tolist()
+    qc_cols_w_nans = (
+        data_df[qc_columns].columns[data_df[qc_columns].isna().any()].tolist()
+    )
+
+    return qc_cols_w_nans
+
+
+def reformat_json_dict(json_dict):
+    # TODO
+    # Remap data info according to var order in data output
+
+    # Find qc columns that are float because of NaNs in values
+    float_qc_columns = find_float_qc_cols(json_dict)
+
+    # Read into pandas to save in different format of arrays
+    df = pd.DataFrame.from_dict(json_dict["data"])
+
+    output = df.to_dict()
+
+    data_vars_order = []
+    data = []
+    for var, var_output in output.items():
+        data_vars_order.append(var)
+
+        if var in float_qc_columns:
+            vals = var_output.values()
+
+            coerced_vals = [val if np.isnan(val) else int(val) for val in vals]
+
+            value_data = coerced_vals
+        else:
+            value_data = list(var_output.values())
+
+        data.append(value_data)
+
+    json_dict["data"] = data
+
+    # TODO
+    # Reformat meta['data_info'] and mappings according to vars remaining
+    # and their data array order
+    # data_info_vars_order = json_dict["data_info"][0]
+
+    # print(f"data_vars order {data_vars_order}")
+    # print(f"data info vars order {data_info_vars_order}")
+
+    # print(json_dict["source"])
+
+    return json_dict
+
+
+def coerce_qc_to_integer(json_dict):
+    data = json_dict["data"]
+
+    # Read into a pandas dataframe and check if there are null values
+    # If there are, then do a loop through and coerce qc values to integer
+
+    # Also do a coerce if there are qc values as a list (such as extra dims parameters)
+
+    data_df = pd.DataFrame.from_dict(data)
+
+    columns = list(data_df.columns)
+
+    qc_columns = [col for col in columns if col.endswith("_woceqc")]
+
+    col_dtypes = data_df[qc_columns].dtypes.apply(lambda x: x.name).to_dict()
+
+    if "object" in col_dtypes.values():
+        has_qc_object_columns = True
+    else:
+        has_qc_object_columns = False
+
+    # Find which qc_columns have NaN values in them, and save to coerce to integer
+
+    # Does this find columns with cells containing a list of with NaN values in it?
+    qc_cols_w_nans = (
+        data_df[qc_columns].columns[data_df[qc_columns].isna().any()].tolist()
+    )
 
     has_nan_qc_cols = len(qc_cols_w_nans)
 
@@ -86,13 +165,12 @@ def coerce_qc_to_integer(json_dict):
 
             coerced_data.append(new_obj)
 
-        json_dict['data'] = coerced_data
+        json_dict["data"] = coerced_data
 
     return json_dict
 
 
 def get_data_dict(profile_dict, station_cast):
-
     # TODO
     # count number of cruises saved (count each time this is called)
 
@@ -111,53 +189,52 @@ def get_data_dict(profile_dict, station_cast):
 
     # Filter measurements by removing any points with NaN temp
     # and points with all NaN values except pressure
-    measurements = profile_dict['measurements']
+    # measurements = profile_dict["measurements"]
 
-    data_type = profile_dict['data_type']
+    data_type = profile_dict["data_type"]
 
     # If has psal (renamed salinity)and all null, don't save in masurement data obj
-    df_meas = pd.DataFrame.from_dict(measurements)
+    # df_meas = pd.DataFrame.from_dict(measurements)
 
-    if 'salinity' in df_meas.columns:
-        all_psal_null = df_meas['salinity'].isnull().values.all()
-        if all_psal_null:
-            df_meas = df_meas.drop(['salinity'], axis=1)
+    # if "salinity" in df_meas.columns:
+    #     all_psal_null = df_meas["salinity"].isnull().values.all()
+    #     if all_psal_null:
+    #         df_meas = df_meas.drop(["salinity"], axis=1)
 
-    measurements = df_meas.to_dict('records')
+    # measurements = df_meas.to_dict("records")
 
     # If data_type is 'btl_ctd', can have case of temp=nan but keep data_point
     # So don't filter out temp = nan values.
 
-    if data_type != 'btl_ctd':
+    # if data_type != "btl_ctd":
+    #     filtered_measurements = []
 
-        filtered_measurements = []
+    #     for obj in measurements:
+    #         has_temp = "temperature" in obj.keys()
 
-        for obj in measurements:
-            has_temp = 'temperature' in obj.keys()
+    #         if has_temp:
+    #             not_null_temp = pd.notnull(obj["temperature"])
+    #         else:
+    #             not_null_temp = False
 
-            if has_temp:
-                not_null_temp = pd.notnull(obj['temperature'])
-            else:
-                not_null_temp = False
+    #         if has_temp and not_null_temp:
+    #             filtered_measurements.append(obj)
+    #         elif not has_temp:
+    #             logging.info(f"data type is {data_type}")
+    #             logging.info("measurement has null temp and not included")
+    #             pressure = obj["pressure"]
+    #             logging.info(f"pressure is {pressure}")
+    #             logging.info(obj)
 
-            if has_temp and not_null_temp:
-                filtered_measurements.append(obj)
-            elif not has_temp:
-                logging.info(f'data type is {data_type}')
-                logging.info('measurement has null temp and not included')
-                pressure = obj['pressure']
-                logging.info(f'pressure is {pressure}')
-                logging.info(obj)
+    #     profile_dict["measurements"] = filtered_measurements
 
-        profile_dict['measurements'] = filtered_measurements
-
-    profile_dict.pop('data_type', None)
+    profile_dict.pop("data_type", None)
 
     # Remove  time from meta since it was just used to create date variable
-    profile_dict['meta'].pop('time', None)
+    profile_dict["meta"].pop("time", None)
 
     # Pop off meta key and use as start of data_dict
-    meta_dict = profile_dict.pop('meta', None)
+    meta_dict = profile_dict.pop("meta", None)
 
     # Now combine with left over profile_dict
     data_dict = {**meta_dict, **profile_dict}
@@ -166,12 +243,11 @@ def get_data_dict(profile_dict, station_cast):
 
 
 def get_filename(profile_dict):
-
     # TODO
     # ask
     # probably use cruise expocode instead of that in file
 
-    id = profile_dict['_id']
+    id = profile_dict["_id"]
 
     # TODO
     # When create file id, ask if use cruise expocode instead
@@ -179,36 +255,40 @@ def get_filename(profile_dict):
 
     # expocode = profile_dict['expocode']
 
-    if '/' in filename:
-        filename = filename.replace('/', '_')
+    if "/" in filename:
+        filename = filename.replace("/", "_")
 
     return filename
 
 
 def save_as_zip_data_type_profiles(data_type_profiles):
-
     # Save summary information to profiles_information.txt
-    profiles_file = Path(GlobalVars.LOGGING_DIR) / 'profiles_information.txt'
+    profiles_file = Path(GlobalVars.LOGGING_DIR) / "profiles_information.txt"
 
     if profiles_file.is_file():
-
         # read dataframe
         df_profiles_info = pd.read_csv(profiles_file)
 
-        total_cruises_processed, total_btl_profiles, total_ctd_profiles, total_btl_ctd_profiles, total_profiles = df_profiles_info.loc[0, :].values.tolist(
-        )
+        (
+            total_cruises_processed,
+            total_btl_profiles,
+            total_ctd_profiles,
+            total_btl_ctd_profiles,
+            total_profiles,
+        ) = df_profiles_info.loc[0, :].values.tolist()
 
         total_cruises_processed = total_cruises_processed + 1
 
     else:
-
         # create dataframe
 
-        columns = [('total_cruises_processed', int),
-                   ('total_btl_profiles', int),
-                   ('total_ctd_profiles', int),
-                   ('total_btl_ctd_profiles', int),
-                   ('total_profiles', int)]
+        columns = [
+            ("total_cruises_processed", int),
+            ("total_btl_profiles", int),
+            ("total_ctd_profiles", int),
+            ("total_btl_ctd_profiles", int),
+            ("total_profiles", int),
+        ]
 
         df_profiles_info = pd.DataFrame(columns=columns)
 
@@ -220,59 +300,75 @@ def save_as_zip_data_type_profiles(data_type_profiles):
         total_btl_ctd_profiles = 0
         total_profiles = 0
 
-        df_profiles_info.loc[0] = [total_cruises_processed,
-                                   total_btl_profiles, total_ctd_profiles, total_btl_ctd_profiles, total_profiles]
+        df_profiles_info.loc[0] = [
+            total_cruises_processed,
+            total_btl_profiles,
+            total_ctd_profiles,
+            total_btl_ctd_profiles,
+            total_profiles,
+        ]
 
-        df_profiles_info.columns = ['total_cruises_processed', 'total_btl_profiles',
-                                    'total_ctd_profiles', 'total_btl_ctd_profiles', 'total_profiles']
+        df_profiles_info.columns = [
+            "total_cruises_processed",
+            "total_btl_profiles",
+            "total_ctd_profiles",
+            "total_btl_ctd_profiles",
+            "total_profiles",
+        ]
 
     json_dicts = []
 
     for data_type_profile in data_type_profiles:
-
-        station_cast = data_type_profile['station_cast']
-        profile_dict = data_type_profile['profile_dict']
-        expocode = profile_dict['meta']['expocode']
-        data_type = profile_dict['data_type']
+        station_cast = data_type_profile["station_cast"]
+        profile_dict = data_type_profile["profile_dict"]
+        expocode = profile_dict["meta"]["expocode"]
+        data_type = profile_dict["data_type"]
 
         json_dict = get_data_dict(profile_dict, station_cast)
 
         # TODO
         # Add in function to coerce any qc values from float to integer
         # since floats occur if any column value was NaN in pandas dataframe
-        json_dict = coerce_qc_to_integer(json_dict)
+        # json_dict = coerce_qc_to_integer(json_dict)
+
+        json_dict = reformat_json_dict(json_dict)
 
         json_dicts.append(json_dict)
 
         # Save summary information to df_profiles_info
-        if data_type == 'btl':
+        if data_type == "btl":
             total_btl_profiles = total_btl_profiles + 1
-        elif data_type == 'ctd':
+        elif data_type == "ctd":
             total_ctd_profiles = total_ctd_profiles + 1
-        elif data_type == 'btl_ctd':
+        elif data_type == "btl_ctd":
             total_btl_ctd_profiles = total_btl_ctd_profiles + 1
         else:
             logging.info(
-                "Profile type not found when saving to profile information file")
+                "Profile type not found when saving to profile information file"
+            )
 
-    if '/' in expocode:
-        folder = expocode.replace('/', '_')
+    if "/" in expocode:
+        folder = expocode.replace("/", "_")
     else:
         folder = expocode
 
     zip_folder = os.path.join(GlobalVars.JSON_DIR, folder)
     zip_file = f"{Path.cwd()}/{zip_folder}.zip"
 
-    zf = zipfile.ZipFile(zip_file, mode='w',
-                         compression=zipfile.ZIP_DEFLATED)
+    zf = zipfile.ZipFile(zip_file, mode="w", compression=zipfile.ZIP_DEFLATED)
 
     # TODO
     # how much space saved if remove the indent?
     with zf as f:
         for json_dict in json_dicts:
             filename = get_filename(json_dict)
-            json_str = json.dumps(json_dict, ensure_ascii=False,
-                                  indent=4, sort_keys=False, default=convert)
+            json_str = json.dumps(
+                json_dict,
+                ensure_ascii=False,
+                indent=4,
+                sort_keys=False,
+                default=convert,
+            )
             f.writestr(filename, json_str)
 
     # TODO
@@ -283,8 +379,13 @@ def save_as_zip_data_type_profiles(data_type_profiles):
 
     total_profiles = total_btl_profiles + total_ctd_profiles + total_btl_ctd_profiles
 
-    df_profiles_info.loc[0] = [total_cruises_processed,
-                               total_btl_profiles, total_ctd_profiles, total_btl_ctd_profiles, total_profiles]
+    df_profiles_info.loc[0] = [
+        total_cruises_processed,
+        total_btl_profiles,
+        total_ctd_profiles,
+        total_btl_ctd_profiles,
+        total_profiles,
+    ]
 
     logging.info(df_profiles_info)
 
