@@ -16,12 +16,12 @@ pbar.register()
 # Don't clear converted files folder if append is chosen
 # and don't clear included/excluded vars folder
 
-@ click.command()
-@ click.option('-s', '--start_year', default=1900, help='Start year')
-@ click.option('-e', '--end_year', default=date.today().year, help='End year')
-@ click.option('-a', '--append', is_flag=True, help='Append logs')
-def main(start_year, end_year, append):
 
+@click.command()
+@click.option("-s", "--start_year", default=1900, help="Start year")
+@click.option("-e", "--end_year", default=date.today().year, help="End year")
+@click.option("-a", "--append", is_flag=True, help="Append logs")
+def main(start_year, end_year, append):
     program_start_time = datetime.now()
 
     setup_logging(append)
@@ -29,8 +29,8 @@ def main(start_year, end_year, append):
     logging.info(f"Converting years Jan 1, {start_year} to Dec 31, {end_year}")
 
     time_range = {}
-    time_range['start'] = datetime(start_year, 1, 1)
-    time_range['end'] = datetime(end_year, 12, 31)
+    time_range["start"] = datetime(start_year, 1, 1)
+    time_range["end"] = datetime(end_year, 12, 31)
 
     data_dir = GlobalVars.JSON_DIR
     if os.path.exists(data_dir):
@@ -44,6 +44,5 @@ def main(start_year, end_year, append):
     logging.info(datetime.now() - program_start_time)
 
 
-if __name__ == '__main__':
-
+if __name__ == "__main__":
     main()
