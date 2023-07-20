@@ -8,7 +8,7 @@ import logging
 
 from global_vars import GlobalVars
 
-from variable_naming.meta_param_mapping import get_program_argovis_source_info_mapping
+from variable_naming.meta_param_mapping import get_program_argovis_data_info_mapping
 from check_and_save.save_as_zip import save_as_zip_data_type_profiles
 
 
@@ -24,25 +24,34 @@ def convert(o):
 
 
 def get_unique_cchdo_units(data_type_profiles):
-    # Keep my names and map to latest Argovis names
-    # need this since already renamed individual files
-
-    # cchdo names are the keys and argovis names are the value
-    key_mapping = get_program_argovis_source_info_mapping()
-
-    cchdo_units_key = "cchdo_units"
-    renamed_cchdo_units_key = key_mapping[cchdo_units_key]
-
     all_cchdo_units_mapping = {}
 
     for profile in data_type_profiles:
         profile_dict = profile["profile_dict"]
         data_type = profile_dict["data_type"]
 
-        if data_type == "btl" or data_type == "ctd":
-            source_info = profile_dict["meta"]["source"][0]
+        expocode = profile_dict["meta"]["expocode"]
 
-            cchdo_units_mapping = source_info[renamed_cchdo_units_key]
+        # Get source names and units
+
+        # order of values in 3rd array position of data_info
+        # ['units', 'reference_scale', 'data_keys_mapping', 'data_source_standard_names', 'data_source_units', 'data_source_reference_scale']
+
+        # CCHDO name is in 3rd place and corresponding CCHDO units in the 5th place
+        parameters = profile_dict["meta"]["data_info"][2]
+
+        for parameter in parameters:
+            cchdo_param_name = parameter[2]
+            cchdo_unit = parameter[4]
+
+            if (
+                cchdo_param_name in all_cchdo_units_mapping
+                and cchdo_unit != all_cchdo_units_mapping[cchdo_param_name]
+            ):
+                new_key = f"{cchdo_param_name}_{expocode}"
+                all_cchdo_units_mapping[new_key] = cchdo_unit
+            else:
+                all_cchdo_units_mapping[cchdo_param_name] = cchdo_unit
 
         # TODO
         # overwrite key if it already exists
@@ -50,13 +59,13 @@ def get_unique_cchdo_units(data_type_profiles):
         # if it comes from either btl or ctd?
         # If same key but different units, add suffix to key
         # of profile_dict['meta']['expocode']
-        expocode = profile_dict["meta"]["expocode"]
-        for key, val in cchdo_units_mapping.items():
-            if key in all_cchdo_units_mapping and val != all_cchdo_units_mapping[key]:
-                new_key = f"{key}_{expocode}"
-                all_cchdo_units_mapping[new_key] = val
-            else:
-                all_cchdo_units_mapping[key] = val
+        # expocode = profile_dict["meta"]["expocode"]
+        # for key, val in cchdo_units_mapping.items():
+        #     if key in all_cchdo_units_mapping and val != all_cchdo_units_mapping[key]:
+        #         new_key = f"{key}_{expocode}"
+        #         all_cchdo_units_mapping[new_key] = val
+        #     else:
+        #         all_cchdo_units_mapping[key] = val
 
         return all_cchdo_units_mapping
 

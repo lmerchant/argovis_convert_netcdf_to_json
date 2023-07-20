@@ -122,11 +122,21 @@ def get_program_argovis_data_info_mapping():
     # keys are names used in this program
     # values are the final key names to be used for Argovis
 
+    # return {
+    #     "argovis_param_names": "data_keys",
+    #     "cchdo_argovis_param_mapping": "data_keys_mapping",
+    #     "argovis_reference_scale": "data_reference_scale",
+    #     "argovis_units": "data_units",
+    # }
+
     return {
         "argovis_param_names": "data_keys",
-        "cchdo_argovis_param_mapping": "data_keys_mapping",
-        "argovis_reference_scale": "data_reference_scale",
         "argovis_units": "data_units",
+        "argovis_reference_scale": "data_reference_scale",
+        "cchdo_argovis_param_mapping": "data_keys_mapping",
+        "cchdo_standard_names": "data_source_standard_names",
+        "cchdo_units": "data_source_units",
+        "cchdo_reference_scale": "data_source_reference_scale",
     }
 
 
@@ -167,11 +177,6 @@ def get_core_profile_keys_mapping():
 
 
 def rename_mappings_source_info_keys(mappings):
-    # If key is data_source getting info, need to add suffix of data
-    # type to each item in the key
-
-    # This isn't working, maybe because when I added suffix
-
     # keys are CCHDO and values are Argovis
     key_mapping = get_program_argovis_source_info_mapping()
 
@@ -187,11 +192,6 @@ def rename_mappings_source_info_keys(mappings):
 
 
 def rename_mappings_data_info_keys(mappings):
-    # If key is data_data getting info, need to add suffix of data
-    # type to each item in the key
-
-    # This isn't working, maybe because when I added suffix
-
     # keys are CCHDO and values are Argovis
     key_mapping = get_program_argovis_data_info_mapping()
 
