@@ -318,6 +318,7 @@ def save_as_zip_data_type_profiles(data_type_profiles):
 
     json_dicts = []
 
+    expocode = ""
     for data_type_profile in data_type_profiles:
         station_cast = data_type_profile["station_cast"]
         profile_dict = data_type_profile["profile_dict"]
@@ -373,7 +374,7 @@ def save_as_zip_data_type_profiles(data_type_profiles):
 
     # TODO
     # For development (comment out later)
-    unzip_file(zip_folder, zip_file)
+    # unzip_file(zip_folder, zip_file)
 
     # Save profile information to first row
 
