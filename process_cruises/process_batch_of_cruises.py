@@ -8,12 +8,6 @@ from process_cruises.post_process_cruise_objs_by_collection import (
     post_process_cruise_objs_by_collection,
 )
 
-from process_cruises.post_process_cruise_objs_by_type2 import (
-    post_process_cruise_objs_by_type2,
-)
-from process_cruises.post_process_cruise_objs_by_collection2 import (
-    post_process_cruise_objs_by_collection2,
-)
 
 from check_and_save.add_vars_to_logged_collections import gather_included_excluded_vars
 from check_and_save.save_output import save_included_excluded_cchdo_vars
