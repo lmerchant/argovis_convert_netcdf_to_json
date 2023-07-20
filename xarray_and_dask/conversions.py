@@ -18,15 +18,10 @@ import numpy as np
 
 
 def get_argovis_reference_scale_per_type():
-
-    return {
-        'temperature': 'ITS-90',
-        'salinity': 'PSS-78'
-    }
+    return {"temperature": "ITS-90", "salinity": "PSS-78"}
 
 
 def convert_units(oxy, temp, sal_pr, pres, lon, lat):
-
     # TODO
     # How about if temp, sal, not a qc =0 or 2, set
     # oxy value to NaN?
@@ -37,17 +32,15 @@ def convert_units(oxy, temp, sal_pr, pres, lon, lat):
 
     sal_abs = gsw.SA_from_SP(sal_pr, pres, lon, lat)
     rho = gsw.density.rho_t_exact(sal_abs, temp, pres)
-    converted_oxygen = ((oxy * 1000)/rho)/0.022403
+    converted_oxygen = ((oxy * 1000) / rho) / 0.022403
 
     return converted_oxygen
 
 
 def get_converted_oxy(oxy, temp, sal_pr, pres, lon, lat, oxy_dtype):
-
-    logging.info('inside get_converted_oxy')
+    logging.info("inside get_converted_oxy")
 
     try:
-
         # Problem with output core dims = N_LEVELS,
         # seems to be converting lat and lon to this dimension even if they didn't start with it
 
@@ -59,43 +52,47 @@ def get_converted_oxy(oxy, temp, sal_pr, pres, lon, lat, oxy_dtype):
             pres,
             lon,
             lat,
-            input_core_dims=[['N_LEVELS'],
-                             ['N_LEVELS'], ['N_LEVELS'],
-                             ['N_LEVELS'], [], []],
-            output_core_dims=[['N_LEVELS']],
+            input_core_dims=[
+                ["N_LEVELS"],
+                ["N_LEVELS"],
+                ["N_LEVELS"],
+                ["N_LEVELS"],
+                [],
+                [],
+            ],
+            output_core_dims=[["N_LEVELS"]],
             output_dtypes=[oxy_dtype],
             keep_attrs=True,
             # dask="parallelized"
         )
 
     except:
-
         logging.info("Oxygen variable not converted")
 
         logging.info(
-            'Check latitude and longitude dimensions, should be a constant value')
+            "Check latitude and longitude dimensions, should be a constant value"
+        )
 
-        logging.info(f'Latitude dims are {lat.dims}')
-        logging.info(f'Longitude dims are {lon.dims}')
+        logging.info(f"Latitude dims are {lat.dims}")
+        logging.info(f"Longitude dims are {lon.dims}")
 
         exit(1)
 
     return converted_oxygen
 
- # TODO ***
- # break this up for checking separately
+
+# TODO ***
+# break this up for checking separately
 
 
 def get_oxygen_qc(nc_profile, var):
-
-    profile_size = nc_profile.sizes['N_LEVELS']
+    profile_size = nc_profile.sizes["N_LEVELS"]
 
     zero_array = np.zeros(profile_size)
 
     var_qc = f"{var}_qc"
 
     if var_qc in nc_profile.keys():
-
         oxy_qc = nc_profile[var_qc].values
     else:
         oxy_qc = zero_array
@@ -104,7 +101,6 @@ def get_oxygen_qc(nc_profile, var):
 
 
 def get_converted_oxy_qc(oxy_qc, temp_qc, sal_qc):
-
     # Look at temp_qc and sal_qc, and if bad flag, set converted oxygen flag to this
     # Use temperature bad flag first if exists and then if not, use salinity bad flag
 
@@ -145,7 +141,6 @@ def get_converted_oxy_qc(oxy_qc, temp_qc, sal_qc):
 
 
 def convert_oxygen(nc_profile, var, profiles_no_oxy_conversions):
-
     # TODO
     # Ask Sarah about all these possible combinations of
     # trying to find good values to do conversion with
@@ -186,7 +181,8 @@ def convert_oxygen(nc_profile, var, profiles_no_oxy_conversions):
     missing_var_flag = False
 
     use_sal, sal_qc, profiles_no_oxy_conversions = get_sal_to_use_and_qc(
-        nc_profile, var, profiles_no_oxy_conversions)
+        nc_profile, var, profiles_no_oxy_conversions
+    )
 
     if use_sal is None:
         missing_var_flag = True
@@ -194,7 +190,8 @@ def convert_oxygen(nc_profile, var, profiles_no_oxy_conversions):
         sal_pr = nc_profile[use_sal]
 
     use_temp, temp_qc, profiles_no_oxy_conversions = get_temp_to_use_and_qc(
-        nc_profile, var, profiles_no_oxy_conversions)
+        nc_profile, var, profiles_no_oxy_conversions
+    )
 
     if use_temp is None:
         missing_var_flag = True
@@ -208,8 +205,7 @@ def convert_oxygen(nc_profile, var, profiles_no_oxy_conversions):
     #     nc_profile)
 
     # remove duplicates
-    station_casts_bad = list(
-        set(profiles_no_oxy_conversions[var]))
+    station_casts_bad = list(set(profiles_no_oxy_conversions[var]))
 
     if station_casts_bad:
         profiles_no_oxy_conversions[var] = station_casts_bad
@@ -232,23 +228,16 @@ def convert_oxygen(nc_profile, var, profiles_no_oxy_conversions):
 
     #     return nc_profile, profiles_no_oxy_conversions
 
-    pres = nc_profile['pressure']
-    lat = nc_profile['latitude']
-    lon = nc_profile['longitude']
+    pres = nc_profile["pressure"]
+    lat = nc_profile["latitude"]
+    lon = nc_profile["longitude"]
 
     if not missing_var_flag:
+        converted_oxygen = get_converted_oxy(
+            oxy, temp, sal_pr, pres, lon, lat, oxy_dtype
+        )
 
-        converted_oxygen = get_converted_oxy(oxy,
-                                             temp,
-                                             sal_pr,
-                                             pres,
-                                             lon,
-                                             lat,
-                                             oxy_dtype)
-
-        converted_oxygen_qc = get_converted_oxy_qc(oxy_qc,
-                                                   temp_qc,
-                                                   sal_qc)
+        converted_oxygen_qc = get_converted_oxy_qc(oxy_qc, temp_qc, sal_qc)
         try:
             # TODO (Why is this)
             # If the returned varible says name is temperature and not var,
@@ -262,13 +251,12 @@ def convert_oxygen(nc_profile, var, profiles_no_oxy_conversions):
             pass
 
     else:
-        logging.info(
-            'Missing a temperature or salinity value so oxy not converted')
+        logging.info("Missing a temperature or salinity value so oxy not converted")
         converted_oxygen = oxy
 
         converted_oxygen_qc = oxy_qc
 
-    logging.info('Inside convert oxygen')
+    logging.info("Inside convert oxygen")
     logging.info(f"lat dims before convert {nc_profile['latitude'].dims}")
 
     logging.info("O2 after conversion")
@@ -326,7 +314,6 @@ def convert_oxygen(nc_profile, var, profiles_no_oxy_conversions):
 
 
 def get_sal_to_use_and_qc(nc_profile, var, profiles_no_oxy_conversions):
-
     # TODO
     # Should I even be using bottle salinity if ctd_salinity?
 
@@ -340,7 +327,7 @@ def get_sal_to_use_and_qc(nc_profile, var, profiles_no_oxy_conversions):
 
     # Find salinity qc
 
-    profile_size = nc_profile.sizes['N_LEVELS']
+    profile_size = nc_profile.sizes["N_LEVELS"]
 
     nan_array = np.empty(profile_size)
     nan_array[:] = np.nan
@@ -355,68 +342,60 @@ def get_sal_to_use_and_qc(nc_profile, var, profiles_no_oxy_conversions):
     is_finite_btl_sal = False
     is_finite_btl_sal_qc = False
 
-    is_ctd_sal = 'ctd_salinity' in nc_profile.keys()
-    is_ctd_sal_qc = 'ctd_salinity_qc' in nc_profile.keys()
+    is_ctd_sal = "ctd_salinity" in nc_profile.keys()
+    is_ctd_sal_qc = "ctd_salinity_qc" in nc_profile.keys()
 
     if is_ctd_sal:
-        is_finite_ctd_sal = not np.isnan(nc_profile['ctd_salinity']).all()
+        is_finite_ctd_sal = not np.isnan(nc_profile["ctd_salinity"]).all()
 
-        logging.info(
-            f"Finite values exist in ctd salinity: {is_finite_ctd_sal}")
-        logging.info(
-            f"Does ctd salinity have qc values: {is_ctd_sal_qc}")
+        logging.info(f"Finite values exist in ctd salinity: {is_finite_ctd_sal}")
+        logging.info(f"Does ctd salinity have qc values: {is_ctd_sal_qc}")
 
     # Find if some good qc in ctd_salinity
     if is_ctd_sal and is_ctd_sal_qc:
-        ctd_sal_qc = nc_profile['ctd_salinity_qc'].values
+        ctd_sal_qc = nc_profile["ctd_salinity_qc"].values
 
         # Treat flags as floats because if a flag = NaN, all values coerced to float
 
         two_flags = np.isclose(ctd_sal_qc, 2, 0.1)
         zero_flags = np.isclose(ctd_sal_qc, 0, 0.1)
 
-        search_good_vals = np.where(
-            (zero_flags | two_flags), ctd_sal_qc, nan_array)
+        search_good_vals = np.where((zero_flags | two_flags), ctd_sal_qc, nan_array)
 
         has_good_ctd_sal_qc = not np.isnan(search_good_vals).all()
 
-        logging.info(
-            f"Does ctd salinity qc have good values: {has_good_ctd_sal_qc}")
+        logging.info(f"Does ctd salinity qc have good values: {has_good_ctd_sal_qc}")
 
-    is_btl_sal = 'bottle_salinity' in nc_profile.keys()
-    is_btl_sal_qc = 'bottle_salinity_qc' in nc_profile.keys()
+    is_btl_sal = "bottle_salinity" in nc_profile.keys()
+    is_btl_sal_qc = "bottle_salinity_qc" in nc_profile.keys()
 
     if is_btl_sal:
-        is_finite_btl_sal = not np.isnan(nc_profile['bottle_salinity']).all()
+        is_finite_btl_sal = not np.isnan(nc_profile["bottle_salinity"]).all()
 
-        logging.info(
-            f"Finite values exist in btl salinity: {is_finite_btl_sal}")
-        logging.info(
-            f"Does btl salinity have qc values: {is_btl_sal_qc}")
+        logging.info(f"Finite values exist in btl salinity: {is_finite_btl_sal}")
+        logging.info(f"Does btl salinity have qc values: {is_btl_sal_qc}")
 
     # Find if some good qc in bottle_salinity
     if is_btl_sal and is_btl_sal_qc:
-        btl_sal_qc = nc_profile['bottle_salinity_qc'].values
+        btl_sal_qc = nc_profile["bottle_salinity_qc"].values
 
         two_flags = np.isclose(btl_sal_qc, 2, 0.1)
         zero_flags = np.isclose(btl_sal_qc, 0, 0.1)
 
-        search_good_vals = np.where(
-            (zero_flags | two_flags), btl_sal_qc, nan_array)
+        search_good_vals = np.where((zero_flags | two_flags), btl_sal_qc, nan_array)
 
         has_good_btl_sal_qc = not np.isnan(search_good_vals).all()
 
-        logging.info(
-            f"Does bottle salinity qc have good values: {has_good_btl_sal_qc}")
+        logging.info(f"Does bottle salinity qc have good values: {has_good_btl_sal_qc}")
 
     # Determine which salinity to use and create qc if it doesn't exist
 
     # Determine if using ctd_salinity
     # if is_ctd_sal and is_ctd_sal_qc and is_finite_ctd_sal:
     if is_ctd_sal and is_ctd_sal_qc:
-        sal_qc = nc_profile['ctd_salinity_qc'].values
+        sal_qc = nc_profile["ctd_salinity_qc"].values
 
-        use_sal = 'ctd_salinity'
+        use_sal = "ctd_salinity"
 
     # elif is_ctd_sal and not is_ctd_sal_qc and is_finite_ctd_sal:
     elif is_ctd_sal and not is_ctd_sal_qc:
@@ -426,7 +405,7 @@ def get_sal_to_use_and_qc(nc_profile, var, profiles_no_oxy_conversions):
         #     nc_profile['ctd_salinity'].isnan, nan_array, zero_array)
         sal_qc = zero_array
 
-        use_sal = 'ctd_salinity'
+        use_sal = "ctd_salinity"
 
     # # TODO
     # # Should conversion still be done if no finite sal?
@@ -438,14 +417,14 @@ def get_sal_to_use_and_qc(nc_profile, var, profiles_no_oxy_conversions):
 
     # Determine if using bottle_salinity
     if not is_ctd_sal and is_btl_sal and is_btl_sal_qc:
-        sal_qc = nc_profile['bottle_salinity_qc'].values
+        sal_qc = nc_profile["bottle_salinity_qc"].values
 
-        use_sal = 'bottle_salinity'
+        use_sal = "bottle_salinity"
 
     elif not is_ctd_sal and is_btl_sal and not is_btl_sal_qc:
         sal_qc = zero_array
 
-        use_sal = 'bottle_salinity'
+        use_sal = "bottle_salinity"
 
     # If neither salinity exists
     if not is_btl_sal and not is_ctd_sal:
@@ -457,13 +436,13 @@ def get_sal_to_use_and_qc(nc_profile, var, profiles_no_oxy_conversions):
         logging.info("No ctd or bottle salinity to convert oxygen units")
         logging.info("*******************************************")
 
-        station_cast = nc_profile['station_cast'].values
+        station_cast = nc_profile["station_cast"].values
 
         # To become string
         station_cast = station_cast.tolist()
 
         # join it
-        station_cast = ''.join(station_cast)
+        station_cast = "".join(station_cast)
 
         profiles_no_oxy_conversions[var].append(station_cast)
 
@@ -474,10 +453,9 @@ def get_sal_to_use_and_qc(nc_profile, var, profiles_no_oxy_conversions):
 
 
 def get_temp_to_use_and_qc(nc_profile, var, profiles_no_oxy_conversions):
-
     # Find temperature qc
 
-    profile_size = nc_profile.sizes['N_LEVELS']
+    profile_size = nc_profile.sizes["N_LEVELS"]
 
     nan_array = np.empty(profile_size)
     nan_array[:] = np.nan
@@ -490,87 +468,79 @@ def get_temp_to_use_and_qc(nc_profile, var, profiles_no_oxy_conversions):
     is_finite_temp_68 = False
     is_finite_temp_68_qc = False
 
-    is_ctd_temp = 'ctd_temperature' in nc_profile.keys()
-    is_ctd_temp_qc = 'ctd_temperature_qc' in nc_profile.keys()
+    is_ctd_temp = "ctd_temperature" in nc_profile.keys()
+    is_ctd_temp_qc = "ctd_temperature_qc" in nc_profile.keys()
 
     if is_ctd_temp:
-        is_finite_ctd_temp = not np.isnan(nc_profile['ctd_temperature']).all()
+        is_finite_ctd_temp = not np.isnan(nc_profile["ctd_temperature"]).all()
 
-        logging.info(
-            f"Finite values exist in ctd temperature: {is_finite_ctd_temp}")
-        logging.info(
-            f"Does ctd temperature have qc values: {is_ctd_temp_qc}")
+        logging.info(f"Finite values exist in ctd temperature: {is_finite_ctd_temp}")
+        logging.info(f"Does ctd temperature have qc values: {is_ctd_temp_qc}")
 
     # Find if some good qc in ctd_temperature
     if is_ctd_temp and is_ctd_temp_qc:
-        ctd_temp_qc = nc_profile['ctd_temperature_qc'].values
+        ctd_temp_qc = nc_profile["ctd_temperature_qc"].values
 
         two_flags = np.isclose(ctd_temp_qc, 2, 0.1)
         zero_flags = np.isclose(ctd_temp_qc, 0, 0.1)
 
-        search_good_vals = np.where(
-            (zero_flags | two_flags), ctd_temp_qc, nan_array)
+        search_good_vals = np.where((zero_flags | two_flags), ctd_temp_qc, nan_array)
 
         has_good_ctd_temp_qc = not np.isnan(search_good_vals).all()
 
         logging.info(
-            f"Does ctd temperature qc have good values: {has_good_ctd_temp_qc}")
+            f"Does ctd temperature qc have good values: {has_good_ctd_temp_qc}"
+        )
 
-    is_temp_68 = 'ctd_temperature_68' in nc_profile.keys()
-    is_temp_68_qc = 'ctd_temperature_68_qc' in nc_profile.keys()
+    is_temp_68 = "ctd_temperature_68" in nc_profile.keys()
+    is_temp_68_qc = "ctd_temperature_68_qc" in nc_profile.keys()
 
     if is_temp_68:
-        is_finite_temp_68 = not np.isnan(
-            nc_profile['ctd_temperature_68']).all()
+        is_finite_temp_68 = not np.isnan(nc_profile["ctd_temperature_68"]).all()
 
-        logging.info(
-            f"Finite values exist in ctd temperature 68: {is_finite_temp_68}")
-        logging.info(
-            f"Does ctd temperature 68 have qc values: {is_temp_68_qc}")
+        logging.info(f"Finite values exist in ctd temperature 68: {is_finite_temp_68}")
+        logging.info(f"Does ctd temperature 68 have qc values: {is_temp_68_qc}")
 
     # Find if some good qc in ctd_temperature_68
     if is_temp_68 and is_temp_68_qc:
-        temp_68_qc = nc_profile['ctd_temperature_68_qc'].values
+        temp_68_qc = nc_profile["ctd_temperature_68_qc"].values
 
         two_flags = np.isclose(temp_68_qc, 2, 0.1)
         zero_flags = np.isclose(temp_68_qc, 0, 0.1)
 
-        search_good_vals = np.where(
-            (zero_flags | two_flags), temp_68_qc, nan_array)
+        search_good_vals = np.where((zero_flags | two_flags), temp_68_qc, nan_array)
 
         has_good_temp_68_qc = not np.isnan(search_good_vals).all()
 
-        logging.info(
-            f"Does temperature 68 qc have good vals: {has_good_temp_68_qc}")
+        logging.info(f"Does temperature 68 qc have good vals: {has_good_temp_68_qc}")
 
     # Determine which temperature to use and create qc if it doesn't exist
 
     # Determine if using ctd_temperature or ctd_temperature_68
     if is_ctd_temp and is_ctd_temp_qc:
-        temp_qc = nc_profile['ctd_temperature_qc'].values
-        use_temp = 'ctd_temperature'
+        temp_qc = nc_profile["ctd_temperature_qc"].values
+        use_temp = "ctd_temperature"
 
     elif is_ctd_temp and not is_ctd_temp_qc:
         # woce flag is NOFLAG = 0
         # Where var not nan, set flag = 0
         temp_qc = zero_array
 
-        use_temp = 'ctd_temperature'
+        use_temp = "ctd_temperature"
 
     elif is_temp_68 and is_temp_68_qc:
         # woce flag is NOFLAG = 0
         # Where var not nan, set flag = 0
-        temp_qc = nc_profile['ctd_temperature_68_qc'].values
-        use_temp = 'ctd_temperature_68'
+        temp_qc = nc_profile["ctd_temperature_68_qc"].values
+        use_temp = "ctd_temperature_68"
 
     elif is_temp_68 and not is_temp_68_qc:
         # woce flag is NOFLAG = 0
         # Where var not nan, set flag = 0
         temp_qc = zero_array
-        use_temp = 'ctd_temperature_68'
+        use_temp = "ctd_temperature_68"
 
     else:
-
         temp_qc = nan_array
         use_temp = None
 
@@ -578,13 +548,13 @@ def get_temp_to_use_and_qc(nc_profile, var, profiles_no_oxy_conversions):
         logging.info("No ctd temp to convert oxygen units")
         logging.info("*******************************************")
 
-        station_cast = nc_profile['station_cast'].values
+        station_cast = nc_profile["station_cast"].values
 
         # To become string
         station_cast = station_cast.tolist()
 
         # join it
-        station_cast = ''.join(station_cast)
+        station_cast = "".join(station_cast)
 
         profiles_no_oxy_conversions[var].append(station_cast)
 
@@ -595,7 +565,6 @@ def get_temp_to_use_and_qc(nc_profile, var, profiles_no_oxy_conversions):
 
 
 def get_var_qc_if_sal_temp_and_oxy(nc_profile, var, profiles_no_oxy_conversions):
-
     # ------------
 
     # I need a new method for getting a flag,
@@ -620,10 +589,9 @@ def get_var_qc_if_sal_temp_and_oxy(nc_profile, var, profiles_no_oxy_conversions)
 
     # already accounted for case of all_sal_or_temp_nan
 
-    profile_size = nc_profile.sizes['N_LEVELS']
+    profile_size = nc_profile.sizes["N_LEVELS"]
 
     if not f"{var}_qc" in nc_profile.keys():
-
         # woce flag is NOFLAG = 0
         # Where var not nan, set flag = 0
 
@@ -640,7 +608,6 @@ def get_var_qc_if_sal_temp_and_oxy(nc_profile, var, profiles_no_oxy_conversions)
         var_qc = zero_array
 
     else:
-
         # Already checked case of no salinity, temperature or var
         # So 'ctd_temperature' or 'ctd_temperature_68' exists
         # And 'ctd_salinity' or 'bottle_salinity' exists
@@ -664,13 +631,15 @@ def get_var_qc_if_sal_temp_and_oxy(nc_profile, var, profiles_no_oxy_conversions)
         # Change from using nan qc if none exists to flag = 5
 
         use_sal, sal_qc, profiles_no_oxy_conversions = get_sal_to_use_and_qc(
-            nc_profile, var, profiles_no_oxy_conversions)
+            nc_profile, var, profiles_no_oxy_conversions
+        )
 
         # Find temperature qc
         # TODO
         # Change from using nan qc if none exists to flag = 5
         use_temp, temp_qc, profiles_no_oxy_conversions = get_temp_to_use_and_qc(
-            nc_profile, var, profiles_no_oxy_conversions)
+            nc_profile, var, profiles_no_oxy_conversions
+        )
 
         # Now find flag when all combined for calulation
         # Calculation will only have a good flag of qc=0 or 2 if all
@@ -867,13 +836,15 @@ def get_var_qc_if_sal_temp_and_oxy(nc_profile, var, profiles_no_oxy_conversions)
 
 
 def check_has_ctd_temp_and_salinity(nc_profile):
-
-    if 'ctd_temperature' in nc_profile.keys() or 'ctd_temperature_68' in nc_profile.keys():
+    if (
+        "ctd_temperature" in nc_profile.keys()
+        or "ctd_temperature_68" in nc_profile.keys()
+    ):
         has_temperature = True
     else:
         has_temperature = False
 
-    if 'ctd_salinity' in nc_profile.keys() or 'bottle_salinity' in nc_profile.keys():
+    if "ctd_salinity" in nc_profile.keys() or "bottle_salinity" in nc_profile.keys():
         has_salinity = True
     else:
         has_salinity = False
@@ -889,41 +860,47 @@ def check_null_status_temp_salinity(nc_profile, var):
     oxy = nc_profile[var].values.tolist()
     oxy_all_nan = np.isnan(oxy).all()
 
-    if 'ctd_temperature' in nc_profile.keys():
-        temp = nc_profile['ctd_temperature'].values.tolist()
+    if "ctd_temperature" in nc_profile.keys():
+        temp = nc_profile["ctd_temperature"].values.tolist()
         temp_all_nan = np.isnan(temp).all()
     else:
         temp_all_nan = True
 
-    if 'ctd_temperature_68' in nc_profile.keys():
-        temp = nc_profile['ctd_temperature_68'].values.tolist()
+    if "ctd_temperature_68" in nc_profile.keys():
+        temp = nc_profile["ctd_temperature_68"].values.tolist()
         temp_68_all_nan = np.isnan(temp).all()
     else:
         temp_68_all_nan = True
 
     one_temp_exists = not temp_all_nan or not temp_68_all_nan
 
-    if 'ctd_salinity' in nc_profile.keys():
-        sal = nc_profile['ctd_salinity'].values.tolist()
+    if "ctd_salinity" in nc_profile.keys():
+        sal = nc_profile["ctd_salinity"].values.tolist()
         sal_all_nan = np.isnan(sal).all()
     else:
         sal_all_nan = True
 
-    if 'bottle_salinity' in nc_profile.keys():
-        sal = nc_profile['bottle_salinity'].values.tolist()
+    if "bottle_salinity" in nc_profile.keys():
+        sal = nc_profile["bottle_salinity"].values.tolist()
         sal_btl_all_nan = np.isnan(sal).all()
     else:
         sal_btl_all_nan = True
 
-    #one_sal_exists = not sal_all_nan or not sal_btl_all_nan
+    # one_sal_exists = not sal_all_nan or not sal_btl_all_nan
 
-    if 'ctd_salinity' in nc_profile.keys():
+    if "ctd_salinity" in nc_profile.keys():
         one_sal_exists = not sal_all_nan
 
-    if 'ctd_salinity' not in nc_profile.keys() and 'bottle_salinity' in nc_profile.keys():
+    if (
+        "ctd_salinity" not in nc_profile.keys()
+        and "bottle_salinity" in nc_profile.keys()
+    ):
         one_sal_exists = not sal_btl_all_nan
 
-    if 'ctd_salinity' not in nc_profile.keys() and 'bottle_salinity' not in nc_profile.keys():
+    if (
+        "ctd_salinity" not in nc_profile.keys()
+        and "bottle_salinity" not in nc_profile.keys()
+    ):
         one_sal_exists = False
 
     # Change to not convert is no temp  or sal
@@ -933,11 +910,10 @@ def check_null_status_temp_salinity(nc_profile, var):
     # if oxy_all_nan or not one_temp_exists or not one_sal_exists:
     if not one_temp_exists or not one_sal_exists:
         if not one_temp_exists:
-            logging.info(
-                '*** No oxygen conversion because missing CTD Temperature')
+            logging.info("*** No oxygen conversion because missing CTD Temperature")
 
         if not one_sal_exists:
-            logging.info('*** No oxygen conversion because missing Salinity')
+            logging.info("*** No oxygen conversion because missing Salinity")
 
         all_sal_or_temp_nan = True
     else:
@@ -946,16 +922,14 @@ def check_null_status_temp_salinity(nc_profile, var):
     return all_sal_or_temp_nan
 
 
-
 def convert_oxygen_to_new_units(nc, var, profiles_no_oxy_conversions):
-
-    logging.info('***** o2 conversion ******')
+    logging.info("***** o2 conversion ******")
 
     # Check if values exist or if empty
     # because variables in nc_profile can exist but be all null
     # for some profiles or all
 
-    profile_size = nc.sizes['N_LEVELS']
+    profile_size = nc.sizes["N_LEVELS"]
 
     first_group = True
 
@@ -968,9 +942,8 @@ def convert_oxygen_to_new_units(nc, var, profiles_no_oxy_conversions):
 
     # TODO
     # Only dask uses the option group_keys and xarray does not
-    for nc_group in nc.groupby('N_PROF'):
-
-        logging.info('-------------------')
+    for nc_group in nc.groupby("N_PROF"):
+        logging.info("-------------------")
         logging.info(f"Converting oxygen for profile {nc_group[0]}")
 
         nc_profile = nc_group[1]
@@ -996,8 +969,7 @@ def convert_oxygen_to_new_units(nc, var, profiles_no_oxy_conversions):
         all_sal_or_temp_nan = check_null_status_temp_salinity(nc_profile, var)
 
         # Check has a ctd_temperature and has a ctd_salinity or at least a bottle_salinity
-        has_temperature, has_salinity = check_has_ctd_temp_and_salinity(
-            nc_profile)
+        has_temperature, has_salinity = check_has_ctd_temp_and_salinity(nc_profile)
 
         # ----------------
         # Get var qc values
@@ -1067,17 +1039,19 @@ def convert_oxygen_to_new_units(nc, var, profiles_no_oxy_conversions):
 
         # else:
 
-
-        logging.info('Before convert oxygen')
+        logging.info("Before convert oxygen")
         logging.info(nc_profile[var].data)
 
         try:
             logging.info(nc_profile[f"{var}_qc"].data)
         except:
-            logging.info('no qc')
+            logging.info("no qc")
 
-        converted_nc_profile, converted_oxygen_qc, profiles_no_oxy_conversions = convert_oxygen(
-            nc_profile, var, profiles_no_oxy_conversions)
+        (
+            converted_nc_profile,
+            converted_oxygen_qc,
+            profiles_no_oxy_conversions,
+        ) = convert_oxygen(nc_profile, var, profiles_no_oxy_conversions)
 
         converted_groups.append(converted_nc_profile)
 
@@ -1088,7 +1062,7 @@ def convert_oxygen_to_new_units(nc, var, profiles_no_oxy_conversions):
             # This stacks downward
             all_var_qc = np.vstack((all_var_qc, converted_oxygen_qc))
 
-        #nc_profile[f"{var}_qc"] = converted_oxygen_qc
+        # nc_profile[f"{var}_qc"] = converted_oxygen_qc
 
     ds_grid = [converted_groups]
 
@@ -1098,7 +1072,11 @@ def convert_oxygen_to_new_units(nc, var, profiles_no_oxy_conversions):
     # they are all concatenated
 
     nc = xr.combine_nested(
-        ds_grid, concat_dim=["N_LEVELS", "N_PROF"], combine_attrs='identical', coords='different')
+        ds_grid,
+        concat_dim=["N_LEVELS", "N_PROF"],
+        combine_attrs="identical",
+        coords="different",
+    )
 
     logging.info("after conversion of oxygen")
     logging.info(nc[var].data)
@@ -1113,11 +1091,11 @@ def convert_oxygen_to_new_units(nc, var, profiles_no_oxy_conversions):
     # Even though been giving oxy nan qc, here it says has to be qc in nc
     # if f"{var}_qc" in nc.keys() and len(all_var_qc):
     if len(all_var_qc):
-        qc_var = {f"{var}_qc": (('N_PROF', 'N_LEVELS'), all_var_qc)}
+        qc_var = {f"{var}_qc": (("N_PROF", "N_LEVELS"), all_var_qc)}
 
         nc = nc.assign(qc_var)
 
-        logging.info('after convert qc values of oxygen')
+        logging.info("after convert qc values of oxygen")
         logging.info(qc_var)
 
     return nc, profiles_no_oxy_conversions
@@ -1296,7 +1274,6 @@ def convert_oxygen_to_new_units(nc, var, profiles_no_oxy_conversions):
 
 
 def convert_cchdo_to_argovis_units(nc):
-
     params = nc.keys()
 
     # If cchdo units aren't the same as argovis units, convert
@@ -1305,20 +1282,19 @@ def convert_cchdo_to_argovis_units(nc):
     profiles_no_oxy_conversions = {}
 
     for var in params:
-
         try:
-            var_cchdo_units = nc[var].attrs['units']
+            var_cchdo_units = nc[var].attrs["units"]
         except:
             continue
 
-        if 'oxygen' in var and var_cchdo_units == 'ml/l':
-
+        if "oxygen" in var and var_cchdo_units == "ml/l":
             logging.info(f"Converting oxygen for var {var}")
 
             profiles_no_oxy_conversions[var] = []
 
             nc, profiles_no_oxy_conversions = convert_oxygen_to_new_units(
-                nc, var, profiles_no_oxy_conversions)
+                nc, var, profiles_no_oxy_conversions
+            )
 
             # TODO
             # Move this to end which I thoutht it was
@@ -1332,40 +1308,37 @@ def convert_cchdo_to_argovis_units(nc):
 
             # set attribute and keep track of whatt didn't convert
             # can do this after do oxygen conversion for var
-            nc[var].attrs['units'] = 'micromole/kg'
+            nc[var].attrs["units"] = "micromole/kg"
 
     return nc, profiles_no_oxy_conversions
 
 
 def convert_sea_water_temp(nc_profile, var, var_cchdo_ref_scale, argovis_ref_scale):
-
     # Check sea_water_temperature to have cchdo_reference_scale be ITS-90
 
-    if var_cchdo_ref_scale == 'IPTS-68' and argovis_ref_scale == 'ITS-90':
-
+    if var_cchdo_ref_scale == "IPTS-68" and argovis_ref_scale == "ITS-90":
         logging.info("*** Converting sea water temperature ref scale")
 
         # Convert to ITS-90 scal
         temperature = nc_profile[var].data
 
-        logging.info('before conversion of temperature')
+        logging.info("before conversion of temperature")
         logging.info(temperature)
 
-        converted_temperature = temperature/1.00024
+        converted_temperature = temperature / 1.00024
 
         # Set temperature value in nc_profile because use it later to
         # create profile dict
         nc_profile[var].data = converted_temperature
-        nc_profile[var].attrs['reference_scale'] = 'ITS-90'
+        nc_profile[var].attrs["reference_scale"] = "ITS-90"
 
-        logging.info('after conversion of temperature')
+        logging.info("after conversion of temperature")
         logging.info(converted_temperature)
 
     return nc_profile
 
 
 def convert_cchdo_to_argovis_ref_scale(nc_profile):
-
     params = nc_profile.keys()
 
     # If argo ref scale not equal to cchdo ref scale, convert
@@ -1378,18 +1351,18 @@ def convert_cchdo_to_argovis_ref_scale(nc_profile):
     argovis_ref_scale_per_type = get_argovis_reference_scale_per_type()
 
     for var in params:
-        if 'temperature' in var:
-
+        if "temperature" in var:
             try:
                 # Get cchdo reference scale of var
-                var_cchdo_ref_scale = nc_profile[var].attrs['reference_scale']
+                var_cchdo_ref_scale = nc_profile[var].attrs["reference_scale"]
 
-                argovis_ref_scale = argovis_ref_scale_per_type['temperature']
+                argovis_ref_scale = argovis_ref_scale_per_type["temperature"]
                 is_same_scale = var_cchdo_ref_scale == argovis_ref_scale
 
                 if not is_same_scale:
                     nc_profile = convert_sea_water_temp(
-                        nc_profile, var, var_cchdo_ref_scale, argovis_ref_scale)
+                        nc_profile, var, var_cchdo_ref_scale, argovis_ref_scale
+                    )
             except:
                 pass
 
@@ -1397,7 +1370,6 @@ def convert_cchdo_to_argovis_ref_scale(nc_profile):
 
 
 def apply_conversions(nc):
-
     # TODO ***
     # Make copy of this file and start without all the
     # commented out code so it's clearer to work with
