@@ -95,7 +95,7 @@ def get_meta_mapping():
         "file_path": "source_url",
         "file_name": "file_name",
         "_id": "_id",
-        "date_formatted": "date_formatted",
+        # "date_formatted": "date_formatted",
         "date": "timestamp",
         "roundLat": "roundLat",
         "roundLon": "roundLon",
