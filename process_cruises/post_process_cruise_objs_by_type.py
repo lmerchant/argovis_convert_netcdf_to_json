@@ -27,35 +27,48 @@ from check_and_save.save_output import save_data_type_profiles
 def reformat_data_info(data_info, standard_names_mapping):
     new_data_info = []
 
+    # Argovis info
     data_keys = data_info["data_keys"]
     data_units = data_info["data_units"]
     data_reference_scale = data_info["data_reference_scale"]
 
+    # CCHDO info
+    data_source_units = data_info["data_source_units"]
+    data_source_reference_scale = data_info["data_source_reference_scale"]
+
     new_data_info.append(data_keys)
+
+    # new_data_info.append(
+    #     [
+    #         "data_keys_mapping",
+    #         "units",
+    #         "data_source_standard_names",
+    #         "reference_scale",
+    #     ]
+    # )
 
     new_data_info.append(
         [
-            "data_keys_mapping",
             "units",
-            "data_source_standard_names",
             "reference_scale",
+            "data_keys_mapping",
+            "data_source_standard_names",
+            "data_source_units",
+            "data_source_reference_scale",
         ]
     )
 
     # mapping where keys = cchdo names, values = argovis names
     data_keys_mapping = data_info["data_keys_mapping"]
 
-    # Swap this
+    # Swap this so that keys are argovis names, and values are cchdo names
     mapping_argovis_to_cchdo = {value: key for key, value in data_keys_mapping.items()}
 
     data_rows = []
     for var in data_keys:
         new_data_row = []
 
-        cchdo_var_name = mapping_argovis_to_cchdo[var]
-
-        new_data_row.append(cchdo_var_name)
-
+        # Add units
         if var in data_units.keys():
             data_unit = data_units[var]
         else:
@@ -63,14 +76,7 @@ def reformat_data_info(data_info, standard_names_mapping):
 
         new_data_row.append(data_unit)
 
-        # Get Argovis var corresponding standard name
-        try:
-            argovis_standard_name = standard_names_mapping[cchdo_var_name]
-        except KeyError:
-            argovis_standard_name = np.nan
-
-        new_data_row.append(argovis_standard_name)
-
+        # Add reference scale
         if var in data_reference_scale.keys():
             ref_scale = data_reference_scale[var]
         else:
@@ -78,6 +84,36 @@ def reformat_data_info(data_info, standard_names_mapping):
 
         new_data_row.append(ref_scale)
 
+        # Add source name from mapping
+        cchdo_var_name = mapping_argovis_to_cchdo[var]
+        new_data_row.append(cchdo_var_name)
+
+        # Add data source corresponding standard name
+        try:
+            cchdo_standard_name = standard_names_mapping[cchdo_var_name]
+        except KeyError:
+            cchdo_standard_name = np.nan
+
+        new_data_row.append(cchdo_standard_name)
+
+        # Add data source units
+        if cchdo_var_name in data_source_units.keys():
+            data_source_unit = data_source_units[cchdo_var_name]
+
+        else:
+            data_source_unit = np.nan
+
+        new_data_row.append(data_source_unit)
+
+        # Add data source reference scale
+        if cchdo_var_name in data_source_reference_scale.keys():
+            data_source_ref_scale = data_source_reference_scale[cchdo_var_name]
+        else:
+            data_source_ref_scale = np.nan
+
+        new_data_row.append(data_source_ref_scale)
+
+        # Add new row
         data_rows.append(new_data_row)
 
     new_data_info.append(data_rows)
@@ -90,12 +126,13 @@ def reorganize_meta_and_mappings(meta, mappings):
 
     source_info = {}
 
-    source_info_keys = get_program_argovis_source_info_mapping().values()
+    # Get key names that will be in the output key "source_info"
+    # source_info_keys = get_program_argovis_source_info_mapping().values()
 
     standard_names_mapping = mappings["data_source_standard_names"]
 
-    for key in source_info_keys:
-        source_info[key] = mappings[key]
+    # for key in source_info_keys:
+    #     source_info[key] = mappings[key]
 
     # source is what "programs" was mapped to
     if "source" in meta.keys():
@@ -118,6 +155,7 @@ def reorganize_meta_and_mappings(meta, mappings):
 
     data_info = {}
 
+    # Get key names used by Argovis from key names used in this program
     data_info_keys = get_program_argovis_data_info_mapping().values()
 
     for key in data_info_keys:
@@ -126,11 +164,6 @@ def reorganize_meta_and_mappings(meta, mappings):
     data_info = reformat_data_info(data_info, standard_names_mapping)
 
     meta["data_info"] = data_info
-
-    # TODO
-    # this must change the whole mappings keys and I don't see them
-    # later when I try to update them.
-    # Should I do this reorganization later?
 
     return meta
 
@@ -347,6 +380,10 @@ def rename_data(data_type, data):
     # Rename by loading dict into pandas dataframe,
     # rename cols then output back to dict
     df_data = pd.DataFrame.from_dict(data)
+
+    # Reorganize columns by name in preparation for saving them to JSON in
+    # alphabetical order
+    df_data = df_data.reindex(sorted(df_data.columns), axis=1)
 
     # logging.info(f"column names before rename {list(df_data.columns)}")
 
@@ -873,7 +910,9 @@ def process_data_profiles(profiles_obj):
         # Copy over current mappings
         current_mappings = {}
 
+        # get mapping of keys used in this program to final Argovis key names
         cchdo_key_mapping = get_program_argovis_source_info_mapping()
+
         for key, value in profile_dict.items():
             if key in cchdo_key_mapping.keys():
                 current_mappings[key] = value
@@ -892,7 +931,8 @@ def process_data_profiles(profiles_obj):
 
         mappings = {**current_mappings, **new_mappings}
 
-        mappings = rename_mappings_source_info_keys(mappings)
+        # Rename data_info mapping names used in this program to those used for Argovis output
+        # mappings = rename_mappings_source_info_keys(mappings)
 
         mappings = rename_mappings_data_info_keys(mappings)
 
