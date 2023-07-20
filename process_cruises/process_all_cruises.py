@@ -367,11 +367,18 @@ def add_file_data(netcdf_cruise_obj):
 
         #     continue
 
-        fs = fsspec.filesystem("https")
+        try:
+            fs = fsspec.filesystem("https")
 
-        # fs.glob(file_path)
+            # fs.glob(file_path)
 
-        nc = xr.open_dataset(fs.open(file_path))
+            # disable mask_and_scale because it was filling qc values
+            # with NaN instead of 9
+            nc = xr.open_dataset(fs.open(file_path), mask_and_scale=False)
+
+        except fsspec.exceptions.FSTimeoutError:
+            logging.error(f"Error: {file_path} was not fetched")
+            continue
 
         # print(nc.coords['station'].values)
         # print(nc.coords['cast'].values)
