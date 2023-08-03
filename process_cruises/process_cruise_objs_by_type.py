@@ -178,12 +178,14 @@ def create_profiles_objs(cruise_ddf_obj):
         # ****************************
 
         # Add in information to enable any expanded variables to be coalesced into an array
-        # when there was an extra dimension beyond N_PROFILE and N_LEVELS dimensions of the
-        # original xarray file object
+        # later when there was an extra dimension beyond N_PROFILE and N_LEVELS dimensions of
+        # the original xarray file object
 
-        adjusted_combined_profiles = adjust_profiles_with_extra_dims_naming(
-            combined_profiles, has_extra_dim, extra_dim_obj
-        )
+        # adjusted_combined_profiles = adjust_profiles_with_extra_dims_naming(
+        #     combined_profiles, has_extra_dim, extra_dim_obj
+        # )
+
+        adjusted_combined_profiles = combined_profiles
 
         # *******************************************************
         # Create profiles_obj to hold profiles for one data type
@@ -300,12 +302,7 @@ def create_xr_obj(cruise_obj):
             logging.info("No ctd vars")
             continue
 
-        # *********************
-        # Temporary till write code for condition
-        #
-        # Skip files with CDOM_WAVELENGTHS dimension
-        # ********************
-
+        # Explode cdom var to columns
         file_obj = explode_cdom_vars_to_cols(file_obj)
 
         # ********************************
