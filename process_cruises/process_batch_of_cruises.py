@@ -4,11 +4,8 @@ from process_cruises.process_cruise_objs_by_type import process_cruise_objs_by_t
 from process_cruises.post_process_cruise_objs_by_type import (
     post_process_cruise_objs_by_type,
 )
-from process_cruises.post_process_cruise_objs_by_collection import (
-    post_process_cruise_objs_by_collection,
-)
 
-
+from check_and_save.save_output import save_cruise_objs_by_type
 from check_and_save.add_vars_to_logged_collections import gather_included_excluded_vars
 from check_and_save.save_output import save_included_excluded_cchdo_vars
 
@@ -30,11 +27,12 @@ def process_batch_of_cruises(cruise_objs):
 
     # Uncomment the following to see format of one profile after it has been processed
     # one_cruise = cruise_objs_by_type[0]
+
     # type_objs = one_cruise["all_data_types_profile_objs"]
     # one_type = type_objs[0]
     # profiles = one_type["data_type_profiles_list"]
 
-    # one_profile = profiles[0]
+    # one_profile = profiles[1]
     # print(one_profile["profile_dict"]["cchdo_param_names"])
     # print(f"\n")
     # print(one_profile)
@@ -75,23 +73,8 @@ def process_batch_of_cruises(cruise_objs):
     # Rename included and excluded vars and save
     save_included_excluded_cchdo_vars(cruises_all_included, cruises_all_excluded)
 
-    # ***********************************************
-    # Post process cruise objs by collection
-    # ************************************************
+    # ******************************
+    # Save cruise objs to JSON files
+    # ******************************
 
-    post_process_cruise_objs_by_collection(cruise_objs_by_type)
-
-    # post_process_cruise_objs_by_collection2(cruise_objs_by_type)
-
-    # Uncomment the following to see format of one profile after it has been processed
-    # one_cruise = cruise_objs_by_type[0]
-    # type_objs = one_cruise['all_data_types_profile_objs']
-    # print(f"total objs = {len(type_objs)}")
-    # # one_type = type_objs[0] # ('get btl if have btl_ctd type)
-    # one_type = type_objs[1]  # (get ctd if have btl_ctd type)
-    # profiles = one_type['data_type_profiles_list']
-    # one_profile = profiles[0]
-    # print(one_profile['profile_dict']['data_keys'])
-    # print(f"\n")
-    # print(one_profile)
-    # exit(1)
+    save_cruise_objs_by_type(cruise_objs_by_type)
