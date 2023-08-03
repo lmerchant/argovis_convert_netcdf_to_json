@@ -103,6 +103,7 @@ def get_meta_mapping():
         "strLon": "strLon",
         "geolocation": "geolocation",
         "source": "source",
+        "cdom_wavelengths": "cdom_wavelengths",
     }
 
 
