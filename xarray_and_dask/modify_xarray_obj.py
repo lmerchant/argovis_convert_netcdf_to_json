@@ -9,17 +9,17 @@ from global_vars import GlobalVars
 
 
 def get_meta_param_names(nc):
-
     # metadata is any without N_LEVELS dimension
     meta_names_from_coords = [
-        coord for coord in nc.coords if 'N_LEVELS' not in nc.coords[coord].dims]
+        coord for coord in nc.coords if "N_LEVELS" not in nc.coords[coord].dims
+    ]
 
     param_names_from_coords = [
-        coord for coord in nc.coords if 'N_LEVELS' in nc.coords[coord].dims]
+        coord for coord in nc.coords if "N_LEVELS" in nc.coords[coord].dims
+    ]
 
-    meta_names_from_vars = [
-        var for var in nc if 'N_LEVELS' not in nc[var].dims]
-    param_names_from_vars = [var for var in nc if 'N_LEVELS' in nc[var].dims]
+    meta_names_from_vars = [var for var in nc if "N_LEVELS" not in nc[var].dims]
+    param_names_from_vars = [var for var in nc if "N_LEVELS" in nc[var].dims]
 
     meta_names = [*meta_names_from_coords, *meta_names_from_vars]
     param_names = [*param_names_from_coords, *param_names_from_vars]
@@ -28,38 +28,37 @@ def get_meta_param_names(nc):
 
 
 def get_meta_param_mapping(nc):
-
     meta_mapping = {}
     param_mapping = {}
 
     # metadata is any without N_LEVELS dimension
     meta_names_from_coords = [
-        coord for coord in nc.coords if 'N_LEVELS' not in nc.coords[coord].dims]
+        coord for coord in nc.coords if "N_LEVELS" not in nc.coords[coord].dims
+    ]
 
     param_names_from_coords = [
-        coord for coord in nc.coords if 'N_LEVELS' in nc.coords[coord].dims]
+        coord for coord in nc.coords if "N_LEVELS" in nc.coords[coord].dims
+    ]
 
-    meta_names_from_vars = [
-        var for var in nc if 'N_LEVELS' not in nc[var].dims]
-    param_names_from_vars = [var for var in nc if 'N_LEVELS' in nc[var].dims]
+    meta_names_from_vars = [var for var in nc if "N_LEVELS" not in nc[var].dims]
+    param_names_from_vars = [var for var in nc if "N_LEVELS" in nc[var].dims]
 
-    meta_mapping['coords'] = meta_names_from_coords
-    param_mapping['coords'] = param_names_from_coords
+    meta_mapping["coords"] = meta_names_from_coords
+    param_mapping["coords"] = param_names_from_coords
 
-    meta_mapping['vars'] = meta_names_from_vars
-    param_mapping['vars'] = param_names_from_vars
+    meta_mapping["vars"] = meta_names_from_vars
+    param_mapping["vars"] = param_names_from_vars
 
     return meta_mapping, param_mapping
 
 
 def modify_xarray_obj(file_obj):
-
-   # ****** Modify nc and create mappings ********
+    # ****** Modify nc and create mappings ********
 
     # pop off netcdf data and pass on file_obj which
     # contains cchdo meta data
-    data_type = file_obj['data_type']
-    nc = file_obj['nc']
+    data_type = file_obj["data_type"]
+    nc = file_obj["nc"]
 
     # *****************************************
     # Rearrange xarray nc to put meta in coords
@@ -87,8 +86,7 @@ def modify_xarray_obj(file_obj):
     # mapping obj: names (list), units (obj), ref_scale (obj)
     # c_format (obj), and dtype (obj)
     cchdo_meta_mapping = xr_map.get_nc_variable_mappings(nc, orig_meta_names)
-    cchdo_param_mapping = xr_map.get_nc_variable_mappings(
-        nc, orig_param_names)
+    cchdo_param_mapping = xr_map.get_nc_variable_mappings(nc, orig_param_names)
 
     # Now check so see if there is a 'temp_{data_type}'  column and a corresponding
     # qc col. 'temp_{data_type}_qc'. If not, add a temp qc col. with 0.
@@ -127,21 +125,20 @@ def modify_xarray_obj(file_obj):
 
     # Get mapping to keep track of which var units or scale were converted
     cchdo_meta_mapping_after = xr_map.get_nc_variable_mappings(nc, meta_names)
-    cchdo_param_mapping_after = xr_map.get_nc_variable_mappings(
-        nc, param_names)
+    cchdo_param_mapping_after = xr_map.get_nc_variable_mappings(nc, param_names)
 
     # look at keys units and reference_scale
     # Find which values have changed for var names
     params_units_changed = {}
-    for key, val_before in cchdo_param_mapping['units'].items():
-        val_after = cchdo_param_mapping_after['units'][key]
+    for key, val_before in cchdo_param_mapping["units"].items():
+        val_after = cchdo_param_mapping_after["units"][key]
 
         if val_before != val_after:
             params_units_changed[key] = val_after
 
     params_ref_scale_changed = {}
-    for key, val_before in cchdo_param_mapping['ref_scale'].items():
-        val_after = cchdo_param_mapping_after['ref_scale'][key]
+    for key, val_before in cchdo_param_mapping["ref_scale"].items():
+        val_after = cchdo_param_mapping_after["ref_scale"][key]
 
         if val_before != val_after:
             params_ref_scale_changed[key] = val_after
@@ -159,29 +156,27 @@ def modify_xarray_obj(file_obj):
     chunk_size = GlobalVars.CHUNK_SIZE
 
     # Convert back to Dask
-    nc = nc.chunk({'N_PROF': chunk_size})
+    nc = nc.chunk({"N_PROF": chunk_size})
 
-    nc = mod_xr_meta.apply_c_format_meta(
-        nc, cchdo_meta_mapping)
+    nc = mod_xr_meta.apply_c_format_meta(nc, cchdo_meta_mapping)
 
-    nc = mod_xr_param.apply_c_format_param(
-        nc, cchdo_param_mapping)
+    nc = mod_xr_param.apply_c_format_param(nc, cchdo_param_mapping)
 
     # ******************
 
     nc_mappings = {}
 
-    nc_mappings['cchdo_meta'] = cchdo_meta_mapping
-    nc_mappings['cchdo_param'] = cchdo_param_mapping
+    nc_mappings["cchdo_meta"] = cchdo_meta_mapping
+    nc_mappings["cchdo_param"] = cchdo_param_mapping
 
-    nc_mappings['cchdo_units_changed'] = params_units_changed
-    nc_mappings['cchdo_ref_scale_changed'] = params_ref_scale_changed
+    nc_mappings["cchdo_units_changed"] = params_units_changed
+    nc_mappings["cchdo_ref_scale_changed"] = params_ref_scale_changed
 
-    nc_mappings['cchdo_oxy_not_converted'] = profiles_no_oxy_conversions
+    nc_mappings["cchdo_oxy_not_converted"] = profiles_no_oxy_conversions
 
     # Save current meta and param names
     meta_param_names = {}
-    meta_param_names['meta'] = meta_names
-    meta_param_names['params'] = param_names
+    meta_param_names["meta"] = meta_names
+    meta_param_names["params"] = param_names
 
     return nc, nc_mappings, meta_param_names
