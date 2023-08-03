@@ -6,6 +6,7 @@ import math
 import copy
 from cchdo.params import WHPNames
 import xarray as xr
+import time
 
 from global_vars import GlobalVars
 from process_cruises.process_batch_of_cruises import process_batch_of_cruises
@@ -24,7 +25,7 @@ def get_file_id_hash_mapping():
     # the file has been updated, the file hash is different than previously
 
     query = f"{GlobalVars.API_END_POINT}/file"
-    response = session.get(query)
+    response = session.get(query, timeout=60)
 
     if response.status_code != 200:
         print("api not reached in function get_file_id_hash_mapping")
@@ -59,7 +60,7 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
 
         # BTL & CTD
         # check empty column not deleted
-        test_cruise_expocode = "06BE200305"
+        # test_cruise_expocode = "06BE200305"
 
         #  BTL & CTD
         # station cast 016_001 has meas = []
@@ -290,14 +291,13 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
         # ------------
 
         # has CDOM_WAVELENGTHS dimension
-        # skip files like this till write code to handle it
 
         # CDOM_WAVELENGTHS  (CDOM_WAVELENGTHS) int32 325 340 380 412 443 490 555
         # corresponding with cdom and cdom_qc vars
 
         # In the WHPNAMES from params package, there are individual CDOM variables listed,
         # what files do these appear in so we know how to label CDOM vars for users to find and use
-        # test_cruise_expocode = '33RR20160208'
+        test_cruise_expocode = "33RR20160208"
 
         # I need one where pressure looses a dim
         # test_cruise_expocode = '318MSAVE5'
@@ -369,8 +369,6 @@ def add_file_data(netcdf_cruise_obj):
 
         try:
             fs = fsspec.filesystem("https")
-
-            # fs.glob(file_path)
 
             # disable mask_and_scale because it was filling qc values
             # with NaN instead of 9
@@ -592,7 +590,7 @@ def get_active_files_json():
     # Use api query to get all active file ids from CCHDO
     query = f"{GlobalVars.API_END_POINT}/file/all"
 
-    response = session.get(query)
+    response = session.get(query, timeout=60)
 
     if response.status_code != 200:
         print("api not reached in get_all_files")
@@ -611,7 +609,7 @@ def get_active_cruises_json():
     # Use api query to get all cruise id with their attached file ids
     query = f"{GlobalVars.API_END_POINT}/cruise/all"
 
-    response = session.get(query)
+    response = session.get(query, timeout=60)
 
     if response.status_code != 200:
         print("api not reached in get_all_cruises")
