@@ -20,7 +20,6 @@ from variable_naming.meta_param_mapping import get_source_independent_meta_names
 from variable_naming.rename_units import change_units_to_argovis
 
 from create_profiles.update_profiles_single_type import update_profiles_single_type
-from create_profiles.update_profiles_single_type2 import update_profiles_single_type2
 from check_and_save.save_output import save_data_type_profiles
 
 
@@ -119,6 +118,25 @@ def reformat_data_info(data_info, standard_names_mapping):
     new_data_info.append(data_rows)
 
     return new_data_info
+
+
+def modify_meta_for_cdom(new_meta, data):
+    # Remove cdom_wavelengths meta variable when cdom data vars don't exist
+    # This meta variable exists because it was defined for the whole
+    # netCDF data file when read in with xarray and thus is will exist
+    # for each N_PROF dimension.
+    for obj in data:
+        keys = list(obj.keys())
+        keys_str = " ".join(keys)
+
+        # Check for flattened variable CDOM name
+        # 'cdom_wavelength_325' where 325 is the wavelength for that column
+        if "cdom_wavelength_" not in keys_str:
+            # remove cdom_wavelengths meta entry because there are no
+            # cdom variables
+            new_meta.pop("cdom_wavelengths", None)
+
+    return new_meta
 
 
 def reorganize_meta_and_mappings(meta, mappings):
@@ -685,6 +703,8 @@ def add_argovis_meta(meta, data_type):
     # meta['source'] = {}
     # meta['data_info'] = {}
 
+    meta["instrument"] = f"ship_{data_type}"
+
     # **********************************
     # Use dates instead of time variable
     # **********************************
@@ -823,7 +843,7 @@ def process_data_profiles(profiles_obj):
         data = profile_dict["data"]
         # measurements = profile_dict["measurements"]
 
-        has_extra_dim = profile_dict["has_extra_dim"]
+        # has_extra_dim = profile_dict["has_extra_dim"]
 
         # **************
         # Combine variables with extra dims into two variables
@@ -838,20 +858,23 @@ def process_data_profiles(profiles_obj):
         # other a two dimensional array of the coalesced variables that were
         # previously exploded into separate one dim variables of the starting xarray
 
-        # print(f"has extra dim {has_extra_dim}")
+        # july 28, comment out
 
-        if has_extra_dim:
-            (
-                profile_dict,
-                variables_to_delete_in_mappings,
-                variables_to_add_in_mappings,
-            ) = coalesce_extra_dim_variables(profile_dict)
+        # if has_extra_dim:
+        #     (
+        #         profile_dict,
+        #         variables_to_delete_in_mappings,
+        #         variables_to_add_in_mappings,
+        #     ) = coalesce_extra_dim_variables(profile_dict)
 
-            data = profile_dict["data"]
+        #     data = profile_dict["data"]
 
-        else:
-            variables_to_delete_in_mappings = []
-            variables_to_add_in_mappings = []
+        # else:
+        #     variables_to_delete_in_mappings = []
+        #     variables_to_add_in_mappings = []
+
+        variables_to_delete_in_mappings = []
+        variables_to_add_in_mappings = []
 
         # *****************************
         # Delete variables from profile
@@ -875,12 +898,12 @@ def process_data_profiles(profiles_obj):
         # if expanded a variable having extra dims
         # ****************************************
 
-        if has_extra_dim:
-            profile_dict = remove_extra_dim_vars_from_mappings(
-                profile_dict,
-                variables_to_delete_in_mappings,
-                variables_to_add_in_mappings,
-            )
+        # if has_extra_dim:
+        #     profile_dict = remove_extra_dim_vars_from_mappings(
+        #         profile_dict,
+        #         variables_to_delete_in_mappings,
+        #         variables_to_add_in_mappings,
+        #     )
 
         # ******************************
         # Add metadata to cchdo metadata
@@ -942,6 +965,13 @@ def process_data_profiles(profiles_obj):
 
         new_meta = reorganize_meta_and_mappings(meta, mappings)
 
+        # ******************
+        # Remove any meta variables associated with CDOM that are
+        # not in the data section
+        # ******************
+
+        new_meta = modify_meta_for_cdom(new_meta, data)
+
         # **************
         # measurements
         # **************
@@ -998,7 +1028,7 @@ def process_data_profiles(profiles_obj):
     return updated_data_profiles
 
 
-# def post_process_cruise_objs_by_type_new1(cruises_profile_objs):
+# def orig_post_process_cruise_objs_by_type(cruises_profile_objs):
 #     # Rename variables and add argovis mappings
 
 #     updated_cruises_profile_objs = []
@@ -1029,103 +1059,6 @@ def process_data_profiles(profiles_obj):
 #         ] = updated_all_data_types_profile_objs
 
 #         updated_cruises_profile_objs.append(cruise_profiles_obj)
-
-#         # -----
-
-#     for cruise_obj in updated_cruises_profile_objs:
-#         expocode = cruise_obj["cruise_expocode"]
-
-#         all_data_types_profile_objs = cruise_obj["all_data_types_profile_objs"]
-
-#         logging.info("****************************")
-#         logging.info(f"Post processing {expocode}")
-#         logging.info("****************************")
-
-#         # Save expocode processed to a file collecting all processed
-#         processed_cruises_file = (
-#             Path(GlobalVars.LOGGING_DIR) / "all_cruises_processed.txt"
-#         )
-#         with open(processed_cruises_file, "a") as f:
-#             f.write(f"{expocode}\n")
-
-#         # For meta data, add meta with data_type suffix removed
-#         all_profiles = update_profiles_single_type2(all_data_types_profile_objs)
-
-#         # Inside save, if not btl_ctd data type, will filter out
-#         # measurements objects with temp = NaN
-#         save_data_type_profiles(all_profiles)
-
-#     return updated_cruises_profile_objs
-
-
-# def post_process_cruise_objs_by_type_new2(cruises_profile_objs):
-#     # Rename variables and add argovis mappings
-
-#     updated_cruises_profile_objs = []
-
-#     for cruise_profiles_obj in cruises_profile_objs:
-#         cruise_expocode = cruise_profiles_obj["cruise_expocode"]
-
-#         logging.info(f"Post processing expocode {cruise_expocode}")
-
-#         all_data_types_profile_objs = cruise_profiles_obj["all_data_types_profile_objs"]
-
-#         updated_all_data_types_profile_objs = []
-
-#         for profiles_obj in all_data_types_profile_objs:
-#             data_type = profiles_obj["data_type"]
-
-#             updated_data_profiles = process_data_profiles(profiles_obj)
-
-#             # save profiles here instead of at end
-#             # afterwards, get include/exclude vars uses the cruise objs form
-#             # save_data_type_profiles(updated_data_profiles)
-
-#             new_profiles_obj = {}
-#             new_profiles_obj["data_type"] = data_type
-
-#             new_profiles_obj["data_type_profiles_list"] = updated_data_profiles
-
-#             updated_all_data_types_profile_objs.append(new_profiles_obj)
-
-#         cruise_profiles_obj[
-#             "all_data_types_profile_objs"
-#         ] = updated_all_data_types_profile_objs
-
-#         updated_cruises_profile_objs.append(cruise_profiles_obj)
-
-#         # Save expocode processed to a file collecting all processed
-#         processed_cruises_file = (
-#             Path(GlobalVars.LOGGING_DIR) / "all_cruises_processed.txt"
-#         )
-#         with open(processed_cruises_file, "a") as f:
-#             f.write(f"{cruise_expocode}\n")
-
-#         # -----
-
-#     # for cruise_obj in updated_cruises_profile_objs:
-
-#     #     expocode = cruise_obj['cruise_expocode']
-
-#     #     all_data_types_profile_objs = cruise_obj['all_data_types_profile_objs']
-
-#     #     logging.info("****************************")
-#     #     logging.info(f"Post processing {expocode}")
-#     #     logging.info("****************************")
-
-#     #     # Save expocode processed to a file collecting all processed
-#     #     processed_cruises_file = Path(
-#     #         GlobalVars.LOGGING_DIR) / 'all_cruises_processed.txt'
-#     #     with open(processed_cruises_file, 'a') as f:
-#     #         f.write(f"{expocode}\n")
-
-#     #     # # For meta data, add meta with data_type suffix removed
-#     #     # all_profiles = update_profiles_single_type(
-#     #     #     all_data_types_profile_objs)
-
-#     #     # # Inside save, if not btl_ctd data type, will filter out
-#     #     # # measurements objects with temp = NaN
-#     #     # save_data_type_profiles(all_profiles)
 
 #     return updated_cruises_profile_objs
 
@@ -1138,7 +1071,9 @@ def post_process_cruise_objs_by_type(cruises_profile_objs):
     for cruise_profiles_obj in cruises_profile_objs:
         cruise_expocode = cruise_profiles_obj["cruise_expocode"]
 
-        logging.info(f"Post processing expocode {cruise_expocode}")
+        logging.info("****************************")
+        logging.info(f"Post processing {cruise_expocode}")
+        logging.info("****************************")
 
         all_data_types_profile_objs = cruise_profiles_obj["all_data_types_profile_objs"]
 
