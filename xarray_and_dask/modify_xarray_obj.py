@@ -113,10 +113,6 @@ def modify_xarray_obj(file_obj):
 
     # Apply units before change unit names
 
-    # TODO
-    # attach info about which units were changed
-    # and what vars were converted
-
     # Call load to convert nc from Dask to pure xarray for conversions calc
     # Couldn't get apply_ufunc and gsw to work with dask
     # So load it back to pure xarray
@@ -142,10 +138,6 @@ def modify_xarray_obj(file_obj):
 
         if val_before != val_after:
             params_ref_scale_changed[key] = val_after
-
-    # meta_mapping['names'] = list(nc.coords)
-    # meta_mapping['units'] = meta_units
-    # meta_mapping['ref_scale'] = meta_ref_scale
 
     # ****************************
     # Apply C_format print format
