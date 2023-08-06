@@ -1,25 +1,3 @@
-def get_source_independent_meta_names():
-    # This is used when combining btl and ctd profiles which have already been renamed
-    # So use the argovis names here
-
-    names = [
-        "expocode",
-        "station",
-        "cast",
-        "cchdo_cruise_id",
-        "woce_lines",
-        "source",
-        "data_center",
-        "positioning_system",
-        "_id",
-        "country",
-        "pi_name",
-        "cruise_url",
-    ]
-
-    return names
-
-
 def get_parameters_no_data_type():
     # No btl or ctd data type suffix
     return ["pressure", "pressure_qc"]
@@ -104,23 +82,6 @@ def get_program_argovis_data_info_mapping():
     }
 
 
-def get_combined_mappings_keys():
-    # Get mapping keys that can be combined
-    # such as names. Even though the btl file and ctd file may have same names,
-    # want to just have one set of names
-    # But for the data units, keep separate since no guarantee the units will be the same
-    # use argovis names
-
-    return [
-        "data_keys_source",
-        "data_keys",
-        "data_keys_mapping",
-        "data_reference_scale",
-        "data_units",
-        "data_source_standard_names",
-    ]
-
-
 def get_cchdo_argovis_name_mapping():
     return {
         "ctd_salinity": f"salinity",
@@ -136,25 +97,6 @@ def get_cchdo_argovis_name_mapping():
     }
 
 
-def get_core_profile_keys_mapping():
-    return {"data": "data"}
-
-
-def rename_mappings_source_info_keys(mappings):
-    # keys are CCHDO and values are Argovis
-    key_mapping = get_program_argovis_source_info_mapping()
-
-    new_mappings = {}
-    for key, value in mappings.items():
-        if key in key_mapping:
-            new_key = key_mapping[key]
-            new_mappings[new_key] = value
-        else:
-            new_mappings[key] = value
-
-    return new_mappings
-
-
 def rename_mappings_data_info_keys(mappings):
     # keys are CCHDO and values are Argovis
     key_mapping = get_program_argovis_data_info_mapping()
@@ -168,18 +110,3 @@ def rename_mappings_data_info_keys(mappings):
             new_mappings[key] = value
 
     return new_mappings
-
-
-def rename_core_profile_keys(profile):
-    key_mapping = get_core_profile_keys_mapping()
-
-    # keys are CCHDO and values are Argovis
-    new_profile = {}
-    for key, value in profile.items():
-        if key in key_mapping:
-            new_key = key_mapping[key]
-            new_profile[new_key] = value
-        else:
-            new_profile[key] = value
-
-    return new_profile
