@@ -13,7 +13,6 @@ from create_profiles.create_meta_profiles import create_meta_profiles
 from xarray_and_dask.modify_dask_obj import modify_meta_dask_obj
 from xarray_and_dask.modify_dask_obj import modify_param_dask_obj
 
-# from create_profiles.create_meas_profiles import create_meas_profiles
 from create_profiles.create_data_profiles import create_data_profiles
 from create_profiles.create_cchdo_argovis_mappings import create_cchdo_mappings
 
@@ -140,14 +139,6 @@ def create_profiles_objs(cruise_ddf_obj):
 
         # Change from dask dataframe to pandas by applying function compute
         df_param = ddf_param.compute()
-
-        # TODO
-        # If remove meas in future, move this code to end of program
-        # since it's mainly  getting subset  of all_dataMeas
-
-        # lmm May 19, 2023, remove measurments
-        # all_meas_profiles, all_meas_source_profiles, all_meas_names = create_meas_profiles(
-        #     df_param, data_type)
 
         # all_name_mapping is dict with keys: station_cast and non_empty_cols
         # Want to know non_empty_cols so can keep these cchdo names
