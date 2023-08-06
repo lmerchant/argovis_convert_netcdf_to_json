@@ -33,13 +33,6 @@ def unzip_file(zip_folder, zip_file):
 
 
 def find_float_qc_cols(json_dict):
-    # TODO
-    # I need to take the data_info output and then make sure the
-    # mappings in the data_info key match the order in data
-
-    # Get the order of the data_info keys and then rearrange the df
-    # so when I convert to_dict, the order is correct
-
     data = json_dict["data"]
 
     # Read into a pandas dataframe and check if there are null values
@@ -71,10 +64,8 @@ def find_float_qc_cols(json_dict):
 
 
 def reformat_json_dict(json_dict):
-    # TODO
-    # Remap data info according to var order in data output
-
     # Find qc columns that are float because of NaNs in values
+    # and coerce to integer
     float_qc_columns = find_float_qc_cols(json_dict)
 
     # Read into pandas to save in different format of arrays
@@ -100,74 +91,64 @@ def reformat_json_dict(json_dict):
 
     json_dict["data"] = data
 
-    # TODO
-    # Reformat meta['data_info'] and mappings according to vars remaining
-    # and their data array order
-    # data_info_vars_order = json_dict["data_info"][0]
-
-    # print(f"data_vars order {data_vars_order}")
-    # print(f"data info vars order {data_info_vars_order}")
-
-    # print(json_dict["source"])
-
     return json_dict
 
 
-def coerce_qc_to_integer(json_dict):
-    data = json_dict["data"]
+# def coerce_qc_to_integer(json_dict):
+#     data = json_dict["data"]
 
-    # Read into a pandas dataframe and check if there are null values
-    # If there are, then do a loop through and coerce qc values to integer
+#     # Read into a pandas dataframe and check if there are null values
+#     # If there are, then do a loop through and coerce qc values to integer
 
-    # Also do a coerce if there are qc values as a list (such as extra dims parameters)
+#     # Also do a coerce if there are qc values as a list (such as extra dims parameters)
 
-    data_df = pd.DataFrame.from_dict(data)
+#     data_df = pd.DataFrame.from_dict(data)
 
-    columns = list(data_df.columns)
+#     columns = list(data_df.columns)
 
-    qc_columns = [col for col in columns if col.endswith("_woceqc")]
+#     qc_columns = [col for col in columns if col.endswith("_woceqc")]
 
-    col_dtypes = data_df[qc_columns].dtypes.apply(lambda x: x.name).to_dict()
+#     col_dtypes = data_df[qc_columns].dtypes.apply(lambda x: x.name).to_dict()
 
-    if "object" in col_dtypes.values():
-        has_qc_object_columns = True
-    else:
-        has_qc_object_columns = False
+#     if "object" in col_dtypes.values():
+#         has_qc_object_columns = True
+#     else:
+#         has_qc_object_columns = False
 
-    # Find which qc_columns have NaN values in them, and save to coerce to integer
+#     # Find which qc_columns have NaN values in them, and save to coerce to integer
 
-    # Does this find columns with cells containing a list of with NaN values in it?
-    qc_cols_w_nans = (
-        data_df[qc_columns].columns[data_df[qc_columns].isna().any()].tolist()
-    )
+#     # Does this find columns with cells containing a list of with NaN values in it?
+#     qc_cols_w_nans = (
+#         data_df[qc_columns].columns[data_df[qc_columns].isna().any()].tolist()
+#     )
 
-    has_nan_qc_cols = len(qc_cols_w_nans)
+#     has_nan_qc_cols = len(qc_cols_w_nans)
 
-    if has_nan_qc_cols or has_qc_object_columns:
-        coerced_data = []
+#     if has_nan_qc_cols or has_qc_object_columns:
+#         coerced_data = []
 
-        for obj in data:
-            new_obj = {}
-            for k, v in obj.items():
-                if k in qc_columns:
-                    if isinstance(v, list):
-                        try:
-                            new_obj[k] = [int(val) for val in v]
-                        except ValueError:
-                            new_obj[k] = v
-                    else:
-                        try:
-                            new_obj[k] = int(v)
-                        except ValueError:
-                            new_obj[k] = v
-                else:
-                    new_obj[k] = v
+#         for obj in data:
+#             new_obj = {}
+#             for k, v in obj.items():
+#                 if k in qc_columns:
+#                     if isinstance(v, list):
+#                         try:
+#                             new_obj[k] = [int(val) for val in v]
+#                         except ValueError:
+#                             new_obj[k] = v
+#                     else:
+#                         try:
+#                             new_obj[k] = int(v)
+#                         except ValueError:
+#                             new_obj[k] = v
+#                 else:
+#                     new_obj[k] = v
 
-            coerced_data.append(new_obj)
+#             coerced_data.append(new_obj)
 
-        json_dict["data"] = coerced_data
+#         json_dict["data"] = coerced_data
 
-    return json_dict
+#     return json_dict
 
 
 def get_data_dict(profile_dict, station_cast):
@@ -326,11 +307,6 @@ def save_as_zip_data_type_profiles(data_type_profiles):
         data_type = profile_dict["data_type"]
 
         json_dict = get_data_dict(profile_dict, station_cast)
-
-        # TODO
-        # Add in function to coerce any qc values from float to integer
-        # since floats occur if any column value was NaN in pandas dataframe
-        # json_dict = coerce_qc_to_integer(json_dict)
 
         json_dict = reformat_json_dict(json_dict)
 
