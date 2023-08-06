@@ -20,19 +20,6 @@ def get_source_independent_meta_names():
     return names
 
 
-# def get_source_info_meta_names():
-#     # keys going in the meta 'source' key
-#     # this is information about the CCHDO input source file
-#     names = [
-#         "data_keys_source",
-#         "data_source_standard_names",
-#         "data_source_reference_scale",
-#         "data_source_units",
-#     ]
-
-#     return names
-
-
 def get_data_info_meta_names():
     # keys going in the meta 'data_info' key
     # this is information about the Argovis output data file
@@ -43,6 +30,7 @@ def get_data_info_meta_names():
 
 
 def get_parameters_no_data_type():
+    # No btl or ctd data type suffix
     return ["pressure", "pressure_qc"]
 
 
@@ -61,17 +49,9 @@ def get_cchdo_core_meas_var_names():
     ]
 
 
-# TODO
-# fix so can remove this. Note renaming it
-def get_measurements_mapping():
-    return {
-        "measurements": "measurements",
-        "measurements_source": "measurements_source",
-        "measurements_sources": "measurements_sources",
-    }
-
-
 def get_meta_mapping():
+    # Values to keep in final meta data
+
     # keys are names used in this program
     # values are argovis names
     return {
@@ -84,7 +64,6 @@ def get_meta_mapping():
         "cast": "cast",
         "file_hash": "file_hash",
         "cruise_id": "cchdo_cruise_id",
-        # "programs": "data_source",
         "programs": "source",
         "woce_lines": "woce_lines",
         "chief_scientists": "pi_name",
@@ -95,7 +74,6 @@ def get_meta_mapping():
         "file_path": "source_url",
         "file_name": "file_name",
         "_id": "_id",
-        # "date_formatted": "date_formatted",
         "date": "timestamp",
         "roundLat": "roundLat",
         "roundLon": "roundLon",
@@ -103,6 +81,7 @@ def get_meta_mapping():
         "strLon": "strLon",
         "geolocation": "geolocation",
         "source": "source",
+        "instrument": "insturment",
         "cdom_wavelengths": "cdom_wavelengths",
     }
 
