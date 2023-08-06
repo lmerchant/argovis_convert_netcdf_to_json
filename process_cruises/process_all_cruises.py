@@ -275,7 +275,7 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
         # test_cruise_expocode = '325020210420'
 
         # btl and ctd have diff # of N_PROF
-        # test_cruise_expocode = '096U20160426'
+        test_cruise_expocode = "096U20160426"
 
         # This cruise has btl and ctd, but when
         # combine on station cast, some have only
@@ -297,7 +297,7 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
 
         # In the WHPNAMES from params package, there are individual CDOM variables listed,
         # what files do these appear in so we know how to label CDOM vars for users to find and use
-        test_cruise_expocode = "33RR20160208"
+        # test_cruise_expocode = "33RR20160208"
 
         # I need one where pressure looses a dim
         # test_cruise_expocode = '318MSAVE5'
