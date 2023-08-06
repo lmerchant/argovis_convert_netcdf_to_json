@@ -20,15 +20,6 @@ def get_source_independent_meta_names():
     return names
 
 
-def get_data_info_meta_names():
-    # keys going in the meta 'data_info' key
-    # this is information about the Argovis output data file
-
-    names = ["data_keys", "data_keys_mapping", "data_reference_scale", "data_units"]
-
-    return names
-
-
 def get_parameters_no_data_type():
     # No btl or ctd data type suffix
     return ["pressure", "pressure_qc"]
@@ -101,13 +92,6 @@ def get_program_argovis_source_info_mapping():
 def get_program_argovis_data_info_mapping():
     # keys are names used in this program
     # values are the final key names to be used for Argovis
-
-    # return {
-    #     "argovis_param_names": "data_keys",
-    #     "cchdo_argovis_param_mapping": "data_keys_mapping",
-    #     "argovis_reference_scale": "data_reference_scale",
-    #     "argovis_units": "data_units",
-    # }
 
     return {
         "argovis_param_names": "data_keys",
@@ -188,21 +172,6 @@ def rename_mappings_data_info_keys(mappings):
 
 def rename_core_profile_keys(profile):
     key_mapping = get_core_profile_keys_mapping()
-
-    # keys are CCHDO and values are Argovis
-    new_profile = {}
-    for key, value in profile.items():
-        if key in key_mapping:
-            new_key = key_mapping[key]
-            new_profile[new_key] = value
-        else:
-            new_profile[key] = value
-
-    return new_profile
-
-
-def rename_measurements_keys(profile):
-    key_mapping = get_measurements_mapping()
 
     # keys are CCHDO and values are Argovis
     new_profile = {}
