@@ -76,6 +76,9 @@ def has_two_ctd_oxygens(names):
 
 
 def rename_to_argovis_mapping(cchdo_names, data_type=None):
+    # output is mapping where keys are cchdo names and values
+    # are argovis names
+
     cchdo_argovis_name_mapping = get_cchdo_argovis_name_mapping()
 
     # core names include coresponding qc names
