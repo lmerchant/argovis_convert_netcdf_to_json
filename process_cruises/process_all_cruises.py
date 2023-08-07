@@ -25,7 +25,7 @@ def get_file_id_hash_mapping():
     # the file has been updated, the file hash is different than previously
 
     query = f"{GlobalVars.API_END_POINT}/file"
-    response = session.get(query, timeout=60)
+    response = session.get(query, timeout=360)
 
     if response.status_code != 200:
         print("api not reached in function get_file_id_hash_mapping")
@@ -594,7 +594,7 @@ def get_active_files_json():
     # Use api query to get all active file ids from CCHDO
     query = f"{GlobalVars.API_END_POINT}/file/all"
 
-    response = session.get(query, timeout=60)
+    response = session.get(query, timeout=360)
 
     if response.status_code != 200:
         print("api not reached in get_all_files")
@@ -613,7 +613,7 @@ def get_active_cruises_json():
     # Use api query to get all cruise id with their attached file ids
     query = f"{GlobalVars.API_END_POINT}/cruise/all"
 
-    response = session.get(query, timeout=60)
+    response = session.get(query, timeout=360)
 
     if response.status_code != 200:
         print("api not reached in get_all_cruises")
