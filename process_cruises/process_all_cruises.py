@@ -275,7 +275,11 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
         # test_cruise_expocode = '325020210420'
 
         # btl and ctd have diff # of N_PROF
-        test_cruise_expocode = "096U20160426"
+        # test_cruise_expocode = "096U20160426"
+
+        # Has an excluded var and check the qc column
+        # is also excluded
+        test_cruise_expocode = "33RR20160321"
 
         # This cruise has btl and ctd, but when
         # combine on station cast, some have only
