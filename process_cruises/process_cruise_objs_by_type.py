@@ -157,9 +157,6 @@ def create_profiles_objs(cruise_ddf_obj):
         # create cchdo_argovis_mapping_profiles later
         logging.info("start combining profiles")
 
-        # combined_profiles = combine_profiles(all_meta_profiles, all_data_profiles,
-        #                                      all_meas_profiles, all_meas_source_profiles, all_meas_names, cchdo_mapping_profiles, data_type)
-
         combined_profiles = combine_profiles(
             all_meta_profiles, all_data_profiles, cchdo_mapping_profiles, data_type
         )
