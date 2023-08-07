@@ -4,10 +4,9 @@ from process_cruises.process_cruise_objs_by_type import process_cruise_objs_by_t
 from process_cruises.post_process_cruise_objs_by_type import (
     post_process_cruise_objs_by_type,
 )
-
 from check_and_save.save_output import save_cruise_objs_by_type
 from check_and_save.add_vars_to_logged_collections import gather_included_excluded_vars
-from check_and_save.save_output import save_included_excluded_cchdo_vars
+from check_and_save.save_output import save_included_excluded_argovis_vars
 
 
 def process_batch_of_cruises(cruise_objs):
@@ -19,9 +18,9 @@ def process_batch_of_cruises(cruise_objs):
     # And within cruise, get set of profiles by type
     # If there is both a ctd and btl, will get two types back
 
-    logging.info("-------------------------------")
+    logging.info("---------------------------")
     logging.info("Create profiles for cruises")
-    logging.info("-------------------------------")
+    logging.info("---------------------------")
 
     cruise_objs_by_type = process_cruise_objs_by_type(cruise_objs)
 
@@ -46,32 +45,25 @@ def process_batch_of_cruises(cruise_objs):
     # Make sure the precision didn't change
     # from the c_format
 
-    # Rename variables and add argovis mappings
-
-    # TODO
-    # Should be throwing out variables with all NaN values before
-    # deciding how to name things.
-
-    # For example, a btl file dataset can have both oxygen and
-    # ctd oxygen, but what if ctd oxygen is all Nan, it won't instead
-    # use the oxygen variable and rename it to doxy
-
-    cruise_objs_by_type = post_process_cruise_objs_by_type(cruise_objs_by_type)
+    (
+        cruise_objs_by_type,
+        kept_vars_all_cruise_objs,
+        deleted_vars_all_cruise_objs,
+    ) = post_process_cruise_objs_by_type(cruise_objs_by_type)
 
     # ***********************************
     # Write included/excluded cchdo vars
     # ***********************************
 
-    logging.info("-------------------------------")
+    logging.info("------------------------------")
     logging.info("Log excluded and included vars")
-    logging.info("-------------------------------")
+    logging.info("------------------------------")
 
-    cruises_all_included, cruises_all_excluded = gather_included_excluded_vars(
-        cruise_objs_by_type
+    kept_vars, deleted_vars = gather_included_excluded_vars(
+        kept_vars_all_cruise_objs, deleted_vars_all_cruise_objs
     )
 
-    # Rename included and excluded vars and save
-    save_included_excluded_cchdo_vars(cruises_all_included, cruises_all_excluded)
+    save_included_excluded_argovis_vars(kept_vars, deleted_vars)
 
     # ******************************
     # Save cruise objs to JSON files
