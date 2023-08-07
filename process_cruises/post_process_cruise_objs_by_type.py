@@ -9,8 +9,6 @@ from variable_naming.rename_parameters import rename_to_argovis_mapping
 from variable_naming.meta_param_mapping import rename_mappings_data_info_keys
 from variable_naming.meta_param_mapping import get_meta_mapping
 
-# from variable_naming.meta_param_mapping import rename_core_profile_keys
-
 from variable_naming.meta_param_mapping import get_program_argovis_source_info_mapping
 from variable_naming.meta_param_mapping import get_program_argovis_data_info_mapping
 
@@ -30,15 +28,6 @@ def reformat_data_info(data_info, standard_names_mapping):
     data_source_reference_scale = data_info["data_source_reference_scale"]
 
     new_data_info.append(data_keys)
-
-    # new_data_info.append(
-    #     [
-    #         "data_keys_mapping",
-    #         "units",
-    #         "data_source_standard_names",
-    #         "reference_scale",
-    #     ]
-    # )
 
     new_data_info.append(
         [
@@ -191,7 +180,6 @@ def create_mappings(profile_dict, argovis_col_names_mapping):
     # Want before and after conversions
 
     # keys before conversion of cchdo file
-
     cchdo_units = profile_dict["cchdo_units"]
     cchdo_ref_scale = profile_dict["cchdo_reference_scale"]
     cchdo_param_names = profile_dict["cchdo_param_names"]
@@ -294,123 +282,105 @@ def rename_data(data_type, data):
 
         argovis_col_names.append(argovis_name)
 
-    # df_data = df_data.set_axis(
-    #     argovis_col_names, axis='columns', inplace=False)
-
     df_data = df_data.set_axis(argovis_col_names, axis="columns")
 
     data_columns = list(df_data.columns)
 
-    # df_data = df_data.set_axis(data_columns, axis='columns', inplace=False)
     df_data = df_data.set_axis(data_columns, axis="columns")
-
-    # ----- delete start
-
-    # Filter out parameters not used for ArgoVis
-    # cols_to_filter_out = filter_out_params(list(df_data.columns))
-
-    # print(cols_to_filter_out)
-
-    # if filter out column from params, need to filter from mappings
-    # do this earlier in processing
-
-    # df_data = df_data.drop(cols_to_filter_out, axis=1)
-
-    # ----- delete to here
 
     data = df_data.to_dict("records")
 
     return data, argovis_col_names_mapping
 
 
-def remove_extra_dim_vars_from_mappings(
-    profile_dict, variables_to_delete_in_mappings, variables_to_add_in_mappings
-):
-    # Get the names of extra dim vars
-    extra_dim_vars = variables_to_add_in_mappings.keys()
+# def remove_extra_dim_vars_from_mappings(
+#     profile_dict, variables_to_delete_in_mappings, variables_to_add_in_mappings
+# ):
+#     # Get the names of extra dim vars
+#     extra_dim_vars = variables_to_add_in_mappings.keys()
 
-    for extra_dim in extra_dim_vars:
-        # First keep mapping attribute values of one variable out of the exploded vars
-        # Then delete and add variables
+#     for extra_dim in extra_dim_vars:
+#         # First keep mapping attribute values of one variable out of the exploded vars
+#         # Then delete and add variables
 
-        variables_to_delete = variables_to_delete_in_mappings[extra_dim]
-        variables_to_add = variables_to_add_in_mappings[extra_dim]
+#         variables_to_delete = variables_to_delete_in_mappings[extra_dim]
+#         variables_to_add = variables_to_add_in_mappings[extra_dim]
 
-        variables_to_include = []
+#         variables_to_include = []
 
-        non_qc_var_to_add = variables_to_add["non_qc_var"]
+#         non_qc_var_to_add = variables_to_add["non_qc_var"]
 
-        variables_to_include.append(non_qc_var_to_add)
+#         variables_to_include.append(non_qc_var_to_add)
 
-        try:
-            qc_var_to_add = variables_to_add["qc_var"]
-            variables_to_include.append(qc_var_to_add)
-        except:
-            pass
+#         try:
+#             qc_var_to_add = variables_to_add["qc_var"]
+#             variables_to_include.append(qc_var_to_add)
+#         except:
+#             qc_var_to_add = None
 
-        col_naming_var = variables_to_add["col_naming_var"]
-        variables_to_include.append(col_naming_var)
+#         col_naming_var = variables_to_add["col_naming_var"]
+#         variables_to_include.append(col_naming_var)
 
-        non_qc_vars_to_delete = [
-            var for var in variables_to_delete if not var.endswith("_qc")
-        ]
-        qc_vars_to_delete = [var for var in variables_to_delete if var.endswith("_qc")]
+#         non_qc_vars_to_delete = [
+#             var for var in variables_to_delete if not var.endswith("_qc")
+#         ]
+#         qc_vars_to_delete = [var for var in variables_to_delete if var.endswith("_qc")]
 
-        non_qc_vars_to_delete.sort()
-        qc_vars_to_delete.sort()
+#         non_qc_vars_to_delete.sort()
+#         qc_vars_to_delete.sort()
 
-        sample_non_qc_var = non_qc_vars_to_delete[0]
-        sample_qc_var = qc_vars_to_delete[0]
+#         sample_non_qc_var = non_qc_vars_to_delete[0]
+#         sample_qc_var = qc_vars_to_delete[0]
 
-        for key, value in profile_dict.items():
-            if key == "cchdo_param_names":
-                new_value = [val for val in value if val not in variables_to_delete]
+#         for key, value in profile_dict.items():
+#             if key == "cchdo_param_names":
+#                 new_value = [val for val in value if val not in variables_to_delete]
 
-                new_value.extend(variables_to_include)
+#                 new_value.extend(variables_to_include)
 
-                profile_dict[key] = new_value
+#                 profile_dict[key] = new_value
 
-            if key == "cchdo_standard_names":
-                new_value = {}
-                for k, v in value.items():
-                    if k == sample_non_qc_var:
-                        new_value[non_qc_var_to_add] = v
+#             if key == "cchdo_standard_names":
+#                 new_value = {}
+#                 for k, v in value.items():
+#                     if k == sample_non_qc_var:
+#                         new_value[non_qc_var_to_add] = v
 
-                    elif k == sample_qc_var:
-                        new_value[qc_var_to_add] = v
+#                     elif k == sample_qc_var:
+#                         new_value[qc_var_to_add] = v
 
-                    else:
-                        new_value[k] = v
+#                     else:
+#                         new_value[k] = v
 
-                profile_dict[key] = {
-                    k: v for k, v in new_value.items() if k not in variables_to_delete
-                }
+#                 profile_dict[key] = {
+#                     k: v for k, v in new_value.items() if k not in variables_to_delete
+#                 }
 
-            if key == "cchdo_reference_scale":
-                new_value = {}
-                for k, v in value.items():
-                    if k == sample_non_qc_var:
-                        new_value[non_qc_var_to_add] = v
-                    else:
-                        new_value[k] = v
+#             if key == "cchdo_reference_scale":
+#                 new_value = {}
+#                 for k, v in value.items():
+#                     if k == sample_non_qc_var:
+#                         new_value[non_qc_var_to_add] = v
+#                     else:
+#                         new_value[k] = v
 
-                profile_dict[key] = {
-                    k: v for k, v in new_value.items() if k not in variables_to_delete
-                }
+#                 profile_dict[key] = {
+#                     k: v for k, v in new_value.items() if k not in variables_to_delete
+#                 }
 
-            if key == "cchdo_units":
-                new_value = {}
-                for k, v in value.items():
-                    if k == sample_non_qc_var:
-                        new_value[non_qc_var_to_add] = v
-                    else:
-                        new_value[k] = v
+#             if key == "cchdo_units":
+#                 new_value = {}
+#                 for k, v in value.items():
+#                     if k == sample_non_qc_var:
+#                         new_value[non_qc_var_to_add] = v
+#                     else:
+#                         new_value[k] = v
 
-                profile_dict[key] = {
-                    k: v for k, v in new_value.items() if k not in variables_to_delete
-                }
+#                 profile_dict[key] = {
+#                     k: v for k, v in new_value.items() if k not in variables_to_delete
+#                 }
 
-    return profile_dict
+#     return profile_dict
 
 
 def remove_deleted_vars_from_mappings(profile_dict, variables_deleted):
@@ -445,72 +415,132 @@ def remove_deleted_vars_from_mappings(profile_dict, variables_deleted):
     return profile_dict
 
 
+# def remove_empty_and_nan_variables(data):
+#     # Read data into a pandas dataframe
+#     df_data = pd.DataFrame.from_dict(data)
+
+#     # column names before delete
+#     column_names_start = list(df_data.columns)
+
+#     # Check if all values for column are nan,
+#     # and if they are, drop them
+#     df_data = df_data.dropna(axis=1, how="all")
+
+#     columns_not_nan = set(df_data.columns)
+
+#     # Create copy of df and drop empty columns (full of blanks)
+#     df_data_copy = df_data.copy()
+
+#     df_data_copy = df_data_copy.replace(r"^\s*$", np.nan, regex=True)
+#     df_data_copy = df_data_copy.dropna(axis=1, how="all")
+
+#     columns_after_dropped = set(df_data_copy.columns)
+
+#     empty_columns = columns_not_nan.difference(columns_after_dropped)
+
+#     empty_variables_to_delete = list(empty_columns)
+
+#     # search for any corresponding qc columns to delete
+#     new_empty_variables_to_delete = []
+
+#     for var in empty_variables_to_delete:
+#         new_empty_variables_to_delete.append(var)
+
+#         qc_var = f"{var}_qc"
+#         if qc_var in column_names_start:
+#             new_empty_variables_to_delete.append(qc_var)
+
+#     variables_to_keep = list(columns_not_nan)
+
+#     for var in new_empty_variables_to_delete:
+#         variables_to_keep.remove(var)
+
+#     df_data = df_data[variables_to_keep]
+
+#     # Drop any vars not to be included in a final Argovis JSON profile
+#     params_to_filter_out = get_parameters_to_filter_out()
+
+#     cols_to_filter_out = [
+#         param for param in variables_to_keep if param in params_to_filter_out
+#     ]
+
+#     df_data = df_data.drop(columns=cols_to_filter_out)
+#     variables_kept = list(df_data.columns)
+
+#     # Keep track of dropped vars to remove them from mappings
+#     variables_deleted = [x for x in column_names_start if x not in variables_kept]
+
+#     # Turn data back into dict
+#     data = df_data.to_dict("records")
+
+#     return data, variables_deleted
+
+
 def remove_empty_and_nan_variables(data):
     # Read data into a pandas dataframe
     df_data = pd.DataFrame.from_dict(data)
 
     # column names before delete
-    column_names_start = df_data.columns
+    column_names_start = list(df_data.columns)
+
+    df_data_copy = df_data.copy()
+
+    variables_to_delete = []
+
+    # Drop any vars not to be included in a final Argovis JSON profile
+    params_to_filter_out = get_parameters_to_filter_out()
+
+    filtered_cols_to_drop = [
+        param for param in column_names_start if param in params_to_filter_out
+    ]
+
+    df_data_copy = df_data_copy.drop(columns=filtered_cols_to_drop)
+
+    # columns remaining in df_data
+    remaining_cols = list(df_data_copy.columns)
+
+    variables_to_delete.extend(filtered_cols_to_drop)
 
     # Check if all values for column are nan,
     # and if they are, drop them
-    df_data = df_data.dropna(axis=1, how="all")
+    df_data_copy = df_data_copy.dropna(axis=1, how="all")
 
-    columns_not_nan = set(df_data.columns)
+    nan_columns = set(remaining_cols).difference(df_data_copy.columns)
+    nan_columns = list(nan_columns)
 
-    # Check if column values are empty
-    df_data_copy = df_data.copy()
+    variables_to_delete.extend(nan_columns)
 
+    remaining_cols = list(df_data_copy.columns)
+
+    # Drop empty columns (full of blanks)
     df_data_copy = df_data_copy.replace(r"^\s*$", np.nan, regex=True)
     df_data_copy = df_data_copy.dropna(axis=1, how="all")
 
-    columns_empty = set(df_data_copy.columns)
+    empty_columns = set(remaining_cols).difference(df_data_copy.columns)
+    empty_columns = list(empty_columns)
 
-    empty_columns = columns_not_nan.difference(columns_empty)
+    variables_to_delete.extend(empty_columns)
 
-    empty_variables_to_delete = list(empty_columns)
-    variables_to_keep = list(columns_not_nan)
+    # search for any corresponding qc columns to delete
+    qc_vars_to_delete = []
 
-    for var in empty_variables_to_delete:
-        variables_to_keep.remove(var)
+    for var in variables_to_delete:
+        qc_var = f"{var}_qc"
+        if qc_var in column_names_start:
+            qc_vars_to_delete.append(qc_var)
 
-    df_data = df_data[variables_to_keep]
+    variables_to_delete.extend(qc_vars_to_delete)
 
-    # Delete vars not used in Argovis final file
-    # cols_to_filter_out = filter_out_params(variables_kept)
-
-    params_to_filter_out = get_parameters_to_filter_out()
-
-    cols_to_filter_out = [
-        param for param in variables_to_keep if param in params_to_filter_out
+    cols_to_drop = [
+        param for param in column_names_start if param in variables_to_delete
     ]
 
-    df_data = df_data.drop(columns=cols_to_filter_out)
-    variables_kept = df_data.columns
-
-    # Keep track of dropped vars to remove them from mappings
-    variables_deleted = [x for x in column_names_start if x not in variables_kept]
+    df_data = df_data.drop(columns=cols_to_drop)
 
     # Turn data back into dict
     data = df_data.to_dict("records")
 
-    return data, variables_deleted
-
-
-# def add_data_type_to_meta(meta, data_type):
-#     ignore_keys = get_source_independent_meta_names()
-
-#     new_meta = {}
-
-#     for key, val in meta.items():
-#         if key not in ignore_keys:
-#             # new_meta[key] = val
-#             new_key = f"{key}_{data_type}"
-#             new_meta[new_key] = val
-#         else:
-#             new_meta[key] = val
-
-#     return new_meta
+    return data, variables_to_delete
 
 
 def get_subset_meta(meta):
@@ -635,65 +665,65 @@ def add_cchdo_meta(meta, cchdo_file_meta, cchdo_cruise_meta):
     return meta
 
 
-def coalesce_extra_dim_variables(profile_dict):
-    extra_dim_obj = profile_dict["extra_dim_obj"]
+# def coalesce_extra_dim_variables(profile_dict):
+#     extra_dim_obj = profile_dict["extra_dim_obj"]
 
-    data = profile_dict["data"]
+#     data = profile_dict["data"]
 
-    # Put data in a pandas dataframe, pull out the extra dim columns,
-    # combine them into one column as an array (number of WAVELENGTHS)
-    # Then save as json
+#     # Put data in a pandas dataframe, pull out the extra dim columns,
+#     # combine them into one column as an array (number of WAVELENGTHS)
+#     # Then save as json
 
-    df = pd.DataFrame.from_records(data)
+#     df = pd.DataFrame.from_records(data)
 
-    # Get list of the renamed variables that are no longer needed since
-    # are coalescing into single value arrays and qc arrays and an array
-    # identifying the columns such as the wavelength number
-    variables_to_delete_in_mappings = {}
-    variables_to_add_in_mappings = {}
+#     # Get list of the renamed variables that are no longer needed since
+#     # are coalescing into single value arrays and qc arrays and an array
+#     # identifying the columns such as the wavelength number
+#     variables_to_delete_in_mappings = {}
+#     variables_to_add_in_mappings = {}
 
-    for key, value in extra_dim_obj.items():
-        if key == "cdom":
-            wavelengths = value["wavelengths"]
-            cdom_variables = value["variables"]
+#     for key, value in extra_dim_obj.items():
+#         if key == "cdom":
+#             wavelengths = value["wavelengths"]
+#             cdom_variables = value["variables"]
 
-            non_qc = [var for var in cdom_variables if not var.endswith("_qc")]
-            qc = [var for var in cdom_variables if var.endswith("_qc")]
+#             non_qc = [var for var in cdom_variables if not var.endswith("_qc")]
+#             qc = [var for var in cdom_variables if var.endswith("_qc")]
 
-            # Sort on column number
-            qc.sort()
-            non_qc.sort()
+#             # Sort on column number
+#             qc.sort()
+#             non_qc.sort()
 
-            df["cdom"] = df[non_qc].values.tolist()
-            df["cdom_qc"] = df[qc].values.tolist()
+#             df["cdom"] = df[non_qc].values.tolist()
+#             df["cdom_qc"] = df[qc].values.tolist()
 
-            df = df.drop(cdom_variables, axis=1)
+#             df = df.drop(cdom_variables, axis=1)
 
-            # Save cdom wavelengths as a list in each cell of a column of the dataframe
-            indices = list(df.index)
+#             # Save cdom wavelengths as a list in each cell of a column of the dataframe
+#             indices = list(df.index)
 
-            df.loc[indices, "cdom_wavelengths"] = pd.Series(
-                [wavelengths] * len(indices), index=indices
-            )
+#             df.loc[indices, "cdom_wavelengths"] = pd.Series(
+#                 [wavelengths] * len(indices), index=indices
+#             )
 
-            df["cdom_wavelengths"] = df["cdom_wavelengths"].apply(lambda x: list(x))
+#             df["cdom_wavelengths"] = df["cdom_wavelengths"].apply(lambda x: list(x))
 
-            variables_to_delete_in_mappings["cdom"] = cdom_variables
+#             variables_to_delete_in_mappings["cdom"] = cdom_variables
 
-            # Will need to use attributes extracted from starting xarray file object
-            # in the mappings when remove variables and add these in.
-            # cdom and cdom_qc will have the same attributes as the deleted expanded vars
-            variables_to_add_in_mappings["cdom"] = {
-                "non_qc_var": "cdom",
-                "qc_var": "cdom_qc",
-                "col_naming_var": "cdom_wavelengths",
-            }
+#             # Will need to use attributes extracted from starting xarray file object
+#             # in the mappings when remove variables and add these in.
+#             # cdom and cdom_qc will have the same attributes as the deleted expanded vars
+#             variables_to_add_in_mappings["cdom"] = {
+#                 "non_qc_var": "cdom",
+#                 "qc_var": "cdom_qc",
+#                 "col_naming_var": "cdom_wavelengths",
+#             }
 
-    data = df.to_dict("records")
+#     data = df.to_dict("records")
 
-    profile_dict["data"] = data
+#     profile_dict["data"] = data
 
-    return profile_dict, variables_to_delete_in_mappings, variables_to_add_in_mappings
+#     return profile_dict, variables_to_delete_in_mappings, variables_to_add_in_mappings
 
 
 def process_data_profiles(profiles_obj):
@@ -710,6 +740,15 @@ def process_data_profiles(profiles_obj):
 
     updated_data_profiles = []
 
+    # Keep track of deleted variables in each data profile and data type
+    deleted_vars = {}
+    deleted_vars["data_type"] = data_type
+    deleted_vars["vars_per_profile"] = []
+
+    kept_vars = {}
+    kept_vars["data_type"] = data_type
+    kept_vars["vars_per_profile"] = []
+
     for profile in data_profiles:
         station_cast = profile["station_cast"]
         profile_dict = profile["profile_dict"]
@@ -719,7 +758,6 @@ def process_data_profiles(profiles_obj):
 
         meta = profile_dict["meta"]
         data = profile_dict["data"]
-        # measurements = profile_dict["measurements"]
 
         # has_extra_dim = profile_dict["has_extra_dim"]
 
@@ -751,14 +789,15 @@ def process_data_profiles(profiles_obj):
         #     variables_to_delete_in_mappings = []
         #     variables_to_add_in_mappings = []
 
-        variables_to_delete_in_mappings = []
-        variables_to_add_in_mappings = []
+        # variables_to_delete_in_mappings = []
+        # variables_to_add_in_mappings = []
 
         # *****************************
         # Delete variables from profile
         # if values are all NaN and if
         # they are to be removed from final
-        # Argovis format
+        # Argovis format. Also delete
+        # the corresponding qc column
         # *****************************
 
         data, variables_deleted = remove_empty_and_nan_variables(data)
@@ -794,11 +833,38 @@ def process_data_profiles(profiles_obj):
         # Rename meta for argovis json format and get subset
         meta = get_subset_meta(meta)
 
+        profile_id = meta["_id"]
+
         # *************************
         # Rename all_data variables
         # *************************
 
         data, argovis_col_names_mapping = rename_data(data_type, data)
+
+        # **************************************
+        # Save kept and deleted vars per profile
+        # **************************************
+
+        # Get renamed variables deleted
+        argovis_vars_deleted_mapping = rename_to_argovis_mapping(
+            variables_deleted, data_type
+        )
+
+        argovis_vars_deleted = list(argovis_vars_deleted_mapping.values())
+
+        profile_deleted_vars = {}
+        profile_deleted_vars["profile_id"] = profile_id
+        profile_deleted_vars["param_names"] = argovis_vars_deleted
+
+        deleted_vars["vars_per_profile"].append(profile_deleted_vars)
+
+        argovis_vars_kept = list(data[0].keys())
+
+        profile_kept_vars = {}
+        profile_kept_vars["profile_id"] = profile_id
+        profile_kept_vars["param_names"] = argovis_vars_kept
+
+        kept_vars["vars_per_profile"].append(profile_kept_vars)
 
         # ********************
         # Get current mappings
@@ -864,13 +930,16 @@ def process_data_profiles(profiles_obj):
 
         updated_data_profiles.append(new_profile)
 
-    return updated_data_profiles
+    return updated_data_profiles, kept_vars, deleted_vars
 
 
 def post_process_cruise_objs_by_type(cruises_profile_objs):
     # Rename variables and add argovis mappings
 
     updated_cruises_profile_objs = []
+
+    kept_vars_all_cruise_objs = []
+    deleted_vars_all_cruise_objs = []
 
     for cruise_profiles_obj in cruises_profile_objs:
         cruise_expocode = cruise_profiles_obj["cruise_expocode"]
@@ -883,10 +952,23 @@ def post_process_cruise_objs_by_type(cruises_profile_objs):
 
         updated_all_data_types_profile_objs = []
 
+        kept_vars_cruise_obj = {}
+        kept_vars_cruise_obj["cruise_expocode"] = cruise_expocode
+        kept_vars_cruise_obj["vars"] = []
+
+        deleted_vars_cruise_obj = {}
+        deleted_vars_cruise_obj["cruise_expocode"] = cruise_expocode
+        deleted_vars_cruise_obj["vars"] = []
+
         for profiles_obj in all_data_types_profile_objs:
             data_type = profiles_obj["data_type"]
 
-            updated_data_profiles = process_data_profiles(profiles_obj)
+            updated_data_profiles, kept_vars, deleted_vars = process_data_profiles(
+                profiles_obj
+            )
+
+            kept_vars_cruise_obj["vars"].append(kept_vars)
+            deleted_vars_cruise_obj["vars"].append(deleted_vars)
 
             new_profiles_obj = {}
             new_profiles_obj["data_type"] = data_type
@@ -901,4 +983,11 @@ def post_process_cruise_objs_by_type(cruises_profile_objs):
 
         updated_cruises_profile_objs.append(cruise_profiles_obj)
 
-    return updated_cruises_profile_objs
+        kept_vars_all_cruise_objs.append(kept_vars_cruise_obj)
+        deleted_vars_all_cruise_objs.append(deleted_vars_cruise_obj)
+
+    return (
+        updated_cruises_profile_objs,
+        kept_vars_all_cruise_objs,
+        deleted_vars_all_cruise_objs,
+    )
