@@ -176,9 +176,15 @@ def convert_oxygen(nc_profile, var, profiles_no_oxy_conversions):
     oxy = nc_profile[var]
     oxy_dtype = nc_profile[var].dtype
 
+    logging.info("O2 before conversion")
+    logging.info(oxy)
+
     var_qc = f"{var}_qc"
 
     missing_var_flag = False
+
+    sal_pr = None
+    temp = None
 
     use_sal, sal_qc, profiles_no_oxy_conversions = get_sal_to_use_and_qc(
         nc_profile, var, profiles_no_oxy_conversions
