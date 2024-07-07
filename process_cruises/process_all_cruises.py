@@ -279,7 +279,7 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
 
         # Has an excluded var and check the qc column
         # is also excluded
-        test_cruise_expocode = "33RR20160321"
+        # test_cruise_expocode = "33RR20160321"
 
         # This cruise has btl and ctd, but when
         # combine on station cast, some have only
@@ -319,6 +319,11 @@ def setup_test_cruise_objs(netcdf_cruises_objs):
 
         # cruise where renaming ctd_oxygen to oxygen clobbers original var named oxygen
         # test_cruise_expocode = '33RR20220613'
+
+        # has a file expocode different than cruise expocode
+        # "expocode": "06AQ200012_3",
+        # "file_expocode": "06ANTXVIII_3",
+        test_cruise_expocode = "06AQ200012_3"
 
         netcdf_cruises_objs = [
             cruise_obj
@@ -376,7 +381,10 @@ def add_file_data(netcdf_cruise_obj):
 
             # disable mask_and_scale because it was filling qc values
             # with NaN instead of 9
-            nc = xr.open_dataset(fs.open(file_path), mask_and_scale=False)
+            nc = xr.open_dataset(
+                fs.open(file_path, mode="rb", cache_type="readahead"),
+                mask_and_scale=False,
+            )
 
         except fsspec.exceptions.FSTimeoutError:
             logging.error(f"Error: {file_path} was not fetched")
